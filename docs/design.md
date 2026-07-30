@@ -1,6 +1,6 @@
 # 설계 결정 — Company-X MCP 검색 시스템
 
-> 과제 원문 요구는 [requirements.md](./requirements.md), 용어는 [/CONTEXT.md](../CONTEXT.md) 참조.
+> 과제 원문 요구는 [requirements.md](./requirements.md), 용어는 [/CONTEXT.md](../CONTEXT.md), 각 결정을 뒷받침하는 관련 연구는 [references/related-work.md](./references/related-work.md) 참조.
 > 이 문서는 **우리 팀이 내린 결정**과 그 이유, 아직 열어둔 항목을 기록한다. (2026-07-30 그릴 세션 결과)
 
 ## 아키텍처 한 장
@@ -93,5 +93,5 @@ nodes.json/edges.json을 PostgreSQL 테이블(nodes, edges)로 적재하고, 다
 | 청킹 전략 | 미정 | 문서 40건 규모라 단순 전략으로 시작. 과적합 방지 차원에서 문서별 튜닝 안 함 |
 | LLM 모델 | 기본값 후보 | Gemma 4 E2B (블로그·공지 권장). KOSSA "7B" 표기와 차이 → 주최 측 문의 후보 |
 | TACC 적용 세부 | 방향만 확정 | 적용 지점 2곳: ① `ask` 반환 컨텍스트 선별 ② nl2sql 스키마 선별 제공. 세부는 필수 논문 [1] 정독 후 |
-| nl2sql 재시도 횟수 | 미정 | SQL 생성 실패 시 재시도 정책 (edge-cases.md T1). 구현 시 결정 |
+| nl2sql 재시도 횟수 | 미정 (제약 하나 확정) | SQL 생성 실패 시 재시도 정책 (edge-cases.md T1). **재시도는 실행 오류 메시지 같은 외부 신호를 반드시 물려야 하고, LLM 자체 검토 루프는 금지** — Huang et al., "LLMs Cannot Self-Correct Reasoning Yet" (ICLR 2024): 외부 피드백 없는 자기교정은 성능을 떨어뜨린다 |
 | 유사도 임계값 | 미정 | vector_search "관련 문서 없음" 판정 기준 (edge-cases.md T4). 데이터셋 역산 아닌 일반 기준으로 |
