@@ -60,10 +60,10 @@ PostgreSQL + pgvector 위에 벡터 검색, NL2SQL, 지식 그래프를 **MCP(Mo
 
 ## 참고 자료
 
-**필수 참조**
-1. 전현우, 김태성, 강현 (2026). MCP 컨텍스트 구성이 소형 언어모델 성능에 미치는 영향. https://zenodo.org/records/18842478
-2. Jeon, H. (2026). Pylon-7: A 7-Layer Reference Model for AI Agent Workflows. https://zenodo.org/records/18808598
-3. Anthropic (2024). Model Context Protocol Specification. https://modelcontextprotocol.io
+**필수 참조** (건별 정리: `docs/references/`)
+1. 전현우, 김태성, 강현 (2026). MCP 컨텍스트 구성이 소형 언어모델 성능에 미치는 영향. https://zenodo.org/records/18842478 → [정리](./references/tacc-context-composition.md)
+2. Jeon, H. (2026). Pylon-7: A 7-Layer Reference Model for AI Agent Workflows. https://zenodo.org/records/18808598 → [정리](./references/pylon-7.md)
+3. Anthropic (2024). Model Context Protocol Specification. https://modelcontextprotocol.io → [정리](./references/mcp-spec.md)
 
 **권장 참조**: pgvector, Ollama, Lewis et al. (2020) RAG, Liu et al. (2024) Lost in the Middle, Hou et al. (2025) MCP Landscape, air 프레임워크.
 
