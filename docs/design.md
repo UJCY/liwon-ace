@@ -38,6 +38,7 @@ PostgreSQL (+ pgvector)   ← 문서 청크·정형 테이블·그래프 전부 
 
 - **이유**: 블로그 문면 "3개의 MCP 도구를 구현합니다"와 README 표(라우터 포함 4개를 MCP 도구로 표기)를 동시에 충족. `ask`만 노출하면 도구 3종 구현 요구 미충족으로 해석될 심사 리스크.
 - 도구 식별자는 questions.json의 `tool` 값(`nl2sql`, `vector_search`, `knowledge_graph`)과 일치시킨다.
+- **부수 효과 — 에이전트 입장에서 선택지가 1개다**: 에이전트는 평소 `ask`만 호출하므로 도구 선택 문제를 겪지 않는다. Mem2ActBench(arXiv:2601.19935) Table 5는 후보 도구 수가 1→2→5로 늘 때 hard negative 조건에서 선택 정확도가 94.5%→78.0%→69.75%로 떨어짐을 보인다. **다만 같은 실험에서 random negative는 무변화(93.5~95.5%)였다 — 원인은 개수 자체가 아니라 의미적으로 겹치는 후보의 존재다.** 따라서 논거는 "도구를 적게 유지한다"가 아니라 **"에이전트에게 선택을 요구하지 않고, 노출하는 3종은 서로 데이터 자산이 겹치지 않게 설계한다"**로 쓰는 것이 문헌상 정확하다. 자세한 근거는 [references/related-work.md](./references/related-work.md) 5장
 
 ### D3. 병렬 정책 — 기본 단일, 애매하면 병렬
 
@@ -87,11 +88,11 @@ nodes.json/edges.json을 PostgreSQL 테이블(nodes, edges)로 적재하고, 다
 
 | 항목 | 상태 | 메모 |
 |------|------|------|
-| 구현 스택 | **미정** | TypeScript + air / TypeScript + 공식 MCP SDK / Python + FastMCP. air는 주최사 권장 — 실제 설치 가능 여부 검증 후 결정 |
-| MCP transport | 미정 | stdio vs Streamable HTTP. 스택 결정에 종속 |
+| 구현 스택 | **미정 — 검토 완료, 프로토타입 대기** | [air-evaluation.md](./air-evaluation.md) 참조. air는 실물 확인됨(`@airmcp-dev/core` 0.3.0, Apache-2.0)이며 **공식 SDK 래퍼**라 이탈 비용이 낮다. 채택 근거는 7-Layer Meter(Pylon-7 계측)와 주최사 권장, 최대 리스크는 SDK ^1.29.0(3월) 경유로 인한 **스펙 리비전 지연**. 검증 3항목 후 결정 |
+| MCP transport | 미정 | stdio vs Streamable HTTP. 스택 결정에 종속. air는 3종 모두 설정 한 줄로 지원 |
 | 임베딩 모델 | 기본값 후보 | 공지 예시 nomic-embed-text (Ollama). 확정은 스택 결정 시 |
 | 청킹 전략 | 미정 | 문서 40건 규모라 단순 전략으로 시작. 과적합 방지 차원에서 문서별 튜닝 안 함 |
 | LLM 모델 | 기본값 후보 | Gemma 4 E2B (블로그·공지 권장). KOSSA "7B" 표기와 차이 → 주최 측 문의 후보 |
 | TACC 적용 세부 | 방향만 확정 | 적용 지점 2곳: ① `ask` 반환 컨텍스트 선별 ② nl2sql 스키마 선별 제공. 세부는 필수 논문 [1] 정독 후 |
-| nl2sql 재시도 횟수 | 미정 (제약 하나 확정) | SQL 생성 실패 시 재시도 정책 (edge-cases.md T1). **재시도는 실행 오류 메시지 같은 외부 신호를 반드시 물려야 하고, LLM 자체 검토 루프는 금지** — Huang et al., "LLMs Cannot Self-Correct Reasoning Yet" (ICLR 2024): 외부 피드백 없는 자기교정은 성능을 떨어뜨린다 |
+| nl2sql 재시도 횟수 | 미정 (제약 하나 확정) | SQL 생성 실패 시 재시도 정책 (edge-cases.md T1). **재시도는 실행 오류 메시지 같은 외부 신호를 반드시 물려야 하고, LLM 자체 검토 루프는 금지** — Huang et al., "LLMs Cannot Self-Correct Reasoning Yet" (ICLR 2024): 외부 피드백 없는 자기교정은 성능을 떨어뜨린다. **따라서 air의 `retryPlugin`(동일 입력 재호출)은 쓸 수 없고 도구 핸들러 안에서 직접 구현해야 한다** |
 | 유사도 임계값 | 미정 | vector_search "관련 문서 없음" 판정 기준 (edge-cases.md T4). 데이터셋 역산 아닌 일반 기준으로 |
