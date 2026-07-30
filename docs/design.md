@@ -74,6 +74,16 @@ nodes.json/edges.json을 PostgreSQL 테이블(nodes, edges)로 적재하고, 다
 - **이유**: 엣지 견고성과 과적합 방지 동시 충족. questions.json 30개는 전부 정상 매칭 질문이라 엣지 검증 능력이 없음 — 자체 세트가 어차피 필요.
 - 케이스 카탈로그: [edge-cases.md](./edge-cases.md) (라우터 경계 / 도구 실패 / 응답 품질 3개 카테고리).
 
+### D8. 구현 스택 — 공식 MCP SDK 직접 사용 (air 미채택)
+
+TypeScript + `@modelcontextprotocol/sdk` 1.30.0. 주최사 권장 프레임워크인 air(`@airmcp-dev/core` 0.3.0)는 채택하지 않는다. 프로토콜 리비전은 SDK가 지원하는 최신인 **`2025-11-25`**.
+
+- **이유**: air 채택을 정당화하던 유일한 실질 기능은 **7-Layer Meter**(필수 참조 [2] Pylon-7의 계층을 계측)였는데, **실측에서 동작하지 않음을 확인했다.** `defineTool`에 `layer`를 명시해도 `meter-middleware.js`의 `classify()`가 도구 이름·파라미터만 보고 `layer` 속성을 무시한다(타입과 공식 문서에는 있는데 구현에 없다). 자동 분류 규칙도 완전 일치 정규식이라 우리 도구명이 하나도 걸리지 않아 모든 호출이 L4로 뭉개진다. 검증 상세는 [air-evaluation.md](./air-evaluation.md) 8절
+- 도구가 4개뿐이라 보일러플레이트 절감은 결정 근거가 되지 못하고, 플러그인 19종 중 우리에게 맞는 것은 timeout·dedup 둘뿐이다(`retryPlugin`은 T1 제약과 충돌).
+- 과제 문서가 air를 **"사용 의무는 없습니다"**로 명시하므로 미채택에 규정 위반은 없다. air를 검토하고 근거를 들어 기각한 기록 자체가 심사 서술이 된다.
+- **기각으로 잃는 것과 대안**: Pylon-7 계층 계측은 포기하지 않는다. 도구 핸들러를 감싸는 얇은 래퍼에서 계층을 상수로 붙여 기록하며, air의 이름 패턴 추측보다 논문 계층 정의에 맞춰 우리가 명시하는 편이 정확하다 — `ask` = L5 Routing, 도구 3종 = L3 Resource.
+- **부수 확인**: SDK 1.30.0의 `LATEST_PROTOCOL_VERSION`이 `2025-11-25`라, 스펙 문서상 최신인 2026-07-28 리비전은 **어떤 스택을 골라도 구현할 수 없다**. air의 리스크가 아니라 생태계 상태였다 ([mcp-spec.md](./references/mcp-spec.md) 교정 반영).
+
 ## 도구별 실제 예시 (questions.json 기반)
 
 | 질문 | 라우터 선택 | 처리 |
@@ -88,8 +98,8 @@ nodes.json/edges.json을 PostgreSQL 테이블(nodes, edges)로 적재하고, 다
 
 | 항목 | 상태 | 메모 |
 |------|------|------|
-| 구현 스택 | **미정 — 검토 완료, 프로토타입 대기** | [air-evaluation.md](./air-evaluation.md) 참조. air는 실물 확인됨(`@airmcp-dev/core` 0.3.0, Apache-2.0)이며 **공식 SDK 래퍼**라 이탈 비용이 낮다. 채택 근거는 7-Layer Meter(Pylon-7 계측)와 주최사 권장, 최대 리스크는 SDK ^1.29.0(3월) 경유로 인한 **스펙 리비전 지연**. 검증 3항목 후 결정 |
-| MCP transport | 미정 | stdio vs Streamable HTTP. 스택 결정에 종속. air는 3종 모두 설정 한 줄로 지원 |
+| ~~구현 스택~~ | **확정 (D8)** | TypeScript + `@modelcontextprotocol/sdk` 1.30.0 직접 사용. air 미채택 — 근거는 아래 D8 |
+| MCP transport | 미정 | stdio로 시작. 심사 시연에서 원격 접근이 필요하면 Streamable HTTP 추가 검토. 프로토타입에서 stdio 동작 확인됨 |
 | 임베딩 모델 | 기본값 후보 | 공지 예시 nomic-embed-text (Ollama). 확정은 스택 결정 시 |
 | 청킹 전략 | 미정 | 문서 40건 규모라 단순 전략으로 시작. 과적합 방지 차원에서 문서별 튜닝 안 함 |
 | LLM 모델 | 기본값 후보 | Gemma 4 E2B (블로그·공지 권장). KOSSA "7B" 표기와 차이 → 주최 측 문의 후보 |
