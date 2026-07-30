@@ -428,3 +428,88 @@
 | **청킹 단순 전략** | Qu, Tu & Bao (Findings of NAACL 2025) — 시맨틱 청킹은 비용만큼의 이득이 없다 |
 | **T1 재시도 정책** | Huang et al. (ICLR 2024) — 외부 피드백 없는 자기교정은 해롭다. 재시도는 실행 오류를 물려야 한다 |
 | **온톨로지 근거** | ISO/IEC 39075:2024 (GQL), SQL/PGQ (SIGMOD 2022) — 프로퍼티 그래프는 W3C가 아니라 ISO 계열 |
+
+---
+
+# 5. 선택지 개수 → 성능 저하 정량화 (arXiv 포함)
+
+> 앞선 4개 영역과 달리 **arXiv-only를 허용해 수집한 목록**이다. 4.8절이 지적한 갭("도구 수 증가 → 정확도 하락을 정면 정량화한 문헌이 피어리뷰 안에 거의 없다")을 메우기 위한 것이다.
+>
+> **정독하지 않았고, 정독 우선순위도 낮다** ([reading-priority.md](../reading-priority.md) 티어 4). D2는 이미 확정된 결정이므로 이 수치는 구현을 바꾸지 않고 서술·인용에만 쓰인다. 수치는 초록·표에서 확인된 것만 기록했고, 확인 못 한 것은 "수치 미확인"으로 남겼다.
+
+## 5.1 도구 개수 스케일링 → 선택/호출 정확도 저하
+
+| 저자(연도) | 제목 | 발표처 | URL | 핵심 수치 | 신뢰도 |
+|---|---|---|---|---|---|
+| Repantis et al. (2026) | How Many Tools Should an LLM Agent See? A Chance-Corrected Answer | arXiv:2605.24660 | https://arxiv.org/abs/2605.24660 | BFCL 370 도구·Claude Sonnet 4.6. **정답 도구가 후보에 있어도** 선택률 K=1 100.0% → K≈2.2 93.1% → **K=5 87.1%**. 인용구: "over-presentation reduces downstream choice accuracy" | arXiv-only |
+| Gillespie & Perry (2026) | Scaling Enterprise Agent Routing: Degradation, Diagnosis, and Recovery | arXiv:2606.17519 | https://arxiv.org/abs/2606.17519 | 실배포 110 에이전트·584 도구. **10→110개 확대 시 라우팅 F1이 모델 3종 전부 16~23%p 하락.** 완벽 검색 가정한 oracle 상한도 10%p 하락. 임베딩 shortlisting으로 +10~11%p 회복 | arXiv-only |
+| Lei et al. (2025) | MCPVerse: An Expansive, Real-World Benchmark for Agentic Tool Use | arXiv:2508.16260 | https://arxiv.org/abs/2508.16260 | 도구 수만 변화시킨 3단 모드. **Claude-4-Sonnet 62.4%(220+ 도구) → 44.2%(550+ 도구, ~140k 토큰)** | arXiv-only |
+| Gan & Sun (2025) | RAG-MCP: Mitigating Prompt Bloat in LLM Tool Selection via RAG | arXiv:2505.03275 | https://arxiv.org/abs/2505.03275 | MCP stress test에서 **전체 도구를 컨텍스트에 넣는 베이스라인 선택 정확도 13.62%**, 검색 축소 시 43.13%. 프롬프트 토큰 50%+ 절감 | arXiv-only |
+| Mo et al. (2025/2026) | LiveMCPBench: Can Agents Navigate an Ocean of MCP Tools? | arXiv:2508.01780 | https://arxiv.org/abs/2508.01780 | 70 서버·527 도구. Claude-Sonnet-4 78.95%, 대부분 모델 30~50%. **실패의 약 절반이 검색 오류** | arXiv-only |
+| Liu et al. (2025/2026) | ToolScope: Enhancing LLM Agent Tool Use through Tool Merging and Context-Aware Filtering | arXiv:2510.20036 | https://arxiv.org/abs/2510.20036 | 초록이 원인 명시 — 중복·유사 도구가 "introducing ambiguity and reducing selection accuracy". 병합+필터링으로 선택 정확도 **8.38~38.6% 향상** | **ACL 2026 Main** |
+| Bandi et al. (2026) | MCP-Atlas: A Large-Scale Benchmark for Tool-Use Competency with Real MCP Servers | arXiv:2602.00933 | https://arxiv.org/abs/2602.00933 | 36 실서버·220 도구. pass rate 최대 82.2%. **실패의 63.3%가 호출 오류가 아닌 "인지적" 실패** = 스키마는 맞지만 판단이 틀림 | arXiv-only |
+| Fei et al. (2025) | MCP-Zero: Active Tool Discovery for Autonomous LLM Agents | arXiv:2506.01056 | https://arxiv.org/abs/2506.01056 | 308 서버·2,797 도구 전량 투입 시 248.1k 토큰. APIBank에서 토큰 98% 절감하며 정확도 유지 (저하 곡선 수치 미확인) | arXiv-only |
+| Wang et al. (2026) | Beyond Accuracy: A Cognitive Load Framework for Mapping the Capability Boundaries of Tool-use Agents | arXiv:2601.20412 | https://arxiv.org/abs/2601.20412 | 인지 부하를 파라미터로 조절하는 ToolLoad-Bench, "distinct performance cliffs as cognitive load increases" (수치 미확인) | **AAAI 2026** |
+| Dong et al. (2025/2026) | MSC-Bench: 5-Level Benchmark for Tool Orchestration in the MCP Ecosystem | arXiv:2510.19423 | https://arxiv.org/abs/2510.19423 | 기능 중첩·크로스서버 오케스트레이션이 기존 벤치마크의 "overly optimistic" 평가를 만든다 (수치 미확인) | **Findings of EACL 2026** |
+
+## 5.2 디스트랙터 주입 → 성능 저하
+
+| 저자(연도) | 제목 | 발표처 | URL | 핵심 수치 | 신뢰도 |
+|---|---|---|---|---|---|
+| **Shen et al. (2026)** | **Mem2ActBench: A Benchmark for Evaluating Long-Term Memory Utilization in Task-Oriented Autonomous Agents** | arXiv:2601.19935 | https://arxiv.org/abs/2601.19935 | **§5.4 Table 5 직접 확인.** 후보 도구 수 1→2→5일 때 선택 정확도 — **hard negative(정답과 의미적으로 가장 유사): 94.50% → 78.00% → 69.75%. random negative: 94.50% → 95.50% → 93.50% (무변화)** | arXiv-only |
+| Yeon et al. (2025/2026) | Quantitative Certification of Agentic Tool Selection | arXiv:2510.03992 | https://arxiv.org/abs/2510.03992 | BFCL·OpenAPI 도구 풀에서 Distractor Selection / Top-N Saturation 스펙 하에 **인증된 정확도 상한이 약 20%까지 하락** | arXiv-only |
+| Lee et al. (2026) | Lost in the Noise: How Reasoning Models Fail with Contextual Distractors (NoisyBench) | arXiv:2601.07226 | https://arxiv.org/abs/2601.07226 | RAG·추론·정렬·tool-use 4영역 11개 데이터셋. hard negative 디스트랙터 하에서 **SOTA 모델 최대 80% 성능 하락** | arXiv-only |
+| Zhang et al. (2026) | Are Tools All We Need? Unveiling the Tool-Use Tax in LLM Agents | arXiv:2605.00136 | https://arxiv.org/abs/2605.00136 | 의미적 디스트랙터 하에서 **도구 증강이 native CoT를 못 이긴다**는 반직관 결과. "tool-use tax" (수치 미확인) | arXiv-only |
+| Kwak et al. (2025) | ToolHaystack: Stress-Testing Tool-Augmented LMs in Realistic Long-Term Interactions | arXiv:2505.23662 | https://arxiv.org/abs/2505.23662 | 14개 SOTA LLM — 표준 멀티턴은 양호하나 노이즈 섞인 장기 상호작용에서 크게 고전 (수치 미확인) | arXiv-only |
+
+## 5.3 일반 선택지 개수 → 판단 정확도 저하 (도구 외)
+
+| 저자(연도) | 제목 | 발표처 | URL | 핵심 수치 | 신뢰도 |
+|---|---|---|---|---|---|
+| Repantis et al. (2026) | The 99% Success Paradox: When Near-Perfect Retrieval Equals Random Selection | arXiv:2605.18857 | https://arxiv.org/abs/2605.18857 | 20 Newsgroups에서 **BM25·SPLADE 모두 K=100에서 성공률 >99%인데 Bits-over-Random ≈ 0**(랜덤 수준 선택성). 기대 커버리지 비율이 3~5를 넘으면 선택성 붕괴 | **ICLR Blog Track 2026** |
+| Lee & Son (2026) | Pushing the Boundaries of Multiple Choice Evaluation to One Hundred Options | arXiv:2604.14634 | https://arxiv.org/abs/2604.14634 | 후보를 100개까지 확대. padding-controlled 통제 실험 결과 **병목은 컨텍스트 길이가 아니라 후보 랭킹 자체**. 실패 모드 2종: semantic confusion, 앞쪽 편향 (정확한 % 미확인) | arXiv-only |
+| Amiraz et al. (2025) | The Distracting Effect: Understanding Irrelevant Passages in RAG | arXiv:2505.06914 | https://arxiv.org/abs/2505.06914 | 무관 패시지의 distracting effect 정량화 프레임워크. hard distractor 파인튜닝으로 정답률 최대 7.5% 향상 (저하폭 미확인) | **ACL 2025 Long** |
+| Valkanova & Yordanov (2024) | Irrelevant Alternatives Bias Large Language Model Hiring Decisions | arXiv:2409.15299 | https://arxiv.org/abs/2409.15299 | **무관한 열등 선택지(decoy) 추가만으로** GPT-3.5·GPT-4의 선택이 유의하게 이동. 프롬프트 경고로도 견고하게 유지 (수치 미확인) | **Findings of EMNLP 2024** |
+
+## 5.4 도구 설명 길이·토큰 → 성능
+
+| 저자(연도) | 제목 | 발표처 | URL | 핵심 수치 | 신뢰도 |
+|---|---|---|---|---|---|
+| Hasan et al. (2026) | MCP Tool Descriptions Are Smelly! Towards Improving AI Agent Efficiency with Augmented MCP Tool Descriptions | arXiv:2602.14878 | https://arxiv.org/abs/2602.14878 | 103 MCP 서버·856 도구 실측. **97.1%가 최소 1개 smell, 56%는 목적 불명확.** 설명 전면 보강 시 성공률 중위 +5.85%p이지만 **실행 스텝 +67.46%, 16.67% 케이스는 퇴행.** compact 조합이 신뢰성 유지하며 토큰 절감 | arXiv-only |
+| Kutschka & Geiger (2026) | Notation Matters: A Benchmark Study of Token-Optimized Formats in Agentic AI Systems | arXiv:2605.29676 | https://arxiv.org/abs/2605.29676 | 벤치마크 4종·open-weight LLM 5종. **TRON 토큰 27% 절감 대가로 정확도 JSON 대비 14%p 이내 하락, TOON 18% 절감에 9%p 하락** — 스키마 토큰 압축은 공짜가 아니다 | arXiv-only |
+| Krikorian et al. (2026) | NTILC: Neural Tool Invocation via Learned Compression | arXiv:2606.06566 | https://arxiv.org/abs/2606.06566 | 전체 스펙 투입 시 비용이 레지스트리 크기에 선형 증가하고 "degrades selection accuracy, particularly due to interference from irrelevant tools". 컨텍스트 95%+ 절감 (저하폭 미확인) | arXiv-only |
+| Zeng et al. (2026) | LOCA-bench: Benchmarking Language Agents Under Controllable and Extreme Context Growth | arXiv:2602.07962 | https://arxiv.org/abs/2602.07962 | 태스크 의미를 고정한 채 컨텍스트만 통제 확장하는 "context rot" 벤치마크 (수치 미확인) | arXiv-only |
+
+## 5.5 반증 문헌 — 인용 전에 반드시 알아야 할 것
+
+| 저자(연도) | 제목 | 발표처 | URL | 왜 중요한가 | 신뢰도 |
+|---|---|---|---|---|---|
+| **Chen (2026)** | **Looking Is Not Picking: An Attention-Segment Account of Tool-Selection Failures in LLM Agents** | arXiv:2606.16364 | https://arxiv.org/abs/2606.16364 | **"정보 과부하 때문"이라는 통설을 정면 반박.** 모델은 정답 도구에 80%(우연 21%) 어텐션을 주면서도 오선택한다. **프롬프트 측 개선은 실패의 ≤23%만 복구, readout 측 개입은 59~91% 복구** — 병목은 어텐션 배분이 아니라 결정 메커니즘 | arXiv-only |
+| Lei et al. (2025) — MCPVerse 내 단서 | (5.1과 동일) | arXiv:2508.16260 | https://arxiv.org/abs/2508.16260 | Claude-4-Sonnet은 **Oracle(최소 도구)보다 Standard(220+ 도구)에서 더 높은 정확도**를 냈다. 넓은 도구 공간이 새 해법 경로를 여는 케이스가 있으므로 "도구는 적을수록 항상 좋다"는 무조건적 주장에는 반례가 있다 | arXiv-only |
+| Bhat et al. (2026) | Benchmarking the Benchmarks: A Validity Audit of Tool-Calling Evaluation | arXiv:2607.02577 | https://arxiv.org/abs/2607.02577 | BFCL v4·τ2-Bench·LiveMCPBench·MCP-Atlas 감사 — 496 태스크 중 **18.5% 평가자-인간 불일치**, LiveMCPBench 동일 설정 23회 반복에서 **57.9%~76.8%(18.9%p 분산)**. 위 벤치마크 기반 수치 인용 시 오차범위에 주의 | arXiv-only |
+
+## 5.6 인용 금지 — 널리 퍼졌으나 원논문에서 확인 실패
+
+조사 에이전트가 원논문까지 확인했으나 존재하지 않았던 수치다. 웹에서 자주 인용되지만 **쓰지 않는다.**
+
+| 떠도는 수치 | 확인 결과 |
+|---|---|
+| "도구 49→741개에서 성능 7~85% 하락" | 출처가 블로그(nexla, jenova, tianpan)뿐이고 학술 인용 없음 |
+| "MCP-Universe에서 무관 서버 추가 시 Claude-4.0-Sonnet 22.22%→11.11%" | arXiv:2508.14704 PDF 전문(1.8MB)까지 확인했으나 **해당 분석이 논문에 존재하지 않음** |
+
+## 5.7 우리 설계와의 연결 — 논거 프레임을 교정한다
+
+**교정 전(부정확)**: "도구를 적게 유지하면 선택 정확도가 높다."
+**교정 후(문헌상 방어 가능)**: **"에이전트에게 도구 선택을 요구하지 않고, 노출하는 도구는 서로 의미적으로 겹치지 않게 설계한다."**
+
+근거는 Mem2ActBench Table 5다. 후보 도구를 1→5개로 늘릴 때 **hard negative 조건에서만** 94.50%→69.75%로 붕괴하고, **random negative 조건에서는 무변화**(93.5~95.5%)였다. 즉 원인은 개수 자체가 아니라 **의미적으로 겹치는 후보의 존재**다.
+
+이 교정이 우리 설계에 주는 함의:
+
+| 함의 | 내용 |
+|---|---|
+| **D2가 오히려 강화된다** | 에이전트는 `ask` 하나만 호출하므로 **선택지가 1개(K=1)** 다. Repantis et al.의 K=1 선택률 100.0%, Mem2ActBench의 N=1 94.50%가 우리가 있는 지점이다. 도구 3종을 함께 등록하되 에이전트에게 선택을 맡기지 않는 D1+D2 조합이 이 구간을 유지시킨다 |
+| **3종 도구의 경계를 명확히 유지해야 한다** | `vector_search`·`nl2sql`·`knowledge_graph`는 각각 비정형 문서 / 정형 테이블 / 관계 그래프에 대응하며 데이터 자산이 겹치지 않는다. 도구 설명(description)에서도 이 경계를 분명히 써야 한다 — 설명이 모호해지면 hard negative가 된다 |
+| **프레이밍 리스크** | Chen (2026)이 "정보 과부하" 인과를 반박한다. 발표·보고서에서 "도구가 많으면 과부하로 성능이 떨어진다"고 쓰면 반박 가능한 주장이 된다. **"near-miss 혼동 최소화"로 쓰는 것이 안전하며, 이는 이미 확보한 MetaTool(ICLR 2024, near-miss 디스트랙터) 논지와도 일관된다** |
+| 도구 설명 작성 지침 | Hasan et al. (2026) — 856개 도구 중 97.1%가 설명 smell을 갖고, 설명을 과하게 보강하면 실행 스텝이 +67% 늘고 일부는 퇴행한다. **compact하고 목적이 분명한 설명**을 목표로 한다 |
+| 수치 인용 시 오차 | Bhat et al. (2026) — 이 절의 벤치마크 기반 수치들은 반복 실행 분산이 최대 18.9%p다. 단정적으로 인용하지 않는다 |
