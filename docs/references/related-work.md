@@ -91,7 +91,7 @@
 | **T1** SQL 생성 실패 재시도 정책 (열린 항목) | Self-Debug (ICLR 2024), MAC-SQL Refiner — 실행 오류를 피드백으로 재시도하는 선행 사례 |
 | **T2** SELECT 외 구문 차단 | PICARD (EMNLP 2021) — 디코딩 단계에서 위반 토큰을 거부하는 제약 디코딩 |
 | **R1 / D6** 무매칭 거절, **Q3** 모름 답변 | Reliable Text-to-SQL with Adaptive Abstention (SIGMOD 2025), Know What I don't Know (Findings of ACL 2023) — **기권(abstention)을 정식 설계 요소로 다룬 피어리뷰 근거** |
-| **TACC** 적용 지점 ② nl2sql 스키마 선별 | RESDSQL, CRUSH4SQL, TableRAG, MAC-SQL Selector — 스키마를 전량 넣지 않고 선별하는 기법군 |
+| TACC — nl2sql 스키마 선별은 적용 지점이 아님 (테이블 8개뿐) | RESDSQL, CRUSH4SQL, TableRAG, MAC-SQL Selector — 대규모 스키마 선별 기법군. 우리 규모에서는 불필요함을 보여주는 대비 근거 |
 | 권장 LLM(소형·로컬) 실현 가능성 | DTS-SQL (7B로 BIRD 60.31%), CodeS, OmniSQL, ZeroNL2SQL |
 | questions.json 회귀 검증 (**D7**) | Test-suite 기반 실행 동등성 평가 (EMNLP 2020), Dr.Spider 강건성 섭동 |
 
@@ -398,7 +398,7 @@
 
 | 우리 결정 / 열린 항목 | 관련 문헌 |
 |---|---|
-| **D1** 라우터를 서버 측 게이트웨이로 (에이전트 부담 축소) | **Shen et al., Small LLMs Are Weak Tool Learners (EMNLP 2024)** — 소형 LLM은 계획·호출·요약을 단일 에이전트로 감당하지 못하므로 역할을 분해해야 한다. 우리가 도구 선택을 에이전트에서 서버로 옮긴 결정의 직접 근거 |
+| **D1** 라우터를 MCP 서버 측 도구로 (에이전트 부담 축소) | **Shen et al., Small LLMs Are Weak Tool Learners (EMNLP 2024)** — 소형 LLM은 계획·호출·요약을 단일 에이전트로 감당하지 못하므로 역할을 분해해야 한다. 우리가 도구 선택을 에이전트에서 서버로 옮긴 결정의 직접 근거 |
 | **D1** 규칙 기반 선택 (LLM 도구 선택 아님) | Hybrid LLM, RouteLLM, Zooter, GraphRouter — 라우팅을 별도 컴포넌트로 두는 설계 계보. MetaTool은 LLM 도구 선택의 실패 양상을 보여줌 |
 | **D2** 도구 4개만 등록 | ToolLLM(16k API), ToolGen(47k), ToolRet(43k 코퍼스에서 nDCG@10 33.83까지 붕괴) — **도구 인벤토리가 커질 때 선택이 무너진다는 반대편 증거. 우리는 도구를 4개로 유지하므로 이 문제를 구조적으로 회피한다는 논거로 쓸 수 있다** |
 | **D6** 무매칭 거절 (도구를 호출하지 않음) | **Toolken+ REJECT 옵션 (Findings of EMNLP 2024)**, **BFCL의 irrelevance 판단 항목 (ICML 2025)**, MetaTool의 "도구를 쓸지 말지", ToolBeHonest의 missing-tool 설정, Hammer의 irrelevance 민감도 — 거절을 정식 설계 요소로 다룬 피어리뷰 근거가 두텁다. When2Call(NAACL 2025)이 가장 근접 |
@@ -416,9 +416,9 @@
 
 | 결정 | 가장 직접적인 근거 |
 |---|---|
-| **D1** 서버 측 게이트웨이 라우터 | Small LLMs Are Weak Tool Learners (EMNLP 2024) — 소형 LLM에게 도구 선택까지 맡기지 말고 역할을 분해하라 |
+| **D1** 서버 측 규칙 라우터 | Small LLMs Are Weak Tool Learners (EMNLP 2024) — 소형 LLM에게 도구 선택까지 맡기지 말고 역할을 분해하라 |
 | **D2** 도구 4개 유지 | ToolRet (Findings of ACL 2025), MetaTool (ICLR 2024) — 도구 인벤토리가 커지면 선택이 붕괴한다 |
-| **D3** 기본 단일, 애매하면 병렬 + 결과 절사 | RULER (COLM 2024), Levy et al. (ACL 2024) — 실효 컨텍스트는 공언보다 짧다 |
+| **D3** 기본 단일, 상보 중복 구간만 병렬 + 결과 절사 | RULER (COLM 2024), Levy et al. (ACL 2024) — 실효 컨텍스트는 공언보다 짧다 |
 | **D4** 도구 내부 LLM SQL 생성 | DIN-SQL (NeurIPS 2023), DAIL-SQL (PVLDB 2024), DTS-SQL (Findings of EMNLP 2024 — 7B 로컬 모델 실증) |
 | **D4** SELECT-only 강제 | PostgreSQL `READ ONLY`·`GRANT SELECT` 공식 문서, Pedro et al. P2SQL 인젝션 (ICSE 2025) |
 | **D5** PostgreSQL + 재귀 CTE | PostgreSQL `WITH RECURSIVE` 공식 문서, All-in-One (SIGMOD 2017), Hirn & Grust (SIGMOD 2021) |
@@ -497,19 +497,18 @@
 | "도구 49→741개에서 성능 7~85% 하락" | 출처가 블로그(nexla, jenova, tianpan)뿐이고 학술 인용 없음 |
 | "MCP-Universe에서 무관 서버 추가 시 Claude-4.0-Sonnet 22.22%→11.11%" | arXiv:2508.14704 PDF 전문(1.8MB)까지 확인했으나 **해당 분석이 논문에 존재하지 않음** |
 
-## 5.7 우리 설계와의 연결 — 논거 프레임을 교정한다
+## 5.7 우리 설계와의 연결
 
-**교정 전(부정확)**: "도구를 적게 유지하면 선택 정확도가 높다."
-**교정 후(문헌상 방어 가능)**: **"에이전트에게 도구 선택을 요구하지 않고, 노출하는 도구는 서로 의미적으로 겹치지 않게 설계한다."**
+우리 논거는 **"에이전트에게 도구 선택을 요구하지 않는다"** 하나다. "도구를 적게 유지하면 정확도가 높다"(개수 프레임)나 "노출 도구는 서로 겹치지 않게 설계한다"(비중첩 프레임)는 쓰지 않는다.
 
-근거는 Mem2ActBench Table 5다. 후보 도구를 1→5개로 늘릴 때 **hard negative 조건에서만** 94.50%→69.75%로 붕괴하고, **random negative 조건에서는 무변화**(93.5~95.5%)였다. 즉 원인은 개수 자체가 아니라 **의미적으로 겹치는 후보의 존재**다.
+근거는 Mem2ActBench Table 5다. 후보 도구를 1→5개로 늘릴 때 **hard negative 조건에서만** 94.50%→69.75%로 붕괴하고, **random negative 조건에서는 무변화**(93.5~95.5%)였다 — 원인은 개수 자체가 아니라 **의미적으로 겹치는 후보의 존재**다. 그리고 우리 도구 3종은 실측상 이미 겹쳐 있다 — 지식 그래프는 정형 테이블에서 100% 도출되고, 문서 40건은 전부 그래프 개체를 언급하며, `support_tickets` title 28종 중 18종이 문서와 주제가 겹친다 ([dataset-analysis.md](../dataset-analysis.md)). 이 데이터셋에서 자산을 겹치지 않게 설계하는 선택지는 없다.
 
-이 교정이 우리 설계에 주는 함의:
+이 논거가 우리 설계에 주는 함의:
 
 | 함의 | 내용 |
 |---|---|
-| **D2가 오히려 강화된다** | 에이전트는 `ask` 하나만 호출하므로 **선택지가 1개(K=1)** 다. Repantis et al.의 K=1 선택률 100.0%, Mem2ActBench의 N=1 94.50%가 우리가 있는 지점이다. 도구 3종을 함께 등록하되 에이전트에게 선택을 맡기지 않는 D1+D2 조합이 이 구간을 유지시킨다 |
-| **3종 도구의 경계를 명확히 유지해야 한다** | `vector_search`·`nl2sql`·`knowledge_graph`는 각각 비정형 문서 / 정형 테이블 / 관계 그래프에 대응하며 데이터 자산이 겹치지 않는다. 도구 설명(description)에서도 이 경계를 분명히 써야 한다 — 설명이 모호해지면 hard negative가 된다 |
+| **D2와 정합적이다** | 에이전트는 도구 선택 문제를 겪지 않는다 (A안이면 `ask`만 호출, B안이면 코드가 집행 — D1·D2). Repantis et al.의 K=1 선택률 100.0%, Mem2ActBench의 N=1 94.50%가 우리가 있는 지점이다. 도구 3종을 함께 등록하되 에이전트에게 선택을 맡기지 않는 조합이 이 구간을 유지시킨다 |
+| **그래서 경계는 자산이 아니라 "요구 출력 형태"로 긋는다** | 도구 설명(description)도 이 축으로 쓴다 — `vector_search`=서술, `nl2sql`=정형 속성·수치, `knowledge_graph`=개체 식별·연결 ([design.md](../design.md) D9). 자산으로 설명을 쓰면 설명끼리 겹쳐 hard negative가 심해진다. 겹치는 구간 자체는 규칙에 중복 유형으로 명시해 처리한다(D3) |
 | **프레이밍 리스크** | Chen (2026)이 "정보 과부하" 인과를 반박한다. 발표·보고서에서 "도구가 많으면 과부하로 성능이 떨어진다"고 쓰면 반박 가능한 주장이 된다. **"near-miss 혼동 최소화"로 쓰는 것이 안전하며, 이는 이미 확보한 MetaTool(ICLR 2024, near-miss 디스트랙터) 논지와도 일관된다** |
 | 도구 설명 작성 지침 | Hasan et al. (2026) — 856개 도구 중 97.1%가 설명 smell을 갖고, 설명을 과하게 보강하면 실행 스텝이 +67% 늘고 일부는 퇴행한다. **compact하고 목적이 분명한 설명**을 목표로 한다 |
 | 수치 인용 시 오차 | Bhat et al. (2026) — 이 절의 벤치마크 기반 수치들은 반복 실행 분산이 최대 18.9%p다. 단정적으로 인용하지 않는다 |
