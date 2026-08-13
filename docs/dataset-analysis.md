@@ -98,6 +98,32 @@ print('MANAGES_ACCOUNT:', {('employee_%d'%d,'client_%d'%a) for _,a,b,d in c}==es
 
 ### 재현
 
+**문서 격자**
+
+
+```bash
+cd companyx-dataset-v1.0/documents
+python3 -c "
+import glob,re
+from collections import defaultdict
+grid=defaultdict(set); cli=defaultdict(set)
+T=['설치','아키텍처','운영','성능','API']
+for f in sorted(glob.glob('DOC-*.md')):
+    s=open(f,encoding='utf-8').read(); h=re.findall(r'^#\s*(.+)\$',s,re.M)[0].strip()
+    if h.startswith('Product'):
+        grid[re.findall(r'Product-[A-Z]\d+',h)[0]] |= {t for t in T if t in h}
+    k='incident' if '장애' in h else 'meeting' if '회의록' in h else 'proposal'
+    for c in set(re.findall(r'Client-[A-Z]+',s)): cli[c].add(k)
+print('제품 격자:', sum(len(v) for v in grid.values()), '/ 60   주제 2개 이상:', sum(1 for v in grid.values() if len(v)>1))
+print('고객사 격자:', sum(len(v) for v in cli.values()), '/ 90')
+"
+# 제품 격자: 10 / 60   주제 2개 이상: 0
+# 고객사 격자: 30 / 90
+```
+
+**그래프 격자**
+
+
 ```bash
 cd companyx-dataset-v1.0
 python3 -c "
@@ -119,28 +145,6 @@ print('그래프 격자:', f, '/', tot)
 "
 # employee 43 / 45 · client 11 / 30 · 나머지 0 결손
 # 그래프 격자: 322 / 416
-```
-
-### 재현
-
-```bash
-cd companyx-dataset-v1.0/documents
-python3 -c "
-import glob,re
-from collections import defaultdict
-grid=defaultdict(set); cli=defaultdict(set)
-T=['설치','아키텍처','운영','성능','API']
-for f in sorted(glob.glob('DOC-*.md')):
-    s=open(f,encoding='utf-8').read(); h=re.findall(r'^#\s*(.+)\$',s,re.M)[0].strip()
-    if h.startswith('Product'):
-        grid[re.findall(r'Product-[A-Z]\d+',h)[0]] |= {t for t in T if t in h}
-    k='incident' if '장애' in h else 'meeting' if '회의록' in h else 'proposal'
-    for c in set(re.findall(r'Client-[A-Z]+',s)): cli[c].add(k)
-print('제품 격자:', sum(len(v) for v in grid.values()), '/ 60   주제 2개 이상:', sum(1 for v in grid.values() if len(v)>1))
-print('고객사 격자:', sum(len(v) for v in cli.values()), '/ 90')
-"
-# 제품 격자: 10 / 60   주제 2개 이상: 0
-# 고객사 격자: 30 / 90
 ```
 
 ## 4. `support_tickets`에는 서술이 없다
@@ -232,6 +236,68 @@ print('집계 x 속성:', att, '-> 전부 nl2sql:', all(qs[i]['tool']=='nl2sql' 
 ```
 
 `\bCOUNT`의 단어 경계가 필요하다 — 없으면 `MANAGES_ACCOUNT`가 걸린다. 존재 확인에서 `어떻게`를 제외하지 않으면 `#15`("백업 정책은 어떻게 되어 **있어?**")가 걸린다.
+
+### 표층 신호 후보 2건 대조 — 하나는 실패, 하나는 유망
+
+라우터 규칙(D9)은 **의미**로 쓰여 있다. 코드가 무엇을 보고 판정할지 후보 둘을 30개에 대조했다. **부정 결과도 기록한다** — 같은 시도를 반복하지 않기 위해서다.
+
+**① 의문사 매핑 — 실패**
+
+`어떻게/왜/방법` → 서술, `얼마/몇/평균` → 수치, `누구/어디/목록` → 개체.
+
+| 태그 | 건수 | 배정된 도구 |
+|---|---:|---|
+| 서술 | 8 | `vector_search` 7 / **`knowledge_graph` 1** (`#28` 오분류) |
+| 수치 | 6 | `nl2sql` 6 — 일치 |
+| **개체** | 8 | **`nl2sql` 2 / `knowledge_graph` 6 — 양쪽에 걸침** |
+| 무태그 | **9** | `#0·5·6·16·17·19·24·25·29` |
+
+**의문사만으로는 도구가 정해지지 않는다.** 개체 태그가 두 도구에 걸치고 30%가 무태그다. 의문사는 **출력 형태** 축의 신호인데, `nl2sql`과 `knowledge_graph`는 출력 형태로 갈리지 않기 때문이다 ([design.md](./design.md) D11).
+
+**② 스키마 어휘 매칭 — 28/30**
+
+관계 7종(`USES`·`BELONGS_TO`·`HAS_PROJECT`·`LEADS`·`MANAGES_ACCOUNT`·`REPORTED_ISSUE`·`HEAD_IS`)과 테이블 컬럼명의 한국어 표층형으로 매칭. 관계만 걸리면 `knowledge_graph`, 속성이 걸리면 `nl2sql`, 둘 다 없으면 `vector_search`.
+
+| 미스 | 성격 |
+|---|---|
+| `#5` "가장 많은 프로젝트를 진행 중인 고객사는?" | **알려진 데이터셋 불일치** (위 결함 2건) |
+| `#17` "고객사 미팅에서 논의된 일정 지연 **이슈**는?" | **표층 문자열 충돌** — `REPORTED_ISSUE`의 "이슈"가 일반 명사와 겹친다 (edge-cases.md **R5**) |
+
+> **이 28/30을 실력으로 치지 않는다.** 한국어 표층형 매핑을 사람이 썼고 그 사람이 30개를 이미 읽은 뒤였다 — **출처가 스키마인지 질문인지 방향이 흐려졌을 위험**이 있다. D7이 막으려는 지점이 정확히 여기다. 자체 엣지 세트로 다시 재기 전까지는 "방향이 맞다"까지만 주장한다.
+
+```bash
+cd companyx-dataset-v1.0
+# ① 의문사 — 실패
+python3 -c "
+import json,re
+from collections import Counter
+qs=json.load(open('questions.json'))
+W=[(r'어떻게|어떤|왜|방법|내용|사례|현황','서술'),(r'얼마|몇|평균|총|수는','수치'),(r'누구|어디|누가|목록|무엇','개체')]
+tag={i:[n for p,n in W if re.search(p,x['q'])] for i,x in enumerate(qs)}
+for n in ['서술','수치','개체']:
+    ids=[i for i,t in tag.items() if n in t]
+    print(n, len(ids), dict(Counter(qs[i]['tool'] for i in ids)))
+print('무태그:', [i for i,t in tag.items() if not t])
+"
+# 서술 8 {'vector_search': 7, 'knowledge_graph': 1} / 수치 6 {'nl2sql': 6}
+# 개체 8 {'nl2sql': 2, 'knowledge_graph': 6} / 무태그 9건
+
+# ② 스키마 어휘 — 28/30
+python3 -c "
+import json,re
+qs=json.load(open('questions.json'))
+REL={r'사용|쓰는|쓰고':'USES',r'소속':'BELONGS_TO',r'담당':'MANAGES_ACCOUNT',r'이끄는|리드':'LEADS',r'팀장|장은':'HEAD_IS',r'프로젝트':'HAS_PROJECT',r'이슈':'REPORTED_ISSUE'}
+ATTR={r'매출|금액|예산':'amount',r'연봉':'salary',r'상태|활성':'status',r'지역':'region',r'분기':'quarter',r'카테고리':'category',r'우선순위':'priority',r'등록':'registered_at'}
+miss=[]
+for i,x in enumerate(qs):
+    r=[v for p,v in REL.items() if re.search(p,x['q'])]; a=[v for p,v in ATTR.items() if re.search(p,x['q'])]
+    g='knowledge_graph' if (r and not a) else ('nl2sql' if a else 'vector_search')
+    if g!=x['tool']: miss.append((i,g,x['tool'],r))
+print('일치:', 30-len(miss),'/30   미스:', miss)
+"
+# 일치: 28 /30   미스: [(5,'knowledge_graph','nl2sql',['HAS_PROJECT']),
+#                      (17,'knowledge_graph','vector_search',['REPORTED_ISSUE'])]
+```
 
 ## 6. 출처 3곳 전수 확인 — "Parallel"이 정의된 곳은 없다
 
