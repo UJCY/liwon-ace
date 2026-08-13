@@ -1126,12 +1126,41 @@ flowchart TB
       설명된다</b>는 점입니다.
     </p>
 
-    <h3>X5는 예외가 아니라 정상 경로다</h3>
+    <h3>X5는 예외가 아니라 정상 경로다 — 그리고 도구 3종 전부에 있다</h3>
     <p>
-      문서는 고객사 <span class="mono">15/30</span>, 제품 <span class="mono">10/12</span>만
-      커버하는데 나머지 개체도 테이블·그래프에는 전부 있습니다. 즉 문서가 없는 고객사의 “장애
-      원인”을 물으면 — 원인(서술)은 없고, 그래프에는 이슈를 보고했다는 사실이 있습니다.
-      <b>고객사의 절반이 상시 이 상태</b>입니다.
+      커버리지를 <b>개체 단위로 세면 놓칩니다.</b> 문서가 커버하는 제품은
+      <span class="mono">10/12</span>지만, <b>주제를 2개 이상 가진 제품은 0개</b>입니다 —
+      Product-C1은 설치 가이드만, Product-D1은 API 레퍼런스만 있습니다. 그래서
+      <b>(개체 × 요구 형태) 격자</b>로 재야 합니다.
+    </p>
+
+    <div class="table-wrap bleed" style="margin-bottom:1.1rem">
+      <table>
+        <caption>격자 밀도 — 밀도만 다르고 구조는 같다</caption>
+        <thead>
+          <tr><th>자산</th><th>격자</th><th>채워진 칸</th><th>밀도</th><th>빈손 케이스</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>문서</td><td>제품 × 기술주제</td><td class="num">10 / 60</td>
+              <td class="num"><b>17%</b></td><td class="mono">T4</td></tr>
+          <tr><td>문서</td><td>고객사 × 문서유형</td><td class="num">30 / 90</td>
+              <td class="num"><b>33%</b></td><td class="mono">T4</td></tr>
+          <tr><td>그래프</td><td>개체 × 가질 수 있는 관계</td><td class="num">322 / 416</td>
+              <td class="num">77%</td><td class="mono">T7</td></tr>
+          <tr><td>테이블</td><td>고객사 × 사실 테이블 4종</td><td class="num">106 / 120</td>
+              <td class="num">88%</td><td class="mono">T3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <b>X5는 <span class="mono">vector_search</span> 전용이 아닙니다.</b>
+      “이 직원이 이끄는 프로젝트는?”은 노드도 있고 소속도 있는데
+      <span class="mono">LEADS</span> 엣지만 없습니다(직원 <span class="mono">43/45</span>가
+      관계 일부 결손). “Client-X의 진행 중인 프로젝트는?”은
+      <span class="mono">projects</span> 0행인데 계약·매출·티켓은 있습니다.
+      <b>빈손 3종(T3·T4·T7)이 전부 X5 승격 후보</b>이고, 승격하지 않으면 확인된 사실을 버립니다.
+      개체 자체가 없는 T5만 승격 대상이 아닙니다.
     </p>
 
     <h3>응답은 여섯 상태, 두 계층</h3>
@@ -1151,7 +1180,7 @@ flowchart TB
   OK --> S1["단일 정상"]
   OK --> S2["병렬 병합 — X3 · X4"]
   OK --> S3["부분 응답 — X5"]
-  OK --> S4["데이터 부재 — T3 0행 · T4 유사도 미달 · T5 개체 없음"]
+  OK --> S4["데이터 부재 — T3 0행 · T4 유사도 미달 · T5 개체 없음 · T7 관계 없음"]
   OK --> S5["거절 out_of_scope — R1 무매칭"]
 </pre>
       </div>
@@ -1180,7 +1209,8 @@ flowchart TB
       </div>
       <div class="ev-measured">
         <p class="ev-label">데이터 실측</p>
-        <p>“병렬” 0회 / “Parallel” 1회 전수 검사. 문서 커버리지 15/30 · 10/12.
+        <p>“병렬” 0회 / “Parallel” 1회 전수 검사. 격자 밀도 문서 10/60 · 그래프 322/416 ·
+           테이블 106/120.
            티켓 <span class="mono">description</span>이 5종 템플릿 문구뿐이라 서술이 없습니다.</p>
         <p class="src">dataset-analysis.md 3·4·6장</p>
       </div>
