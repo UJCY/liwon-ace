@@ -111,11 +111,21 @@ print('MANAGES_ACCOUNT:', {('employee_%d'%d,'client_%d'%a) for _,a,b,d in c}==es
 
 **어느 출처도 "무엇이 병렬인지"를 정의하지 않는다.** 유일한 출현은 괄호 안 별칭이고, 문법적으로는 앞 구절("규칙 기반 라우터를 통한 도구 자동 선택")에 붙은 이름이다.
 
-오히려 블로그의 라우터 서술은 **단수 매칭**이다:
+블로그의 라우터 서술은 이렇다:
 
 > **도구 자동 선택** — 규칙 기반 라우터가 질문 유형을 분석하여 **적합한 도구를 자동 매칭**합니다.
 
-"적합한 도구**를**"(단수), "매칭"(호출 아님). 그리고 questions.json 30개가 전부 `tool` 단수다.
+**이 문장은 수를 명시하지 않는다.** 한국어는 복수 표지(`-들`)가 선택적이라 "적합한 도구를"은 단수·복수 어느 쪽으로도 읽힌다 — 조사 `를`은 수 표지가 아니다. 문면에서 읽어낼 수 있는 것은 "매칭"이지 "호출"이 아니라는 **어휘 선택**뿐이다.
+
+수를 결정하는 것은 문면이 아니라 스키마다.
+
+| 확인한 것 | 결과 |
+|---|---|
+| questions.json `tool` 필드 타입 | **`str` 30/30** |
+| `tool`이 배열인 것 | **0 / 30** |
+| 질문 객체 키 | `q` · `tool` · `hint` — 도구를 여럿 담을 필드가 없다 |
+
+→ 기대 출력이 도구 1개라는 것은 **스키마가 못 박은 사실**이다.
 
 → 출처 어디에도 병렬 호출 요구는 없다. 이 사실을 근거로 병렬을 설계 선택으로 규정한 결정은 [design.md](./design.md) D3.
 
@@ -126,4 +136,14 @@ print('MANAGES_ACCOUNT:', {('employee_%d'%d,'client_%d'%a) for _,a,b,d in c}==es
 ```bash
 UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
 curl -sS -L -A "$UA" https://liwonace.co.kr/blog/9 | grep -c "병렬"   # 0
+```
+
+```bash
+cd companyx-dataset-v1.0
+python3 -c "
+import json
+qs=json.load(open('questions.json'))
+print('타입:', {type(q['tool']).__name__ for q in qs})        # {'str'}
+print('배열:', sum(1 for q in qs if isinstance(q['tool'],list)), '/', len(qs))   # 0 / 30
+"
 ```
