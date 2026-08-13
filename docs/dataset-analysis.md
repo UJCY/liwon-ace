@@ -157,6 +157,8 @@ print('고객사 격자:', sum(len(v) for v in cli.values()), '/ 90')
 
 ## 5. questions.json의 성격과 결함
 
+> **번호 규약**: 이 저장소의 `#N`은 **0-indexed 배열 위치**다. `#5`는 여섯 번째 질문(*"가장 많은 프로젝트를 진행 중인 고객사는?"*)이고, `#23`은 스물네 번째(*"서울물산 담당 엔지니어는 누구야?"*)다. `questions.json`에 `id` 필드가 없어 위치로 참조한다. **1-indexed로 읽으면 전부 한 칸씩 어긋난다.**
+
 ### 스키마가 상정하는 것
 
 - `tool`이 **단수 문자열**. 30개 전부 질문당 도구 1개.
@@ -174,6 +176,62 @@ print('고객사 격자:', sum(len(v) for v in cli.values()), '/ 90')
 전수 검사 결과 미존재 개체를 참조하는 질문은 #23 하나뿐이다.
 
 #23은 라우팅이 맞더라도 실행하면 개체 부재(T5)가 된다. 회귀 기준을 2축으로 나눈 근거다 ([design.md](./design.md) D7).
+
+### 연산 축 전수 분류
+
+30개는 "단순한 조회"가 아니다. 아래 분류 **규칙은 우리가 정한 것**이고(스니펫에 전부 있다), 그 규칙을 30개에 적용한 결과가 아래 수치다.
+
+| 연산 축 | 건수 | 해당 `#N` |
+|---|---:|---|
+| **집계** (SUM·COUNT·AVG·GROUP BY) | **10 / 30** | 0·1·2·3·5·7·8·9·25·29 |
+| **최상급·정렬** (ORDER BY·LIMIT·"가장"·"상위") | **6 / 30** | 0·5·7·9·25·29 |
+| **시간 제약** (연도·분기·월·"최근"·"현재") | **5 / 30** | 1·2·3·8·10 |
+| **존재 확인** (답이 boolean) | 2 / 30 | 14·19 |
+| **부정** ("아직 해결되지 않은") | 1 / 30 | 6 |
+| **멀티홉** (hint에 홉 수 명시) | 1 / 30 | 24 |
+
+**집계가 3분의 1, 최상급이 5분의 1이다.** [design.md](./design.md) D9 규칙 문면에는 최상급·시간·부정·존재 확인이라는 말이 없다.
+
+### 집계의 도구 배정은 피연산자로 갈린다 — 예외 1건
+
+집계 10건을 **피연산자**로 나누면 이렇다.
+
+| 피연산자 | 건수 | 배정된 도구 |
+|---|---:|---|
+| **속성** (금액·연봉·행 수) | 7 (`#0·1·2·3·7·8·9`) | **전부 `nl2sql`** — 예외 0 |
+| **관계** (HAS_PROJECT · REPORTED_ISSUE · MANAGES_ACCOUNT) | 3 (`#5·25·29`) | `nl2sql` 1 / `knowledge_graph` 2 |
+
+**피연산자 축이 완벽히 가르고, 유일한 예외가 `#5`다** — 위 "결함 2건"의 그 건이다. 출력 형태 축으로는 `#9`("평균 연봉이 가장 높은 부서는?" — 답이 개체)와 `#25`("이슈가 가장 많은 제품은?" — 답이 개체)가 같은 칸에 들어가는데 도구는 다르다. 가르는 것은 답의 형태가 아니라 **무엇을 세는가**다 ([design.md](./design.md) D11).
+
+### 재현
+
+```bash
+cd companyx-dataset-v1.0
+python3 -c "
+import json,re
+qs=json.load(open('questions.json'))
+AX={
+ '집계'       : lambda q,h: re.search(r'SUM\(|\bCOUNT|AVG\(|GROUP BY|집계', h) or re.search(r'몇 개|수는|총 |평균', q),
+ '최상급·정렬' : lambda q,h: re.search(r'ORDER BY|LIMIT', h) or re.search(r'가장|상위|큰 순서', q),
+ '시간 제약'   : lambda q,h: re.search(r'20\d\d|분기|월 |최근|현재', q+h),
+ '부정'       : lambda q,h: re.search(r'않은|않는|없는|아닌', q),
+ '멀티홉'      : lambda q,h: re.search(r'\d홉', h),
+ '존재 확인'   : lambda q,h: re.search(r'있어\?|있었어\?|있나\?', q) and not re.search(r'어떻게|무엇|뭐야|누구|어디', q),
+}
+hit={k:[i for i,x in enumerate(qs) if f(x['q'],x['hint'])] for k,f in AX.items()}
+for k,v in hit.items(): print(f'{k:11s} {len(v):2d}/30  {v}')
+agg=sorted(hit['집계'])
+rel=[i for i in agg if re.search(r'관계 카운트|GROUP BY client_id', qs[i]['hint'])]
+print('집계 x 관계:', rel, '->', [qs[i]['tool'] for i in rel])
+att=[i for i in agg if i not in rel]
+print('집계 x 속성:', att, '-> 전부 nl2sql:', all(qs[i]['tool']=='nl2sql' for i in att))
+"
+# 집계 10/30 · 최상급 6/30 · 시간 5/30 · 부정 1/30 · 멀티홉 1/30 · 존재확인 2/30
+# 집계 x 관계: [5, 25, 29] -> ['nl2sql', 'knowledge_graph', 'knowledge_graph']
+# 집계 x 속성: [0, 1, 2, 3, 7, 8, 9] -> 전부 nl2sql: True
+```
+
+`\bCOUNT`의 단어 경계가 필요하다 — 없으면 `MANAGES_ACCOUNT`가 걸린다. 존재 확인에서 `어떻게`를 제외하지 않으면 `#15`("백업 정책은 어떻게 되어 **있어?**")가 걸린다.
 
 ## 6. 출처 3곳 전수 확인 — "Parallel"이 정의된 곳은 없다
 
