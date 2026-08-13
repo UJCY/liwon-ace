@@ -59,14 +59,49 @@ print('MANAGES_ACCOUNT:', {('employee_%d'%d,'client_%d'%a) for _,a,b,d in c}==es
 | meeting_note | 10/10 | 0 | 10/10 | 0 | 기본정보·안건·결정사항·다음회의 |
 | proposal | 10/10 | 10/10 | 0 | 0 | 현황분석·솔루션·구축계획·투자비용·기대효과 |
 
-### 문서 커버리지는 절반이다
+### 문서 커버리지는 "개체 × 형태" 격자로 봐야 한다
+
+개체 단위로 세면 절반이다.
 
 | | 문서가 커버 | 전체 | 커버 안 되는 것 |
 |---|---|---|---|
 | 고객사 | **15** (Client-A ~ Client-O) | 30 | Client-P ~ Client-AD |
 | 제품 | **10** | 12 | 2건 |
 
-커버 안 되는 개체도 **테이블·그래프에는 전부 있다.** → "이 자산엔 없고 저 자산엔 있다"는 상태가 상시 발생한다 ([edge-cases.md](./edge-cases.md) 부분 응답).
+그런데 **커버된 개체도 형태는 한 칸씩만** 갖는다.
+
+| 격자 | 채워진 칸 | 전체 | 밀도 |
+|---|---:|---:|---:|
+| 제품 × 기술문서 주제 (설치·아키텍처·운영·성능·API) | **10** | 12 × 5 = 60 | **17%** |
+| 고객사 × 문서 유형 (장애보고·회의록·제안서) | **30** | 30 × 3 = 90 | **33%** |
+
+**주제를 2개 이상 가진 제품은 0개다.** Product-C1은 설치 가이드만, Product-D1은 API 레퍼런스만 있다.
+
+→ `"Product-C1의 API 인증 방식은?"`은 **문서 자산이 이 제품을 커버하는데 요구된 형태만 없는** 상태다. 개체 단위 커버리지(제품 10/12)로는 잡히지 않는다.
+
+빈 칸의 개체도 **테이블·그래프에는 전부 있다.** → "요구한 형태만 없고 인접 사실은 있다"는 상태가 **상시** 발생한다 ([edge-cases.md](./edge-cases.md) X5).
+
+### 재현
+
+```bash
+cd companyx-dataset-v1.0/documents
+python3 -c "
+import glob,re
+from collections import defaultdict
+grid=defaultdict(set); cli=defaultdict(set)
+T=['설치','아키텍처','운영','성능','API']
+for f in sorted(glob.glob('DOC-*.md')):
+    s=open(f,encoding='utf-8').read(); h=re.findall(r'^#\s*(.+)\$',s,re.M)[0].strip()
+    if h.startswith('Product'):
+        grid[re.findall(r'Product-[A-Z]\d+',h)[0]] |= {t for t in T if t in h}
+    k='incident' if '장애' in h else 'meeting' if '회의록' in h else 'proposal'
+    for c in set(re.findall(r'Client-[A-Z]+',s)): cli[c].add(k)
+print('제품 격자:', sum(len(v) for v in grid.values()), '/ 60   주제 2개 이상:', sum(1 for v in grid.values() if len(v)>1))
+print('고객사 격자:', sum(len(v) for v in cli.values()), '/ 90')
+"
+# 제품 격자: 10 / 60   주제 2개 이상: 0
+# 고객사 격자: 30 / 90
+```
 
 ## 4. `support_tickets`에는 서술이 없다
 

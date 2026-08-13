@@ -24,6 +24,7 @@
 | pgvector README (HNSW / IVFFlat / Iterative Index Scans 절) | 벡터 인덱스 파라미터 결정, `WHERE` 필터와 함께 쓸 때의 over-filtering 대응 |
 | MCP 스펙 (이미 [정리됨](./references/mcp-spec.md)) | `outputSchema`·`structuredContent`로 구조화 응답 정의할 때, transport 결정할 때 |
 | RAGAs (EACL 2024 Demo) / ARES (NAACL 2024) | **Q1** 환각 방지를 자체 엣지 세트로 검증할 때. 참조 정답 없이 faithfulness를 재는 방식이 필요해지면 |
+| **Hasan et al. (2026), MCP Tool Descriptions Are Smelly!** ([related-work.md](./references/related-work.md) 5.4) | **D9** 도구 description 4개를 실제로 작성할 때. D9는 "요구 출력 형태 축으로, compact하게"까지만 정했고 실물은 아직 없다. 856개 도구 실측이라 smell 유형 목록이 본문에 있고, **설명을 과하게 보강하면 실행 스텝 +67%·일부 퇴행**이라는 경계선도 여기서 나온다 |
 
 ## 티어 3 — 논문이 아니라 환경 검증 (선행 조건)
 
@@ -64,3 +65,5 @@
 - **티어 2**는 구현 중 필요한 값을 찾아보는 참조 문서 → 통독하지 않고 해당 절만 조회한다.
 - **티어 3**은 문헌으로 닫히지 않는다 → 실행해서 닫는다. 데이터셋 대조([dataset-analysis.md](./dataset-analysis.md))와 air 검증([air-evaluation.md](./air-evaluation.md))이 문헌으로는 나오지 않았을 결론을 낸 사례다.
 - **티어 4**는 이미 내린 결정의 보강재 → 인용만 한다. 여기에 정독 비용을 쓰면 결정이 하나도 닫히지 않는다.
+
+**5장(선택지 개수 정량화, 25건)을 티어 1로 올리지 않는 이유.** 그 장의 문헌은 확정된 결정(D2·D3)을 보강하고, 원문을 읽어도 구현이 바뀌지 않는다. 인용 시 반드시 알아야 할 것들 — 5.5(반증 문헌)·5.6(인용 금지)·5.7(프레이밍 리스크) — 은 **원문이 아니라 우리 요약**이라 저장소에서 바로 읽힌다. 정독 비용이 0이므로 티어 체계의 대상이 아니고, 티어 4에 단서로만 표시한다. 예외는 위 티어 2의 Hasan et al. 하나다 — 그것만 **아직 만들지 않은 산출물**(도구 description)에 걸린다.
