@@ -104,7 +104,7 @@ print('MANAGES_ACCOUNT:', {('employee_%d'%d,'client_%d'%a) for _,a,b,d in c}==es
 
 | 출처 | "병렬" | "Parallel" |
 |---|---|---|
-| KOSSA 요강 (전문 확보) | **0회** | **1회** — `규칙 기반 라우터를 통한 도구 자동 선택 (MCP Parallel 패턴)` |
+| KOSSA 요강 ([원문](https://www.kossa.kr/materials/2026/ossp/tasks-liwonace.html), 2026-08-13 재확인) | **0회** | **1회** — `규칙 기반 라우터를 통한 도구 자동 선택 (MCP Parallel 패턴)` |
 | 블로그 `liwonace.co.kr/blog/9` | **0회** | 0회 |
 | 공지 `liwonace.co.kr/notice/2` | **0회** | 0회 (라우터 언급 자체 없음) |
 | 데이터셋 전체 | **0회** | 0회 |
@@ -136,6 +136,11 @@ print('MANAGES_ACCOUNT:', {('employee_%d'%d,'client_%d'%a) for _,a,b,d in c}==es
 ```bash
 UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
 curl -sS -L -A "$UA" https://liwonace.co.kr/blog/9 | grep -c "병렬"   # 0
+
+# KOSSA 요강은 UA 없이도 통과한다
+K=https://www.kossa.kr/materials/2026/ossp/tasks-liwonace.html
+curl -sS -L "$K" | grep -c "병렬"              # 0
+curl -sS -L "$K" | grep -o "Parallel" | wc -l  # 1
 ```
 
 ```bash
