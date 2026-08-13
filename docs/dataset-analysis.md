@@ -81,6 +81,46 @@ print('MANAGES_ACCOUNT:', {('employee_%d'%d,'client_%d'%a) for _,a,b,d in c}==es
 
 빈 칸의 개체도 **테이블·그래프에는 전부 있다.** → "요구한 형태만 없고 인접 사실은 있다"는 상태가 **상시** 발생한다 ([edge-cases.md](./edge-cases.md) X5).
 
+### 격자 희소성은 문서만의 성질이 아니다
+
+같은 방식으로 나머지 두 자산도 쟀다. 밀도만 다르고 **구조는 같다.**
+
+| 자산 | 격자 | 채워진 칸 | 밀도 | 결손 개체 |
+|---|---|---:|---:|---|
+| 문서 | 제품 × 기술주제 | 10 / 60 | **17%** | 제품 12개 **전부** 주제 4개씩 결손 |
+| 문서 | 고객사 × 문서유형 | 30 / 90 | **33%** | 고객사 15개는 0칸 |
+| 그래프 | 개체 × (그 유형이 가질 수 있는 관계) | 322 / 416 | **77%** | **직원 43/45**, 고객사 11/30 |
+| 테이블 | 고객사 × 사실 테이블 4종 | 106 / 120 | **88%** | `projects` 8개, `contracts`·`sales` 3개 |
+
+그래프 격자는 **스키마 제약과 데이터 결손을 구분해서** 셌다. `product`가 `BELONGS_TO`를 갖지 않는 것은 스키마상 불가능한 칸이므로 분모에서 뺐다(노드유형 × 관계 = 35칸 중 14칸만 스키마상 가능). 위 322/416은 **같은 유형 안에서 어떤 개체는 갖고 어떤 개체는 못 가진** 칸만 센 것이다.
+
+→ `"이 직원이 이끄는 프로젝트는?"`은 노드도 있고 `BELONGS_TO`도 있는데 `LEADS`만 없는 상태다. `"Client-X의 진행 중인 프로젝트는?"`은 `projects` 0행인데 계약·매출·티켓은 있는 상태다. **문서에서 발견한 것과 같은 구조가 세 도구 전부에 있다.**
+
+### 재현
+
+```bash
+cd companyx-dataset-v1.0
+python3 -c "
+import json
+from collections import defaultdict
+e=json.load(open('graph/edges.json')); e=e['edges'] if isinstance(e,dict) else e
+n=json.load(open('graph/nodes.json')); n=n['nodes'] if isinstance(n,dict) else n
+ty={x['id']:x['type'] for x in n}
+have=defaultdict(set)
+for x in e: have[x['source']].add(x['relation']); have[x['target']].add(x['relation'])
+poss=defaultdict(set)
+for i,t in ty.items(): poss[t]|=have[i]
+tot=f=0
+for t in sorted(poss):
+    ids=[i for i in ty if ty[i]==t]
+    tot+=len(ids)*len(poss[t]); f+=sum(len(have[i]&poss[t]) for i in ids)
+    print(t, sum(1 for i in ids if have[i]&poss[t]!=poss[t]), '/', len(ids), '개체 일부 결손')
+print('그래프 격자:', f, '/', tot)
+"
+# employee 43 / 45 · client 11 / 30 · 나머지 0 결손
+# 그래프 격자: 322 / 416
+```
+
 ### 재현
 
 ```bash

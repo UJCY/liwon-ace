@@ -63,7 +63,7 @@ LSP(Language Server Protocol)에서 영감 — 도구 통합을 생태계 수준
 
 | 스펙 내용 | 우리 설계 연결 |
 |----------|--------------|
-| 에러 2계층 (protocol vs execution) | edge-cases.md의 **"데이터에 없음 ≠ 시스템 오류" 규약과 정확히 대응**: 도구 실행 실패(T1·T6)는 `isError: true`, 데이터 부재(T3~T5)와 거절(R1)은 `isError` 없는 정상 결과 + 구조화 필드(`out_of_scope` 등)로 — 모델이 읽고 "모른다" 답변을 생성해야 하므로 에러가 아니라 데이터다 |
+| 에러 2계층 (protocol vs execution) | edge-cases.md의 **"데이터에 없음 ≠ 시스템 오류" 규약과 정확히 대응**: 도구 실행 실패(T1·T6)는 `isError: true`, 데이터 부재(T3~T5·T7)와 거절(R1)은 `isError` 없는 정상 결과 + 구조화 필드(`out_of_scope` 등)로 — 모델이 읽고 "모른다" 답변을 생성해야 하므로 에러가 아니라 데이터다 |
 | `outputSchema` + `structuredContent` | 도구 4종 모두 출력 스키마 정의 — 출처 메타데이터(Q1), 거절 타입(D6)을 스키마에 명시. Pylon-7의 L3 "구조화 출력"을 스펙 기능으로 구현 |
 | 도구 이름 규칙 | `ask`/`route`, `nl2sql`, `vector_search`, `knowledge_graph` 모두 규칙 부합 |
 | stdio vs Streamable HTTP | 열린 항목 "transport"의 판단 기준: 에이전트가 서버를 로컬 서브프로세스로 띄우면 stdio로 충분, 데모·심사에서 별도 프로세스/원격 접근 보이려면 Streamable HTTP |
