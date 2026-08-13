@@ -702,9 +702,21 @@ flowchart TB
       <span class="mono">94.5% → 78.0% → 69.75%</span>로 떨어짐을 보입니다. 다만 같은 실험에서
       random negative는 <span class="mono">93.5~95.5%</span>로 변화가 없었습니다 —
       <b>원인은 후보 개수 자체가 아니라 의미적으로 겹치는 후보의 존재</b>입니다.
+      인용할 때는 개별 점(<span class="mono">69.75%</span>)이 아니라 <b>같은 후보 수에서 두 조건이
+      <span class="mono">24.75%p</span> 벌어졌다는 대조</b>를 씁니다 — 개별 점은 반복 실행 분산
+      안에 들어갑니다.
     </p>
     <p>
       그리고 ③에서 보듯 우리 도구 3종은 정확히 그 hard negative 관계입니다.
+    </p>
+    <p>
+      <b>다만 이 이득은 조건부입니다.</b> 라우터가 도구를 직접 실행하거나(A안), 라우터의 지시를
+      <b>코드가 집행</b>할 때(B안 중 B2)만 성립합니다. 라우터가 고른 도구를 <b>LLM이 다시 읽고
+      호출</b>하는 방식(B1)이면 후보 4개 조건 그대로이며, 이것이 B1을 권하지 않는 이유입니다.
+      그리고 이 조건을 강제하는 것은 프로토콜이 아닙니다 — 도구 4개를 등록하면
+      <span class="mono">tools/list</span>에 4개가 전부 보이고 서버는 클라이언트가 무엇을 호출할지
+      막을 수 없습니다. <b>라우터 경유는 에이전트 코드에 하드코딩해야 하고</b>, 프롬프트 지시로
+      두면 소형 LLM에서 샙니다(엣지 <span class="mono">Q4</span>).
     </p>
 
     <div class="open-block">
@@ -733,8 +745,9 @@ flowchart TB
       <div class="ev-ours">
         <p class="ev-label">우리 판단</p>
         <p>라우터를 MCP 도구로 두기(D1), 4개 등록(D2), 공식 SDK 직접 사용(D8). Pylon-7 계층
-           계측은 포기하지 않고 얇은 래퍼에서 상수로 붙입니다.</p>
-        <p class="src">design.md D1 · D2 · D8</p>
+           계측은 포기하지 않고 얇은 래퍼에서 상수로 붙입니다. 라우터 경유 강제는 코드 요건으로
+           두고 호출 로그로 검증합니다.</p>
+        <p class="src">design.md D1 · D2 · D8 · edge-cases.md Q4</p>
       </div>
     </div>
   </section>
