@@ -1109,9 +1109,11 @@ flowchart TB
     </div>
 
     <p>
-      <b>어느 출처도 무엇이 병렬인지 정의하지 않습니다.</b> 오히려 블로그는 라우터를 “적합한
-      도구<b>를</b> 자동 매칭”(단수, “호출”이 아니라 “매칭”)으로 서술하고, questions.json 30개도
-      전부 <span class="mono">tool</span>이 단수 문자열입니다.
+      <b>어느 출처도 무엇이 병렬인지 정의하지 않습니다.</b> 블로그의 라우터 서술(“적합한 도구를
+      자동 <b>매칭</b>” — “호출”이 아닙니다)은 <b>수를 명시하지 않습니다.</b> 한국어는 복수 표지가
+      선택적이라 “도구를”은 단수·복수 어느 쪽으로도 읽힙니다. 수를 정하는 것은 문면이 아니라
+      스키마입니다 — questions.json 30개의 <span class="mono">tool</span>이
+      <b>배열이 아니라 문자열</b>입니다(30/30, 예외 0건).
     </p>
     <p>
       그래서 우리는 병렬을 <b>요구가 아니라 설계 선택</b>으로 규정합니다. 근거는 문면이 아니라
@@ -1172,8 +1174,8 @@ flowchart TB
     <div class="evidence">
       <div>
         <p class="ev-label">과제 원문 문면</p>
-        <p>“MCP Parallel 패턴”은 요강의 괄호 별칭 1회뿐이고 정의가 없습니다. 블로그는 단수 매칭으로
-           서술합니다. MCP 스펙의 에러 2계층은 스펙 문면입니다.</p>
+        <p>“MCP Parallel 패턴”은 요강의 괄호 별칭 1회뿐이고 정의가 없습니다. 블로그 문면은 도구
+           개수를 명시하지 않습니다. MCP 스펙의 에러 2계층은 스펙 문면입니다.</p>
         <p class="src">requirements.md · references/mcp-spec.md</p>
       </div>
       <div class="ev-measured">
@@ -1526,7 +1528,7 @@ sequenceDiagram
           <tr><td class="mono">docs/requirements.md</td><td>과제가 요구하는 것<b>만</b>. 우리 판단은 넣지 않는다</td></tr>
           <tr><td class="mono">docs/dataset-analysis.md</td><td>데이터 실측 <b>사실</b>과 재현 명령. 판단을 담지 않는다</td></tr>
           <tr><td class="mono">docs/design.md</td><td>우리 결정 D1~D10, 기각한 대안, 열어둔 항목</td></tr>
-          <tr><td class="mono">docs/edge-cases.md</td><td>구조 엣지케이스 카탈로그 — X1~X5 · R1~R3 · T1~T6 · Q1~Q3</td></tr>
+          <tr><td class="mono">docs/edge-cases.md</td><td>구조 엣지케이스 카탈로그 — X1~X5 · R1~R3 · T1~T6 · Q1~Q4</td></tr>
           <tr><td class="mono">docs/routing-topology.md</td><td>A/B 비교와 보류 결정 기록</td></tr>
           <tr><td class="mono">docs/air-evaluation.md</td><td>air 프레임워크 검증과 기각 근거 (실측 포함)</td></tr>
           <tr><td class="mono">docs/reading-priority.md</td><td>정독 우선순위 — 읽으면 결정이 닫히는 문헌만 읽는다</td></tr>

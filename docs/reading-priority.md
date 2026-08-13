@@ -1,6 +1,6 @@
 # 정독 우선순위
 
-> 서지 목록은 [references/related-work.md](./references/related-work.md)에 109건이 있다. 전부 읽을 수는 없고 읽을 필요도 없다. 이 문서는 **어떤 문헌을 왜 읽어야 하는지**를 열린 항목 기준으로 줄 세운 것이다.
+> 서지 목록은 [references/related-work.md](./references/related-work.md)에 188건이 있다 (고유 URL 기준, 2026-08-13). 전부 읽을 수는 없고 읽을 필요도 없다. 이 문서는 **어떤 문헌을 왜 읽어야 하는지**를 열린 항목 기준으로 줄 세운 것이다.
 >
 > 기준은 하나다: **읽으면 결정이 바뀌거나 닫히는가.** 이미 확정된 결정을 보강하는 문헌은 인용만 하고 읽지 않는다.
 
@@ -49,7 +49,7 @@
 |---|---|
 | Shen et al., Small LLMs Are Weak Tool Learners (EMNLP 2024) | **D1** 서버 측 규칙 라우터 — 소형 LLM에게 도구 선택을 맡기지 않은 이유 |
 | ToolRet (Findings of ACL 2025), MetaTool (ICLR 2024) | **D2** 도구 4개 유지 — 인벤토리가 커지면 선택이 붕괴한다 |
-| arXiv 정면 정량화 문헌 (별도 조사 중) | 위와 같은 지점. 수치가 더 직접적이면 보조 인용 |
+| 선택지 개수 정량화 문헌 — [related-work.md](./references/related-work.md) **5장 (조사 완료)** | 위와 같은 지점. Mem2ActBench의 hard/random 대조가 가장 직접적이다. **인용 전 5.5(반증 문헌)·5.7(프레이밍 리스크) 확인 필요** |
 | Shi et al. (ICML 2023), Yoran et al. (ICLR 2024) | **D6** 무매칭에 병렬 폴백을 쓰지 않은 이유 |
 | RULER (COLM 2024), Lost in the Middle (TACL 2024), Levy et al. (ACL 2024) | **Q2** 컨텍스트 절사 필요성 |
 | All-in-One (SIGMOD 2017), Hirn & Grust (SIGMOD 2021) | **D5** RDBMS 내부 그래프 처리의 선례 |
