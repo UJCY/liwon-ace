@@ -351,3 +351,130 @@ print('타입:', {type(q['tool']).__name__ for q in qs})        # {'str'}
 print('배열:', sum(1 for q in qs if isinstance(q['tool'],list)), '/', len(qs))   # 0 / 30
 "
 ```
+
+## 7. 권장 개발 환경 문면 확인 (2026-08-14 재확인)
+
+같은 출처 3곳에서 **모델 관련 문면**을 다시 확인했다. 문면은 시점에 따라 바뀔 수 있으므로 확인 날짜를 함께 적는다.
+
+| 출처 | LLM 표기 | 임베딩 표기 | `nomic` 출현 |
+|---|---|---|---|
+| 블로그 `liwonace.co.kr/blog/9` — "권장 개발 환경" 표 | **`Gemma 4 E2B (Ollama 로컬 실행)`** | 표에 항목 없음 | **0회** |
+| 공지 `liwonace.co.kr/notice/2` — 동일 표 | **`Gemma 4 E2B (Ollama 로컬 실행)`** | *"Ollama의 임베딩 모델을 활용하여 적재하시면 됩니다"* — **모델명 없음** | **0회** |
+| KOSSA 요강 | `온프레미스 소형 LLM(7B)과의 연동 (Ollama)` | 언급 없음 | **0회** |
+
+- 리원에이스 2출처(블로그·공지)는 **문면이 동일**하다.
+- KOSSA 요강의 `7B` 표기와의 차이는 **존속한다**.
+- 공지의 임베딩 문면은 *"Ollama의 임베딩 모델"*까지이고 **특정 모델명을 지정하지 않는다.** 2026-08-14 기준 **출처 3곳 어디에도 `nomic`은 없다**. (과거 문면에 있었는지는 확인 수단이 없다.)
+
+### `nomic-embed-text`가 나오는 곳은 출처 3곳이 아니라 **데이터셋 README**다
+
+전수 검색 결과 `nomic`의 유일한 출현은 데이터셋 안이다.
+
+| 위치 | 문면 |
+|---|---|
+| `companyx-dataset-v1.0/README.md:64` | `# 5. 문서 임베딩은 참가자가 직접 구현` / `# Ollama + nomic-embed-text 또는 다른 임베딩 모델 사용` |
+
+문면 자체가 **"또는 다른 임베딩 모델"**이라고 적어 예시임을 명시한다. 지정이 아니다.
+
+### 스키마는 임베딩 차원을 **768로 못 박고 있다**
+
+| 위치 | 선언 |
+|---|---|
+| `companyx-dataset-v1.0/sql/01-schema.sql:123` | `embedding vector(768)` (테이블 `document_chunks` — *"참가자가 임베딩 후 적재"*) |
+
+| 모델 | 차원 |
+|---|---:|
+| `nomic-embed-text` | **768** — 위 DDL과 그대로 일치 |
+| `bge-m3` | **1024** — DDL을 `vector(1024)`로 바꿔야 적재된다 |
+
+`document_chunks`는 빈 상태로 배포되고 적재는 참가자 몫이므로 DDL 변경 자체를 막는 문면은 없다. **차원이 스키마에 박혀 있다는 사실만 기록한다** — 어느 모델을 쓸지는 판단이고 [design.md](./design.md) 열어둔 항목에 있다.
+
+### Ollama 레지스트리 실물 (2026-08-14 조회)
+
+| 모델 | 태그 | 크기 | 컨텍스트 | 비고 |
+|---|---|---:|---|---|
+| `gemma4` | `e2b` | **7.2GB** | 128K | 기본 태그(q4_K_M), Text+Image |
+| `gemma4` | **`e2b-it-qat`** | **4.3GB** | 128K | 최소 태그 |
+| `gemma4` | `e2b-it-q8_0` | 8.1GB | 128K | |
+| `gemma4` | `e4b` · `12b` · `26b` · `31b` | 9.6 / 7.6 / 18 / 20GB | — | 참고 |
+| `nomic-embed-text` | `latest` | **274MB** | **2K** | |
+| `bge-m3` | `latest` | **1.2GB** | **8K** | |
+
+- `nomic-embed-text`의 HF 모델카드(`nomic-ai/nomic-embed-text-v1.5`)의 언어 태그는 **`en` 하나**다 (`cardData.language == ['en']`).
+- `bge-m3`의 원 논문 M3-Embedding은 **Findings of ACL 2024** 게재본이 존재한다 ([서지](./references/related-work.md) 2.4). 한국어(ko) 개별 수치도 원문 표에 있다 — 같은 문서 2.10 참조.
+
+### 로컬 환경 실측 (2026-08-14)
+
+| 항목 | 값 |
+|---|---|
+| RAM | 15Gi (available 11Gi) |
+| CPU | 22 |
+| GPU | NVIDIA RTX 4070 Laptop 8188MiB — **과제 제약(CPU 전용)과 다르다**. 아래 실행 실측의 단서 |
+| 디스크 여유 | 925G |
+| ollama | 0.31.2 |
+
+### 재현
+
+블로그·공지는 WebFetch가 403을 받는다. curl은 통과한다 (6장 재현 절과 동일한 UA).
+
+```bash
+UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+curl -sS -L -A "$UA" https://liwonace.co.kr/blog/9   | grep -o 'Gemma[^<"]*'   # Gemma 4 E2B (Ollama 로컬 실행)
+curl -sS -L -A "$UA" https://liwonace.co.kr/notice/2 | grep -o 'Gemma[^<"]*'   # 동일
+curl -sS -L -A "$UA" https://liwonace.co.kr/notice/2 | grep -c nomic           # 0
+curl -sS -L -A "$UA" https://liwonace.co.kr/blog/9   | grep -c nomic           # 0
+curl -sS -L -A "$UA" https://liwonace.co.kr/notice/2 | grep -o '[^<>]*임베딩[^<>]*' | sort -u
+# Ollama의 임베딩 모델을 활용하여 적재하시면 됩니다.
+# 문서 데이터의 임베딩 및 벡터 저장은 참가자가 직접 구현하는 영역입니다.
+
+K=https://www.kossa.kr/materials/2026/ossp/tasks-liwonace.html
+curl -sS -L "$K" | grep -o '소형 LLM(7B)'    # 소형 LLM(7B)  — UA 없이도 통과
+```
+
+```bash
+# 레지스트리 실물
+UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+curl -sS -L -A "$UA" https://ollama.com/library/gemma4/tags | grep -oE '(gemma4:[a-z0-9._-]+|[0-9.]+GB)' | uniq
+curl -sS -L -A "$UA" https://ollama.com/library/bge-m3           | grep -oE '([0-9.]+GB|[0-9]+K context)' | sort -u  # 1.2GB · 8K context
+curl -sS -L -A "$UA" https://ollama.com/library/nomic-embed-text | grep -oE '([0-9]+MB|[0-9]+K context)' | sort -u   # 274MB · 2K context
+
+# nomic 모델카드 언어 태그
+curl -sS -L https://huggingface.co/api/models/nomic-ai/nomic-embed-text-v1.5 \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['cardData']['language'])"   # ['en']
+```
+
+```bash
+# 데이터셋 안의 nomic 언급과 스키마 차원
+cd companyx-dataset-v1.0
+grep -rn "nomic" .                       # README.md:64 한 줄뿐
+grep -n "embedding" sql/01-schema.sql    # 123:    embedding       vector(768),
+```
+
+### 실행 실측 (2026-08-14, pull 후)
+
+세 모델을 받아 동시에 적재한 상태에서 쟀다. **파일 크기와 실행 풋프린트는 다르다.**
+
+| 모델 | 파일 크기 | `ollama ps` SIZE | 컨텍스트 | 임베딩 차원 |
+|---|---:|---:|---:|---:|
+| `gemma4:e2b-it-qat` | 4.3GB | **1.7GB** | 4096 | — |
+| `bge-m3` | 1.2GB | **664MB** | 4096 | **1024** |
+| `nomic-embed-text` | 274MB | **323MB** | 2048 | **768** |
+| 3종 동시 적재 합 | 5.8GB | **약 2.7GB** | | |
+
+`gemma4:e2b-it-qat`는 한국어로 답한다. 프롬프트 *"Company-X의 매출 데이터를 요약하는 역할을 한 문장으로 설명해줘"* → *"이 문서는 회사 X의 총매출액 추이와 주요 재무 성과를 분석하여 이해하기 쉽게 요약한 데이터 보고서입니다."* (36 토큰, 1.2초).
+
+**이 수치는 RAM 4GB·CPU 전용 조건의 실측이 아니다.** 측정 환경에 GPU가 있어 `ollama ps`의 `PROCESSOR`가 3종 모두 `100% GPU`로 나왔다 (NVIDIA RTX 4070 Laptop 8GB, RAM 15Gi). 과제 제약은 *"GPU 없이 CPU만으로 구동"* + RAM 최소 4GB이므로, 위 SIZE는 **필요 메모리의 근사**로만 읽고 CPU 전용 실측은 별도로 남는다.
+
+```bash
+ollama pull gemma4:e2b-it-qat && ollama pull bge-m3 && ollama pull nomic-embed-text
+
+curl -sS localhost:11434/api/generate -d '{"model":"gemma4:e2b-it-qat","prompt":"Company-X의 매출 데이터를 요약하는 역할을 한 문장으로 설명해줘","stream":false,"think":false}' \
+  | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['response']);print(d['eval_count'],'토큰')"
+
+for m in bge-m3 nomic-embed-text; do
+  curl -sS localhost:11434/api/embed -d "{\"model\":\"$m\",\"input\":\"서울 지역 매출\"}" \
+    | python3 -c "import json,sys;print('$m', len(json.load(sys.stdin)['embeddings'][0]))"
+done       # bge-m3 1024 · nomic-embed-text 768
+
+ollama ps  # SIZE·PROCESSOR·CONTEXT — PROCESSOR가 GPU면 CPU 전용 실측이 아니다
+```

@@ -138,6 +138,7 @@
 | Muennighoff et al. (2023) | MTEB: Massive Text Embedding Benchmark | EACL 2023 | https://aclanthology.org/2023.eacl-main.148/ | 8태스크·58데이터셋 종합 벤치마크 — **만능 임베딩은 없음** |
 | Xiao et al. (2024) | C-Pack: Packed Resources For General Chinese Embeddings | SIGIR 2024 | https://dl.acm.org/doi/10.1145/3626772.3657878 | BGE 임베딩 모델군 + C-MTP 학습셋 + C-MTEB |
 | Wang et al. (2024) | Improving Text Embeddings with Large Language Models (E5-Mistral) | ACL 2024 (Long) | https://aclanthology.org/2024.acl-long.642/ | 합성 데이터만으로 1k 스텝 미만 학습해 SOTA 임베딩 |
+| Chen, Xiao, Zhang, Luo, Lian & Liu (2024) | M3-Embedding: Multi-Linguality, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation | Findings of ACL 2024, pp. 2318–2335 | https://aclanthology.org/2024.findings-acl.137/ | **`bge-m3`의 원 논문** — 100+ 언어를 하나의 임베딩으로 지원, dense·sparse·multi-vector 동시 수행, 8192 토큰까지 |
 
 ## 2.5 ANN 인덱스 알고리즘 (pgvector 근거)
 
@@ -203,7 +204,7 @@
 | 우리 결정 / 열린 항목 | 관련 문헌 |
 |---|---|
 | **청킹 전략** (열린 항목 — 단순 전략으로 시작, 문서별 튜닝 금지) | **Qu, Tu & Bao (Findings of NAACL 2025)** — 시맨틱 청킹이 비용만큼의 이득을 주지 못함. 우리 방침의 피어리뷰 근거. 반대 방향 참고로 Dense X Retrieval, LumberChunker |
-| **임베딩 모델** (열린 항목 — nomic-embed-text 후보) | MTEB (EACL 2023) — "만능 임베딩 없음", 태스크별 선택 필요. 한국어 문서·질문이므로 다국어 성능 확인 필요 |
+| **임베딩 모델** (열린 항목 — **`bge-m3` 후보**, 적재 후 실측으로 확정) | **M3-Embedding (Findings of ACL 2024)** — `bge-m3`의 원 논문. **한국어(ko) 개별 수치를 원문 표에서 확인했다**: MIRACL dev nDCG@10 ko = **69.9**(dense) / **72.1**(all), 같은 표 최고 베이스라인 mE5large 66.5 · BM25 37.1 (Table 1). MKQA Recall@100 ko = **71.6**(dense) / **71.8**(all), mE5large 68.1 · OpenAI-3 63.9 (Table 2). 단 논문 Limitations가 *"언어별 성능 편차는 충분히 논의되지 않았다"*고 명시하므로 ko 수치는 이 두 벤치마크 한정으로 인용한다. 대비: MTEB (EACL 2023) — "만능 임베딩 없음", 태스크별 선택 필요. 후보에서 내린 `nomic-embed-text`는 HF 모델카드 언어 태그가 `en` 하나여서 한국어 1차 출처가 없다 ([dataset-analysis.md](../dataset-analysis.md) 7장) |
 | **T4** 유사도 임계값 / "관련 문서 없음" 판정 (열린 항목) | BEIR — 제로샷 환경에서 BM25가 강건한 베이스라인. 임계값을 데이터셋에서 역산하지 않으려면 일반 벤치마크 관행 참조 |
 | **벡터 DB 인덱스 선택** (HNSW vs IVFFlat) | pgvector 공식 문서 파라미터 + HNSW 원 논문(TPAMI 2020), IVF 기원(ICCV 2003), ANN-Benchmarks. 문서 40건 규모면 인덱스 없이도 동작 — 인덱스는 시연·확장성 논거용 |
 | **Q2** 컨텍스트 초과 / TACC 적용 지점 ① | Lost in the Middle (TACL 2024, 과제 권장 참조와 동일) — 반환 청크 순서·개수 설계 근거 |
@@ -475,7 +476,7 @@
 
 **가설의 지위**: 확정 수단을 소진했다. 반증된 것도 아니다. 분류 유래설은 여전히 가장 그럴듯한 설명이지만 **근거가 정황뿐**이므로, 발표·문서에서 **용어의 출처를 주장하지 않는다.** 위 "표현 규칙"의 문장은 유래를 언급하지 않으므로 그대로 쓸 수 있다.
 
-**남은 확인 수단**: 주최 측 문의 — 요강 기술문의처 `sihyeon@liwonace.co.kr` (연구원 이시현). 물어보면 끝나는 문제이므로, [design.md](../design.md) **열어둔 항목**의 문의 후보("LLM 모델" 행 — Gemma 4 E2B 대 KOSSA "7B" 표기 차이)와 함께 묶는다.
+**남은 확인 수단**: 주최 측 문의 — 요강 기술문의처 `sihyeon@liwonace.co.kr` (연구원 이시현). 물어보면 끝나는 문제다. **다른 문의 후보였던 "LLM 모델"(Gemma 4 E2B 대 KOSSA "7B") 행은 2026-08-14에 문의 대상에서 빠졌다** — 리원에이스 2출처가 동일 문면이라 문의로 얻을 정보가 없다고 판단했다 ([design.md](../design.md) 열어둔 항목). 이 절의 용어 문제만 남는다.
 
 ---
 

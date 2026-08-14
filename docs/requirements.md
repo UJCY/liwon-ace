@@ -66,7 +66,8 @@ PostgreSQL + pgvector 위에 벡터 검색, NL2SQL, 지식 그래프를 **MCP(Mo
 - PostgreSQL 15+ / pgvector.
 - RAM 최소 4GB, Linux 권장 (macOS / WSL2 가능).
 - `air` 프레임워크(리원에이스 오픈소스, Apache-2.0)는 **권장이지 의무 아님**. https://airmcp.dev / https://docs.airmcp.dev
-- LLM 권장: 블로그·공지는 **Gemma 4 E2B**, KOSSA 요강은 "온프레미스 소형 LLM(7B)"로 표기 — 문서 간 차이 있음. 공통분모는 "Ollama 로컬 소형 LLM".
+- LLM 권장: 블로그·공지는 "권장 개발 환경" 표에 **`Gemma 4 E2B (Ollama 로컬 실행)`**을 명시(2026-08-14 재확인, 두 출처 문면 동일), KOSSA 요강은 "온프레미스 소형 LLM(7B)"로 표기 — **차이 존속**. 공통분모는 "Ollama 로컬 소형 LLM". 문면 확인 기록은 [dataset-analysis.md](./dataset-analysis.md) 7장.
+- 임베딩 권장: 공지는 *"Ollama의 임베딩 모델을 활용하여 적재"*까지만 쓰고 **모델명을 지정하지 않는다**. 블로그·요강에는 임베딩 모델 언급이 없다 (2026-08-14 재확인).
 
 ## KOSSA 요강의 추가 요구 (개발과제 예시)
 
