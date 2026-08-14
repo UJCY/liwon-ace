@@ -583,3 +583,55 @@
 | **프레이밍 리스크** | Chen (2026)이 "정보 과부하" 인과를 반박한다. 발표·보고서에서 "도구가 많으면 과부하로 성능이 떨어진다"고 쓰면 반박 가능한 주장이 된다. **"near-miss 혼동 최소화"로 쓰는 것이 안전하며, 이는 이미 확보한 MetaTool(ICLR 2024, near-miss 디스트랙터) 논지와도 일관된다** |
 | 도구 설명 작성 지침 | Hasan et al. (2026) — 856개 도구 중 97.1%가 설명 smell을 갖고, 설명을 과하게 보강하면 실행 스텝이 +67% 늘고 일부는 퇴행한다. **compact하고 목적이 분명한 설명**을 목표로 한다 |
 | 수치 인용 시 오차 | Bhat et al. (2026) — 이 절의 벤치마크 기반 수치들은 반복 실행 분산이 최대 18.9%p다. 단정적으로 인용하지 않는다 |
+
+---
+
+# 6. 테스트 세트 생성·평가 방법론
+
+> **자체 엣지 세트(D7)를 어떻게 만들 것인가**를 정하려고 모은 목록이다. 5장과 달리 arXiv-only를 허용하지 않는다 — 맨 위 수집 기준 그대로다. 아래 발표처·저자는 전부 **2026-08-14에 원문 페이지에서 직접 확인**했다 (ACL Anthology BibTeX · NeurIPS 프로시딩 · PMLR · Crossref · acl2020.org 수상 공지).
+
+## 6.1 유형 기반 테스트 세트 작성
+
+| 저자(연도) | 제목 | 발표처 | URL | 한 줄 주제 |
+|---|---|---|---|---|
+| Ribeiro, Wu, Guestrin & Singh (2020) | Beyond Accuracy: Behavioral Testing of NLP Models with CheckList | ACL 2020 (**Best Paper**), pp. 4902–4912 | https://aclanthology.org/2020.acl-main.442/ | **capability × test type 매트릭스**로 능력별 테스트를 사람이 템플릿 전개. 정확도 한 숫자가 감추는 실패를 유형으로 드러낸다 |
+| Ribeiro & Lundberg (2022) | Adaptive Testing and Debugging of NLP Models (AdaTest) | ACL 2022 (Long), pp. 3253–3267 | https://aclanthology.org/2022.acl-long.230/ | 사람 + LM 후보 제안의 반복 루프. 초록 원문: 사용자가 버그를 찾는 데 **"5-10x more effective"**. 단 그 이득은 **반복 탐색-수정 루프** 맥락이다 |
+
+## 6.2 LLM 판정(judge)의 편향
+
+| 저자(연도) | 제목 | 발표처 | URL | 한 줄 주제 |
+|---|---|---|---|---|
+| Zheng et al. (2023) | Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena | NeurIPS 2023 **Datasets and Benchmarks Track** | https://proceedings.neurips.cc/paper_files/paper/2023/hash/91f18a1287b398d378ef22505bf41832-Abstract-Datasets_and_Benchmarks.html | 초록이 한계를 명시 — **position · verbosity · self-enhancement bias**와 제한된 추론 능력 |
+| Panickssery, Bowman & Feng (2024) | LLM Evaluators Recognize and Favor Their Own Generations | NeurIPS 2024 | https://proceedings.neurips.cc/paper_files/paper/2024/hash/7f1f0218e45f5414c79c0679633e47bc-Abstract-Conference.html | 평가자 LLM이 **자기 생성물을 알아보고 선호**한다 — self-preference의 직접 실증 |
+
+## 6.3 합성 데이터 생성이 잃는 것
+
+| 저자(연도) | 제목 | 발표처 | URL | 한 줄 주제 |
+|---|---|---|---|---|
+| Shumailov, Shumaylov, Zhao, Papernot, Anderson & Gal (2024) | AI models collapse when trained on recursively generated data | **Nature** 631, 755–759 | https://www.nature.com/articles/s41586-024-07566-y | 재귀 생성 데이터를 무분별하게 쓰면 **원 분포의 꼬리가 사라진다**(model collapse). 초록 원문: *"tails of the original content distribution disappear"* |
+| Kambhatla, Shaib & Govindarajan (2025) | Measuring Lexical Diversity of Synthetic Data Generated through Fine-Grained Persona Prompting | Findings of EMNLP 2025, pp. 21024–21033 | https://aclanthology.org/2025.findings-emnlp.1146/ | 페르소나 **유무**는 어휘 다양성을 올리지만, **세분화(fine-grained) 추가 이득은 미미**하다 — 길이 제한을 주는 것과 비슷한 수준 |
+
+## 6.4 에이전트 평가가 값하는 조건
+
+| 저자(연도) | 제목 | 발표처 | URL | 한 줄 주제 |
+|---|---|---|---|---|
+| Zhuge et al. (2025) | Agent-as-a-Judge: Evaluate Agents with Agents | ICML 2025 (PMLR v267) | https://proceedings.mlr.press/v267/zhuge25a.html | 에이전트가 에이전트를 평가한다. 값하는 지점은 **개방형 산출물과 중간 단계 관찰**이 필요한 평가다 |
+
+## 6.5 신뢰도 미달로 분리한 문헌
+
+| 문헌 | 상태 |
+|---|---|
+| Ge, Chan, Wang, Yu, Mi & Yu (2024), Scaling Synthetic Data Creation with 1,000,000,000 Personas (PersonaHub, arXiv:2406.20094) | **arXiv-only.** 2026-08-14 arXiv API 확인 — `comment`가 *"Work in progress"*이고 DOI·journal-ref 없음. 페르소나 대량 생성의 대표 문헌이 게재본 없이 인용되고 있다는 사실 자체를 기록해 둔다 |
+
+## 6.6 우리 설계와의 연결 — 엣지 세트 생성 방법 결정
+
+| 결정 | 근거 |
+|---|---|
+| **케이스 골격은 사람이 유형 매트릭스로 확정한다** | CheckList (ACL 2020) — 유형(capability × test type) 매트릭스에서 사람이 전개하는 방식. **우리 케이스 카탈로그(X1~X5 · R1~R5 · T1~T7 · Q1~Q4)와 동형**이다 ([edge-cases.md](../edge-cases.md)) |
+| **케이스 골격을 LLM 자유 생성에 맡기지 않는다** | Nature (2024) — 재귀 생성에서 **분포의 꼬리가 먼저 사라진다.** 엣지 케이스는 정확히 그 저빈도 꼬리다. 문면 다듬기는 맡겨도 **어떤 케이스가 있어야 하는지**는 맡길 수 없다 |
+| **페르소나는 간결한 카드 소수로 제한한다** | Findings of EMNLP 2025 — 유무는 이득, **세분화는 이득 미미**. 카드를 정교하게 만드는 데 시간을 쓸 근거가 없다 |
+| **판정에 LLM judge를 쓰지 않는다** | MT-Bench (NeurIPS 2023 D&B)의 position·verbosity·self-enhancement bias, Panickssery et al. (NeurIPS 2024)의 self-preference. 우리 기대값은 **결정적 라벨**(도구 배열 + 응답 상태)이라 검증이 문자열·집합 비교로 끝난다 — 편향 문제를 **원천 회피**한다. 이것이 엣지 세트 스키마를 그렇게 설계한 이유다 |
+| **평가 에이전트(멀티턴·도구 사용)를 만들지 않는다** | Agent-as-a-Judge (ICML 2025)가 값하는 조건은 개방형 산출물·중간 단계 관찰이다. 우리 검증은 **폐쇄형 라벨 비교** — 해당 없음 |
+| **그래도 LLM로 문면을 생성하는 이유** | AdaTest (ACL 2022)의 5-10x는 **반복 버그 탐색** 맥락이라 1회 고정 세트 작성에는 그대로 적용되지 않는다. 우리가 얻는 값은 다양성이 아니라 **입력 감사가능성**이다 — 생성 입력(페르소나 카드 + 골격 명세 + 프롬프트 템플릿)이 커밋 실물로 남아 *"문면이 questions.json에서 오지 않았다"*가 증명된다 (D9-a 주의 항이 지적한 오염) |
+
+산출물과 절차는 [`edge-set/`](../../edge-set/README.md)에 있다.
