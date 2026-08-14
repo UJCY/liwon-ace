@@ -56,6 +56,7 @@
 | All-in-One (SIGMOD 2017), Hirn & Grust (SIGMOD 2021) | **D5** RDBMS 내부 그래프 처리의 선례 |
 | ISO/IEC 39075:2024 (GQL), SQL/PGQ (SIGMOD 2022) | "온톨로지 기반" 요구 대응 — 프로퍼티 그래프의 규범 근거 |
 | Pylon-7 수치 (47%↓ / 37%↑ / 3.5x) | 과제 배경 서술. **저자가 "탐색적(n=5)"이라 명시했으므로 단서를 붙여 인용** |
+| **[related-work.md](./references/related-work.md) 6장 (테스트 세트 생성·평가, 7건)** | **엣지 세트 생성 방법 결정에 이미 소비됐다** — CheckList의 유형 매트릭스, Nature의 꼬리 소실, EMNLP 2025의 페르소나 세분화 무이득, MT-Bench·Panickssery의 판정 편향이 각각 골격·생성 범위·카드 분량·judge 미사용을 정했다([`edge-set/`](../edge-set/README.md)). 결정이 끝났으므로 정독하지 않고 인용만 한다 |
 
 ## 이 우선순위의 근거
 
