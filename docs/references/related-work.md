@@ -138,6 +138,7 @@
 | Muennighoff et al. (2023) | MTEB: Massive Text Embedding Benchmark | EACL 2023 | https://aclanthology.org/2023.eacl-main.148/ | 8태스크·58데이터셋 종합 벤치마크 — **만능 임베딩은 없음** |
 | Xiao et al. (2024) | C-Pack: Packed Resources For General Chinese Embeddings | SIGIR 2024 | https://dl.acm.org/doi/10.1145/3626772.3657878 | BGE 임베딩 모델군 + C-MTP 학습셋 + C-MTEB |
 | Wang et al. (2024) | Improving Text Embeddings with Large Language Models (E5-Mistral) | ACL 2024 (Long) | https://aclanthology.org/2024.acl-long.642/ | 합성 데이터만으로 1k 스텝 미만 학습해 SOTA 임베딩 |
+| Chen, Xiao, Zhang, Luo, Lian & Liu (2024) | M3-Embedding: Multi-Linguality, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation | Findings of ACL 2024, pp. 2318–2335 | https://aclanthology.org/2024.findings-acl.137/ | **`bge-m3`의 원 논문** — 100+ 언어를 하나의 임베딩으로 지원, dense·sparse·multi-vector 동시 수행, 8192 토큰까지 |
 
 ## 2.5 ANN 인덱스 알고리즘 (pgvector 근거)
 
@@ -203,7 +204,7 @@
 | 우리 결정 / 열린 항목 | 관련 문헌 |
 |---|---|
 | **청킹 전략** (열린 항목 — 단순 전략으로 시작, 문서별 튜닝 금지) | **Qu, Tu & Bao (Findings of NAACL 2025)** — 시맨틱 청킹이 비용만큼의 이득을 주지 못함. 우리 방침의 피어리뷰 근거. 반대 방향 참고로 Dense X Retrieval, LumberChunker |
-| **임베딩 모델** (열린 항목 — nomic-embed-text 후보) | MTEB (EACL 2023) — "만능 임베딩 없음", 태스크별 선택 필요. 한국어 문서·질문이므로 다국어 성능 확인 필요 |
+| **임베딩 모델** (열린 항목 — **`bge-m3` 후보**, 적재 후 실측으로 확정) | **M3-Embedding (Findings of ACL 2024)** — `bge-m3`의 원 논문. **한국어(ko) 개별 수치를 원문 표에서 확인했다**: MIRACL dev nDCG@10 ko = **69.9**(dense) / **72.1**(all), 같은 표 최고 베이스라인 mE5large 66.5 · BM25 37.1 (Table 1). MKQA Recall@100 ko = **71.6**(dense) / **71.8**(all), mE5large 68.1 · OpenAI-3 63.9 (Table 2). 단 논문 Limitations가 *"언어별 성능 편차는 충분히 논의되지 않았다"*고 명시하므로 ko 수치는 이 두 벤치마크 한정으로 인용한다. 대비: MTEB (EACL 2023) — "만능 임베딩 없음", 태스크별 선택 필요. 후보에서 내린 `nomic-embed-text`는 HF 모델카드 언어 태그가 `en` 하나여서 한국어 1차 출처가 없다 ([dataset-analysis.md](../dataset-analysis.md) 7장) |
 | **T4** 유사도 임계값 / "관련 문서 없음" 판정 (열린 항목) | BEIR — 제로샷 환경에서 BM25가 강건한 베이스라인. 임계값을 데이터셋에서 역산하지 않으려면 일반 벤치마크 관행 참조 |
 | **벡터 DB 인덱스 선택** (HNSW vs IVFFlat) | pgvector 공식 문서 파라미터 + HNSW 원 논문(TPAMI 2020), IVF 기원(ICCV 2003), ANN-Benchmarks. 문서 40건 규모면 인덱스 없이도 동작 — 인덱스는 시연·확장성 논거용 |
 | **Q2** 컨텍스트 초과 / TACC 적용 지점 ① | Lost in the Middle (TACL 2024, 과제 권장 참조와 동일) — 반환 청크 순서·개수 설계 근거 |
@@ -410,6 +411,73 @@
 | 에이전트 구조 (Pylon-7 Stage A/B/C) | ReAct (ICLR 2023), Plan-and-Solve (ACL 2023) — Pylon-7이 자기 파이프라인의 기반으로 인용한 원 논문들 |
 | 권장 모델(소형·로컬)의 도구 호출 실현 가능성 | TinyAgent, Granite-FCM, ToolACE, Hammer — 7~8B급 온디바이스 모델이 함수 호출을 해내는 선행 사례 |
 
+## 4.10 "MCP Parallel 패턴" 용어 소재 — 가설 (우리 판단 · **검증 시도 후 미확정**)
+
+> **이 절은 문헌 근거가 아니다.** 근거로 삼는 자료가 벤더 엔지니어링 블로그라 위 수집 기준상 서지 표에 올릴 수 없다. **인용 논거로 쓰지 않고, 심사 답변의 프레이밍으로만 쓴다.**
+
+### 실측된 사실
+
+| # | 사실 | 확인처 |
+|---|---|---|
+| 1 | "Parallel"의 유일한 출현은 KOSSA 요강의 **괄호 별칭 1회**. 블로그·공지·데이터셋 0회 | [dataset-analysis.md](../dataset-analysis.md) 6장 |
+| 2 | **어느 출처도 무엇이 병렬인지 정의하지 않는다** | 동일 |
+| 3 | questions.json 정답이 전부 도구 1개 — `tool`이 배열이 아닌 문자열 (30/30) | 동일 |
+| 4 | **MCP 스펙에 "Parallel" 패턴 개념이 없다** | [mcp-spec.md](./mcp-spec.md) — 0건 |
+| 5 | **air 프레임워크 문서에도 없다** (리원에이스 자기 오픈소스인데도) | [air-evaluation.md](../air-evaluation.md) — 0건 |
+| 6 | 필수 참조 [2] Pylon-7은 해당 계층을 **`L5 Routing`** 이라 부른다 | [pylon-7.md](./pylon-7.md) |
+
+### 가설
+
+**요강이 서술한 동작은 표준 에이전트 워크플로 분류의 `Routing`이고, 괄호 별칭은 그 목록에서 인접한 `Parallelization`을 집은 것이다.**
+
+널리 인용되는 분류(Anthropic, *Building effective agents*, 2024-12)는 다섯이며 **Routing 바로 다음이 Parallelization**이다 — Prompt chaining / **Routing** / **Parallelization** / Orchestrator-workers / Evaluator-optimizer.
+
+| 패턴 | 정의 | 요강 서술과 |
+|---|---|---|
+| **Routing** | 입력을 분류해 전문화된 후속 처리로 보낸다 | *"질문 유형을 분석하여 적합한 도구를 자동 매칭"* — **일치** |
+| **Parallelization** | 과업을 독립 하위과업으로 쪼개 동시 실행 후 집계(sectioning), 또는 같은 과업을 반복해 투표(voting) | 쪼개는 얘기도 집계 얘기도 없음 |
+
+### 이 가설을 지지하는 것
+
+- **(a) 정의를 안 썼다.** 병렬을 진짜 요구했다면 무엇을 병렬로 하는지 한 줄은 썼을 것이다.
+- **(b) 검증 수단을 안 만들었다.** `tool`이 문자열이라 데이터셋이 복수 정답을 **담을 수조차 없다.** 도구별 정확히 10문항에 `hint`까지 붙인 데이터셋의 꼼꼼함과 어긋난다.
+- **(c) 이 판의 표준 어휘는 Routing이다.** 블로그·README·요강이 그 컴포넌트를 전부 "라우터"라 부르고, 필수 참조가 L5를 Routing이라 부른다. 오직 괄호 안에서만 Parallel이 된다.
+
+### 대안 가설
+
+| 대안 | 평가 |
+|---|---|
+| **정말로 병렬 호출을 의도했다** | (b)가 설명되지 않는다. 가장 약하다 |
+| **패턴명이 아니라 비유였다** — "도구를 나란히(parallel) 등록해 두고 골라 쓴다" | 가능하다. **우리에겐 위 가설과 결론이 같다** — 동시 호출은 문면 요구가 아니다 |
+
+### 결론
+
+- **D3는 불변이다.** 병렬은 이미 "문면 요구가 아니라 우리 설계 선택"으로 규정돼 있고 근거는 자산 중복 실측이다. 이 가설이 맞든 틀리든 그대로다.
+- **바뀌는 것은 심사 답변의 자세뿐이다.** 지금 답은 *"원문이 정의하지 않아서"* 하나이고 수세적이다.
+
+### 표현 규칙
+
+**"요강이 잘못 표기했다"고 쓰지 않는다.** 출제자 의도는 우리가 모른다. 사실만 서술하고 판정하지 않는다.
+
+> 요강이 서술한 동작을 표준 워크플로 분류에 대면 **Routing**에 해당한다. 우리는 그것을 규칙 라우터로 구현했고, 추가로 상보 중복 구간(X3·X4)에서 병렬 호출을 둔다.
+
+### 검증 결과 (2026-08-13)
+
+요강 원문(`https://www.kossa.kr/materials/2026/ossp/tasks-liwonace.html`)을 확보해 이 절이 예고한 결정적 검증을 실행했다.
+
+| 검증 항목 | 결과 | 가설에 |
+|---|---|---|
+| 요강에 분류의 다른 패턴 이름(Prompt chaining · Routing · Orchestrator-workers · Evaluator-optimizer)이 함께 등장하는가 | **0건.** 전문에서 "Parallel" 1회(괄호 별칭)뿐, "병렬" 0회 | **불리** — 이 절이 세운 확정 조건 불충족 |
+| 필수 참조 [2] Pylon-7이 출처인가 (자사 참조 모델이라 더 유력한 후보였다) | **PDF 전문 23쪽에 "parallel" 0회.** 계층 이름은 `L5 Routing`이고, "concurrent" 0회, "simultaneous" 9회는 전부 *"토큰과 정확도를 동시에 개선"* 문맥 | **대안 기각** |
+
+**가설은 확정되지 않았고, 가장 유력한 대안도 제거됐다.** 남는 것은 강화된 실측 사실 하나다:
+
+> **"MCP Parallel 패턴"은 요강 밖 어디에서도 근거가 확인되지 않는 용어다.** 요강이 지정한 필수 참조 3건 중 확인 가능한 2건(Pylon-7 · MCP 스펙)에 없고, 자사 프레임워크 air에도, 블로그·공지·데이터셋에도 없다. (필수 참조 [1] TACC 논문은 미확인 — 우리 요약본에는 "연쇄 분석" 시나리오만 있고 병렬 개념은 없다.)
+
+**가설의 지위**: 확정 수단을 소진했다. 반증된 것도 아니다. 분류 유래설은 여전히 가장 그럴듯한 설명이지만 **근거가 정황뿐**이므로, 발표·문서에서 **용어의 출처를 주장하지 않는다.** 위 "표현 규칙"의 문장은 유래를 언급하지 않으므로 그대로 쓸 수 있다.
+
+**남은 확인 수단**: 주최 측 문의 — 요강 기술문의처 `sihyeon@liwonace.co.kr` (연구원 이시현). 물어보면 끝나는 문제다. **다른 문의 후보였던 "LLM 모델"(Gemma 4 E2B 대 KOSSA "7B") 행은 2026-08-14에 문의 대상에서 빠졌다** — 리원에이스 2출처가 동일 문면이라 문의로 얻을 정보가 없다고 판단했다 ([design.md](../design.md) 열어둔 항목). **2026-08-18에 "RAM 4GB 하한"이 잠시 문의 후보로 올랐다가 같은 날 내려왔다** — CPU 전용 실측에서 권장 모델이 단독 4.0GB로 나와 원문의 `RAM 최소 4GB`와 맞지 않지만, **권장 모델을 그대로 쓰기로 해서 심사 환경 사양을 알아내도 우리 결정이 달라지지 않는다** ([design.md](../design.md) 열어둔 항목). **따라서 이 창구의 문의 후보는 이 절의 용어 문제 하나다.**
+
 ---
 
 # 정리 — 우리 결정을 뒷받침하는 문헌 (요약)
@@ -503,12 +571,67 @@
 
 근거는 Mem2ActBench Table 5다. 후보 도구를 1→5개로 늘릴 때 **hard negative 조건에서만** 94.50%→69.75%로 붕괴하고, **random negative 조건에서는 무변화**(93.5~95.5%)였다 — 원인은 개수 자체가 아니라 **의미적으로 겹치는 후보의 존재**다. 그리고 우리 도구 3종은 실측상 이미 겹쳐 있다 — 지식 그래프는 정형 테이블에서 100% 도출되고, 문서 40건은 전부 그래프 개체를 언급하며, `support_tickets` title 28종 중 18종이 문서와 주제가 겹친다 ([dataset-analysis.md](../dataset-analysis.md)). 이 데이터셋에서 자산을 겹치지 않게 설계하는 선택지는 없다.
 
+**성립 조건.** 이 논거는 라우터 배치가 **A안**(에이전트가 `ask`만 호출) 또는 **B2**(코드가 `route` 결과를 집행)일 때만 성립한다. **B1**(LLM이 `route` 결과를 읽고 도구를 고름)이면 후보 4개 hard negative 조건 그대로다 — B1 비권장 근거다 ([routing-topology.md](../routing-topology.md) 3.6). 그리고 이 조건을 강제하는 것은 MCP 프로토콜이 아니라 **에이전트 코드**다 — 도구 4개를 등록하면 `tools/list`에 4개가 다 보이고 서버는 클라이언트 호출을 막을 수 없다 ([design.md](../design.md) D2).
+
 이 논거가 우리 설계에 주는 함의:
 
 | 함의 | 내용 |
 |---|---|
-| **D2와 정합적이다** | 에이전트는 도구 선택 문제를 겪지 않는다 (A안이면 `ask`만 호출, B안이면 코드가 집행 — D1·D2). Repantis et al.의 K=1 선택률 100.0%, Mem2ActBench의 N=1 94.50%가 우리가 있는 지점이다. 도구 3종을 함께 등록하되 에이전트에게 선택을 맡기지 않는 조합이 이 구간을 유지시킨다 |
+| **D2와 정합적이다** | 에이전트는 도구 선택 문제를 겪지 않는다 — **A안이면 후보 1개(`ask`만 호출), B2면 LLM이 선택을 아예 하지 않는다.** B1은 해당 없음(위 "성립 조건"). 도구 3종을 함께 등록하되 에이전트에게 선택을 맡기지 않는 조합이 이 구간을 유지시킨다 |
+| **후보 1개 수치를 겹쳐 쓰지 않는다** | Repantis et al. K=1 **100.0%**와 Mem2ActBench N=1 **94.50%**는 벤치마크·모델·지표가 달라 **같은 지점의 두 측정이 아니다.** 하나로 묶어 "우리가 있는 지점"이라고 쓰면 안 되고, "가장 유리한 구간"의 범위로만 인용한다. 애초에 B2에서는 LLM이 선택을 하지 않으므로 두 수치 어느 쪽도 우리 상한이 아니다 |
 | **그래서 경계는 자산이 아니라 "요구 출력 형태"로 긋는다** | 도구 설명(description)도 이 축으로 쓴다 — `vector_search`=서술, `nl2sql`=정형 속성·수치, `knowledge_graph`=개체 식별·연결 ([design.md](../design.md) D9). 자산으로 설명을 쓰면 설명끼리 겹쳐 hard negative가 심해진다. 겹치는 구간 자체는 규칙에 중복 유형으로 명시해 처리한다(D3) |
 | **프레이밍 리스크** | Chen (2026)이 "정보 과부하" 인과를 반박한다. 발표·보고서에서 "도구가 많으면 과부하로 성능이 떨어진다"고 쓰면 반박 가능한 주장이 된다. **"near-miss 혼동 최소화"로 쓰는 것이 안전하며, 이는 이미 확보한 MetaTool(ICLR 2024, near-miss 디스트랙터) 논지와도 일관된다** |
 | 도구 설명 작성 지침 | Hasan et al. (2026) — 856개 도구 중 97.1%가 설명 smell을 갖고, 설명을 과하게 보강하면 실행 스텝이 +67% 늘고 일부는 퇴행한다. **compact하고 목적이 분명한 설명**을 목표로 한다 |
 | 수치 인용 시 오차 | Bhat et al. (2026) — 이 절의 벤치마크 기반 수치들은 반복 실행 분산이 최대 18.9%p다. 단정적으로 인용하지 않는다 |
+
+---
+
+# 6. 테스트 세트 생성·평가 방법론
+
+> **자체 엣지 세트(D7)를 어떻게 만들 것인가**를 정하려고 모은 목록이다. 5장과 달리 arXiv-only를 허용하지 않는다 — 맨 위 수집 기준 그대로다. 아래 발표처·저자는 전부 **2026-08-14에 원문 페이지에서 직접 확인**했다 (ACL Anthology BibTeX · NeurIPS 프로시딩 · PMLR · Crossref · acl2020.org 수상 공지).
+
+## 6.1 유형 기반 테스트 세트 작성
+
+| 저자(연도) | 제목 | 발표처 | URL | 한 줄 주제 |
+|---|---|---|---|---|
+| Ribeiro, Wu, Guestrin & Singh (2020) | Beyond Accuracy: Behavioral Testing of NLP Models with CheckList | ACL 2020 (**Best Paper**), pp. 4902–4912 | https://aclanthology.org/2020.acl-main.442/ | **capability × test type 매트릭스**로 능력별 테스트를 사람이 템플릿 전개. 정확도 한 숫자가 감추는 실패를 유형으로 드러낸다 |
+| Ribeiro & Lundberg (2022) | Adaptive Testing and Debugging of NLP Models (AdaTest) | ACL 2022 (Long), pp. 3253–3267 | https://aclanthology.org/2022.acl-long.230/ | 사람 + LM 후보 제안의 반복 루프. 초록 원문: 사용자가 버그를 찾는 데 **"5-10x more effective"**. 단 그 이득은 **반복 탐색-수정 루프** 맥락이다 |
+
+## 6.2 LLM 판정(judge)의 편향
+
+| 저자(연도) | 제목 | 발표처 | URL | 한 줄 주제 |
+|---|---|---|---|---|
+| Zheng et al. (2023) | Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena | NeurIPS 2023 **Datasets and Benchmarks Track** | https://proceedings.neurips.cc/paper_files/paper/2023/hash/91f18a1287b398d378ef22505bf41832-Abstract-Datasets_and_Benchmarks.html | 초록이 한계를 명시 — **position · verbosity · self-enhancement bias**와 제한된 추론 능력 |
+| Panickssery, Bowman & Feng (2024) | LLM Evaluators Recognize and Favor Their Own Generations | NeurIPS 2024 | https://proceedings.neurips.cc/paper_files/paper/2024/hash/7f1f0218e45f5414c79c0679633e47bc-Abstract-Conference.html | 평가자 LLM이 **자기 생성물을 알아보고 선호**한다 — self-preference의 직접 실증 |
+
+## 6.3 합성 데이터 생성이 잃는 것
+
+| 저자(연도) | 제목 | 발표처 | URL | 한 줄 주제 |
+|---|---|---|---|---|
+| Shumailov, Shumaylov, Zhao, Papernot, Anderson & Gal (2024) | AI models collapse when trained on recursively generated data | **Nature** 631, 755–759 | https://www.nature.com/articles/s41586-024-07566-y | 재귀 생성 데이터를 무분별하게 쓰면 **원 분포의 꼬리가 사라진다**(model collapse). 초록 원문: *"tails of the original content distribution disappear"* |
+| Kambhatla, Shaib & Govindarajan (2025) | Measuring Lexical Diversity of Synthetic Data Generated through Fine-Grained Persona Prompting | Findings of EMNLP 2025, pp. 21024–21033 | https://aclanthology.org/2025.findings-emnlp.1146/ | 페르소나 **유무**는 어휘 다양성을 올리지만, **세분화(fine-grained) 추가 이득은 미미**하다 — 길이 제한을 주는 것과 비슷한 수준 |
+
+## 6.4 에이전트 평가가 값하는 조건
+
+| 저자(연도) | 제목 | 발표처 | URL | 한 줄 주제 |
+|---|---|---|---|---|
+| Zhuge et al. (2025) | Agent-as-a-Judge: Evaluate Agents with Agents | ICML 2025 (PMLR v267) | https://proceedings.mlr.press/v267/zhuge25a.html | 에이전트가 에이전트를 평가한다. 값하는 지점은 **개방형 산출물과 중간 단계 관찰**이 필요한 평가다 |
+
+## 6.5 신뢰도 미달로 분리한 문헌
+
+| 문헌 | 상태 |
+|---|---|
+| Ge, Chan, Wang, Yu, Mi & Yu (2024), Scaling Synthetic Data Creation with 1,000,000,000 Personas (PersonaHub, arXiv:2406.20094) | **arXiv-only.** 2026-08-14 arXiv API 확인 — `comment`가 *"Work in progress"*이고 DOI·journal-ref 없음. 페르소나 대량 생성의 대표 문헌이 게재본 없이 인용되고 있다는 사실 자체를 기록해 둔다 |
+
+## 6.6 우리 설계와의 연결 — 엣지 세트 생성 방법 결정
+
+| 결정 | 근거 |
+|---|---|
+| **케이스 골격은 사람이 유형 매트릭스로 확정한다** | CheckList (ACL 2020) — 유형(capability × test type) 매트릭스에서 사람이 전개하는 방식. **우리 케이스 카탈로그(X1~X5 · R1~R5 · T1~T7 · Q1~Q4)와 동형**이다 ([edge-cases.md](../edge-cases.md)) |
+| **케이스 골격을 LLM 자유 생성에 맡기지 않는다** | Nature (2024) — 재귀 생성에서 **분포의 꼬리가 먼저 사라진다.** 엣지 케이스는 정확히 그 저빈도 꼬리다. 문면 다듬기는 맡겨도 **어떤 케이스가 있어야 하는지**는 맡길 수 없다 |
+| **페르소나는 간결한 카드 소수로 제한한다** | Findings of EMNLP 2025 — 유무는 이득, **세분화는 이득 미미**. 카드를 정교하게 만드는 데 시간을 쓸 근거가 없다 |
+| **판정에 LLM judge를 쓰지 않는다** | MT-Bench (NeurIPS 2023 D&B)의 position·verbosity·self-enhancement bias, Panickssery et al. (NeurIPS 2024)의 self-preference. 우리 기대값은 **결정적 라벨**(도구 배열 + 응답 상태)이라 검증이 문자열·집합 비교로 끝난다 — 편향 문제를 **원천 회피**한다. 이것이 엣지 세트 스키마를 그렇게 설계한 이유다 |
+| **평가 에이전트(멀티턴·도구 사용)를 만들지 않는다** | Agent-as-a-Judge (ICML 2025)가 값하는 조건은 개방형 산출물·중간 단계 관찰이다. 우리 검증은 **폐쇄형 라벨 비교** — 해당 없음 |
+| **그래도 LLM로 문면을 생성하는 이유** | AdaTest (ACL 2022)의 5-10x는 **반복 버그 탐색** 맥락이라 1회 고정 세트 작성에는 그대로 적용되지 않는다. 우리가 얻는 값은 다양성이 아니라 **입력 감사가능성**이다 — 생성 입력(페르소나 카드 + 골격 명세 + 프롬프트 템플릿)이 커밋 실물로 남아 *"문면이 questions.json에서 오지 않았다"*가 증명된다 (D9-a 주의 항이 지적한 오염) |
+
+산출물과 절차는 [`edge-set/`](../../edge-set/README.md)에 있다.

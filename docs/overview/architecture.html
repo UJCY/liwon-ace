@@ -1,0 +1,1681 @@
+<title>Company-X MCP 검색 시스템 — 설계 구조 해설</title>
+
+<!--
+  파생 설명물입니다. 진실의 원천은 docs/design.md 입니다.
+
+  참조는 한 방향으로만 겁니다 — 이 페이지에서 기존 문서로만 링크하고,
+  기존 문서에서 이 페이지로 거는 링크는 만들지 않습니다.
+  결정이 바뀌면 design.md 가 먼저 바뀌고 이 페이지가 따라옵니다.
+
+  본문의 표와 그림은 같은 내용을 담습니다. 검토할 때는 표를 design.md 와
+  대조하면 되고, 그림을 해독할 필요는 없습니다.
+-->
+
+<style>
+  :root {
+    /* 페이지 — 라이트 (기본) */
+    --ground:       #F5F7F7;
+    --surface:      #FFFFFF;
+    --surface-2:    #EBF0F0;
+    --ink:          #131A1B;
+    --ink-2:        #546265;
+    --ink-3:        #7C8A8C;
+    --rule:         #DCE2E2;
+    --rule-strong:  #B7C3C3;
+    --accent:       #0E6E70;
+    --accent-soft:  #DDEBEB;
+    --brass:        #8A6A1F;
+    --brass-soft:   #F2EAD7;
+
+    /* 도면 종이 — 두 테마에서 잉크는 동일, 종이만 밝기 조정 */
+    --paper:        #FBFCFC;
+    --paper-ink:    #15201F;
+    --paper-ink-2:  #4C5C5D;
+    --paper-rule:   #B4C2C2;
+    --paper-fill:   #E7EEEE;
+    --paper-fill-a: #DCE9E9;
+    --paper-fill-b: #F0E7D3;
+    --paper-accent: #0E6E70;
+    --paper-brass:  #8A6A1F;
+
+    --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+                 "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", "D2Coding",
+                 Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --wide: 1080px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0E1213;
+      --surface:     #151B1C;
+      --surface-2:   #1C2324;
+      --ink:         #E6EBEB;
+      --ink-2:       #9DAAAB;
+      --ink-3:       #778486;
+      --rule:        #283132;
+      --rule-strong: #3B4648;
+      --accent:      #5BC4C0;
+      --accent-soft: #12302F;
+      --brass:       #CFA85C;
+      --brass-soft:  #292312;
+      --paper:       #E4EAEA;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0E1213;
+    --surface:     #151B1C;
+    --surface-2:   #1C2324;
+    --ink:         #E6EBEB;
+    --ink-2:       #9DAAAB;
+    --ink-3:       #778486;
+    --rule:        #283132;
+    --rule-strong: #3B4648;
+    --accent:      #5BC4C0;
+    --accent-soft: #12302F;
+    --brass:       #CFA85C;
+    --brass-soft:  #292312;
+    --paper:       #E4EAEA;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.8;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    display: grid;
+    grid-template-columns:
+      1fr
+      min(var(--measure), calc(100% - 2.5rem))
+      1fr;
+    row-gap: 0;
+    padding: 0 0 6rem;
+  }
+  .page > * { grid-column: 2; }
+  .page > .bleed {
+    grid-column: 1 / -1;
+    width: min(var(--wide), calc(100% - 2.5rem));
+    margin-inline: auto;
+  }
+
+  /* ---------- 표제 ---------- */
+
+  .masthead {
+    padding: 4.5rem 0 2.25rem;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: .75rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0;
+  }
+  h1 {
+    font-size: clamp(1.85rem, 4.2vw, 2.55rem);
+    line-height: 1.28;
+    letter-spacing: -.018em;
+    font-weight: 700;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 1.0625rem;
+    color: var(--ink-2);
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  .provenance-note {
+    margin: 2.25rem 0 0;
+    padding: .9rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 2px solid var(--rule-strong);
+    border-radius: 2px;
+    font-size: .875rem;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 일반 조판 ---------- */
+
+  h2 {
+    font-size: clamp(1.35rem, 2.7vw, 1.7rem);
+    line-height: 1.35;
+    letter-spacing: -.012em;
+    font-weight: 700;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 2.25rem 0 .5rem;
+    letter-spacing: -.005em;
+  }
+  p { margin: 0 0 1.1rem; }
+  p:last-child { margin-bottom: 0; }
+  a {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: .18em;
+  }
+  a:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  strong { font-weight: 700; }
+  code, .mono {
+    font-family: var(--font-mono);
+    font-size: .875em;
+    font-variant-numeric: tabular-nums;
+  }
+  :not(pre) > code {
+    background: var(--surface-2);
+    padding: .1em .34em;
+    border-radius: 2px;
+  }
+  ul { margin: 0 0 1.1rem; padding-left: 1.15rem; }
+  li { margin-bottom: .3rem; }
+  li::marker { color: var(--ink-3); }
+
+  .lede {
+    font-size: 1.0625rem;
+    color: var(--ink);
+  }
+  .aside {
+    font-size: .9375rem;
+    color: var(--ink-2);
+  }
+
+  /* ---------- 단(rung) ---------- */
+
+  .rung {
+    padding-top: 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+  }
+  .rung-head {
+    display: flex;
+    gap: 1.1rem;
+    align-items: flex-start;
+  }
+  .rung-no {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--accent);
+    flex: none;
+    padding-top: .15rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .rung-head > div { display: flex; flex-direction: column; gap: .35rem; }
+
+  .meter {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-family: var(--font-mono);
+    font-size: .6875rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .meter .dots { display: flex; gap: 4px; }
+  .meter i {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    border: 1px solid var(--rule-strong);
+    display: block;
+  }
+  .meter i.on { background: var(--accent); border-color: var(--accent); }
+
+  .claim {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.65;
+    margin: 0;
+    padding-left: .9rem;
+    border-left: 2px solid var(--accent);
+    text-wrap: pretty;
+  }
+
+  /* ---------- 미정 표기 ---------- */
+
+  .open {
+    display: inline-flex;
+    align-items: center;
+    gap: .32em;
+    font-family: var(--font-mono);
+    font-size: .6875rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border: 1px dashed var(--rule-strong);
+    border-radius: 2px;
+    padding: .1em .45em;
+    vertical-align: .1em;
+    white-space: nowrap;
+  }
+  .open-block {
+    border: 1px dashed var(--rule-strong);
+    border-radius: 2px;
+    padding: 1rem 1.15rem;
+    background: transparent;
+    font-size: .9375rem;
+    color: var(--ink-2);
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+  }
+  .open-block .open-title {
+    font-weight: 700;
+    color: var(--ink);
+    font-size: .9375rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+
+  /* ---------- 근거 박스 ---------- */
+
+  .evidence {
+    margin-top: .75rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.25rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+  .evidence > div {
+    padding-left: .8rem;
+    border-left: 2px solid var(--rule-strong);
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+  }
+  .evidence > .ev-measured { border-left-color: var(--accent); }
+  .evidence > .ev-ours     { border-left-color: var(--brass); }
+  .ev-label {
+    font-family: var(--font-mono);
+    font-size: .6875rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0;
+  }
+  .ev-measured .ev-label { color: var(--accent); }
+  .ev-ours .ev-label     { color: var(--brass); }
+  .evidence p {
+    margin: 0;
+    font-size: .875rem;
+    line-height: 1.65;
+    color: var(--ink-2);
+  }
+  .evidence .src {
+    font-family: var(--font-mono);
+    font-size: .75rem;
+    color: var(--ink-3);
+  }
+  @media (max-width: 720px) {
+    .evidence { grid-template-columns: 1fr; gap: 1rem; }
+  }
+
+  /* ---------- 표 ---------- */
+
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: var(--surface);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: .9375rem;
+    line-height: 1.6;
+  }
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-size: .8125rem;
+    color: var(--ink-3);
+    padding: 0 0 .5rem;
+  }
+  th, td {
+    text-align: left;
+    padding: .6rem .85rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  thead th {
+    font-size: .75rem;
+    font-family: var(--font-mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td .mono, th .mono { white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- 도면 ---------- */
+
+  figure { margin: 0; display: flex; flex-direction: column; gap: .7rem; }
+  .paper {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 1.5rem 1.25rem;
+    overflow-x: auto;
+  }
+  .paper svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+  .paper pre.mermaid {
+    margin: 0;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+  }
+  figcaption {
+    font-size: .875rem;
+    color: var(--ink-2);
+    line-height: 1.65;
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  /* 도면 안 요소 — 종이 팔레트로만 칠한다 */
+  .dg-fill   { fill: var(--paper-fill);   stroke: var(--paper-rule); stroke-width: 1.5; }
+  .dg-fill-a { fill: var(--paper-fill-a); stroke: var(--paper-rule); stroke-width: 1.5; }
+  .dg-fill-b { fill: var(--paper-fill-b); stroke: var(--paper-rule); stroke-width: 1.5; }
+  .dg-ghost  { fill: none; stroke: var(--paper-rule); stroke-width: 1.25; opacity: .8; }
+  .dg-line   { fill: none; stroke: var(--paper-ink-2); stroke-width: 1.5; }
+  .dg-cut    { fill: none; stroke: var(--paper-accent); stroke-width: 2; }
+  .dg-dash   { fill: none; stroke: var(--paper-ink-2); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .dg-empty  { fill: none; stroke: var(--paper-rule); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .dg-hatch  { stroke: var(--paper-brass); stroke-width: 1.1; }
+  .dg-arrow  { fill: var(--paper-ink-2); }
+  .dg-t  { fill: var(--paper-ink);   font-family: var(--font-sans); font-size: 13px; font-weight: 500; }
+  .dg-t2 { fill: var(--paper-ink-2); font-family: var(--font-sans); font-size: 11.5px; }
+  .dg-th { fill: var(--paper-ink);   font-family: var(--font-sans); font-size: 13.5px; font-weight: 700; }
+  .dg-tm { fill: var(--paper-ink);   font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; letter-spacing: .04em; }
+  .dg-acc   { fill: var(--paper-accent); }
+  .dg-brass { fill: var(--paper-brass); }
+
+  /* ---------- 코드 ---------- */
+
+  pre.code {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: .8125rem;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+  pre.code .cm { color: var(--ink-3); }
+
+  /* ---------- 두 안 나란히 ---------- */
+
+  .duo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+  @media (max-width: 860px) { .duo { grid-template-columns: 1fr; } }
+  .duo h3 { margin-top: 0; }
+
+  .divider {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: 4rem 0 0;
+  }
+
+  .colophon {
+    margin-top: 3rem;
+    font-size: .875rem;
+    color: var(--ink-3);
+    line-height: 1.7;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<main class="page">
+
+  <header class="masthead">
+    <p class="eyebrow">2026 오픈소스 개발자대회 · 리원에이스 지정과제</p>
+    <h1>Company-X MCP 검색 시스템 — 설계 구조 해설</h1>
+    <p class="standfirst">
+      자연어 질문 하나가 세 갈래로 나뉜 데이터에서 답이 되기까지, 무엇이 그 사이에 놓여 있고
+      왜 그 모양이어야 했는지. 추상에서 구체로 다섯 단.
+    </p>
+  </header>
+
+  <div class="provenance-note">
+    <strong>이 페이지는 파생 설명물입니다.</strong> 결정의 원본은
+    <code>docs/design.md</code>(우리 판단), <code>docs/requirements.md</code>(과제 원문),
+    <code>docs/dataset-analysis.md</code>(데이터 실측)입니다. 여기 실린 표와 그림은 그 문서들에서
+    가져온 것이고, 내용이 어긋나면 원본이 맞습니다.
+  </div>
+
+  <section class="rung">
+    <h3 style="margin-top:0">읽는 법</h3>
+    <p class="aside" style="margin-bottom:0">
+      각 단은 <b>주장 한 줄 → 그림 → 표 → 근거 박스</b> 순서입니다. 근거 박스는 그 단의 내용이
+      어디서 왔는지를 세 갈래로 나눠 보여줍니다. 이 저장소는 출처와 판단을 파일 단위로 분리해
+      관리하기 때문에, 같은 문장이라도 어느 갈래에 속하는지가 중요합니다.
+    </p>
+    <div class="evidence" style="border-top:0; padding-top:.5rem">
+      <div>
+        <p class="ev-label">과제 원문 문면</p>
+        <p>요강·블로그·공지·데이터셋 README에 <b>그렇게 적혀 있는</b> 것.</p>
+        <p class="src">requirements.md</p>
+      </div>
+      <div class="ev-measured">
+        <p class="ev-label">데이터 실측</p>
+        <p>데이터셋을 직접 대조해 <b>세어 본</b> 것. 재현 명령이 원문에 있습니다.</p>
+        <p class="src">dataset-analysis.md</p>
+      </div>
+      <div class="ev-ours">
+        <p class="ev-label">우리 판단</p>
+        <p>위 둘을 근거로 <b>우리가 고른</b> 것. 요구가 아닙니다.</p>
+        <p class="src">design.md</p>
+      </div>
+    </div>
+    <p class="aside">
+      아직 정하지 않은 것은 <span class="open">미정</span> 으로 표시하고, 그림에서는 점선으로
+      그립니다. 구조를 바꾸는 미정 3건은 그 자리에서 드러내고, 값만 정하면 되는 미정 8건은
+      맨 끝에 모았습니다.
+    </p>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ============================ ① ============================ -->
+
+  <section class="rung">
+    <div class="rung-head">
+      <span class="rung-no">①</span>
+      <div>
+        <p class="meter">추상 <span class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></span> 구체</p>
+        <h2>무엇을 만드는가</h2>
+      </div>
+    </div>
+
+    <p class="claim">
+      말로 물으면 데이터에서 찾아 답한다. 그런데 데이터가 세 가지 형태로 나뉘어 있어서,
+      찾기 전에 <b>어디서 찾을지부터 정해야</b> 한다.
+    </p>
+
+    <p class="lede">
+      과제가 준 데이터는 하나의 데이터베이스가 아니라 서로 다른 형태의 세 자산입니다. 같은 회사의
+      운영 데이터인데, 담긴 방식이 다릅니다.
+    </p>
+
+    <div class="table-wrap bleed" style="margin-bottom:1.1rem">
+      <table>
+        <caption>Company-X 데이터셋 — 가상 IT 솔루션 기업, 2024-01 ~ 2026-06</caption>
+        <thead>
+          <tr><th>자산</th><th>형식</th><th>규모</th><th>담고 있는 것</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>문서</td><td>Markdown</td>
+            <td class="num">40건</td>
+            <td><b>서술</b> — 장애 원인·조치, 설치 절차, 회의 결정, 제안 내용</td>
+          </tr>
+          <tr>
+            <td>정형 테이블</td><td>SQL</td>
+            <td class="num">8개 · 818행</td>
+            <td><b>수치·속성</b> — 금액, 연봉, 기간, 상태, 행 개수</td>
+          </tr>
+          <tr>
+            <td>지식 그래프</td><td>JSON</td>
+            <td class="num">노드 133 / 엣지 354</td>
+            <td><b>개체와 연결</b> — 누가 무엇을 쓰는가, 누구 소속인가</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      그래서 질문 하나가 답이 되려면 세 가지 일이 필요합니다. <b>어디서 찾을지 정하고</b>,
+      <b>찾고</b>, <b>없으면 없다고 말합니다.</b>
+    </p>
+
+    <p>
+      세 번째가 왜 별개의 일인지가 이 설계의 출발점입니다. 답변을 쓰는 것은 로컬에서 도는 소형
+      LLM인데, 소형 LLM은 근거가 없어도 그럴듯한 문장을 만들어 냅니다. “없음”을 구조화해서
+      돌려주지 않으면 모델이 지어냅니다. 그래서 <b>정직하게 답하기는 예외 처리가 아니라 정상
+      경로</b>로 설계했습니다.
+    </p>
+
+    <figure class="bleed">
+      <div class="paper">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#E7EEEE","primaryTextColor":"#15201F","primaryBorderColor":"#8FA6A6","lineColor":"#5E7375","secondaryColor":"#F0E7D3","tertiaryColor":"#FBFCFC","fontSize":"14px","clusterBkg":"#F3F7F7","clusterBorder":"#B4C2C2"}}}%%
+flowchart LR
+  Q["사용자 질문<br/>(자연어)"] --> R{"어디서 찾을지<br/>정한다"}
+  R -->|"서술을 요구"| D[("문서 40건")]
+  R -->|"수치·속성을 요구"| T[("정형 테이블<br/>8개 · 818행")]
+  R -->|"개체·연결을 요구"| G[("그래프<br/>133노드 / 354엣지")]
+  R -->|"해당 없음"| N["없다고 말한다<br/>(구조화 거절)"]
+  D --> M["찾은 것을<br/>컨텍스트로 모은다"]
+  T --> M
+  G --> M
+  M --> A["답변 문장"]
+  N --> A
+</pre>
+      </div>
+      <figcaption>
+        <b>질문이 답이 되기까지 필요한 세 가지 일.</b> “없다고 말한다” 경로가 답변으로 직접
+        이어지는 것이 핵심입니다 — 실패가 아니라 답의 한 종류입니다.
+      </figcaption>
+    </figure>
+
+    <div class="evidence">
+      <div>
+        <p class="ev-label">과제 원문 문면</p>
+        <p>“사람이 말로 질문하면, AI가 스스로 DB를 뒤져서 정답을 찾아주는 시스템”(블로그).
+           구현 컴포넌트 4개와 데이터셋 구성도 문면에 있습니다.</p>
+        <p class="src">requirements.md</p>
+      </div>
+      <div class="ev-measured">
+        <p class="ev-label">데이터 실측</p>
+        <p>자산 규모 <span class="mono">818</span>행 / 노드 <span class="mono">133</span>·엣지
+           <span class="mono">354</span> / 문서 <span class="mono">40</span>건은 직접 센 값입니다.</p>
+        <p class="src">dataset-analysis.md 1장</p>
+      </div>
+      <div class="ev-ours">
+        <p class="ev-label">우리 판단</p>
+        <p>“없다고 말하기”를 1급 경로로 올린 것은 우리 결정입니다 — 거절(D6)과 부분 응답(D10).
+           과제는 이를 요구하지 않습니다.</p>
+        <p class="src">design.md D6 · D10</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ============================ ② ============================ -->
+
+  <section class="rung">
+    <div class="rung-head">
+      <span class="rung-no">②</span>
+      <div>
+        <p class="meter">추상 <span class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span> 구체</p>
+        <h2>분업선 — 고르는 건 규칙, 쓰는 건 LLM</h2>
+      </div>
+    </div>
+
+    <p class="claim">
+      도구를 고르는 일은 <b>규칙</b>이 하고, 문장을 쓰는 일만 <b>LLM</b>이 한다.
+      이 경계선이 시스템을 네 층으로 가른다.
+    </p>
+
+    <p class="lede">
+      제약이 먼저입니다. 외부 API를 쓸 수 없고(OpenAI·Claude 금지), 모델은 Ollama 로컬 실행이며,
+      권장 개발 환경은 <b>GPU 선택 · RAM 최소 4GB</b>입니다. 즉 판단을 맡길 수 있는 모델이 작습니다.
+      그리고 과제는 “<b>규칙 기반</b> 라우터”를 명시합니다.
+    </p>
+
+    <p>
+      두 사실이 같은 곳을 가리킵니다. <b>도구 선택을 소형 LLM에게 맡기지 않습니다.</b>
+      LLM은 마지막에 답변 문장을 만드는 일만 합니다.
+    </p>
+
+    <p class="aside">
+      이 “4GB”는 실측으로 되짚어야 했습니다. 권장 모델
+      <span class="mono">gemma4:e2b-it-qat</span>을 CPU 전용으로 올리면
+      <b>단독 4.0GB</b>이고(2026-08-18, <span class="mono">num_gpu:0</span> 강제)
+      임베딩까지 얹으면 4.4~5.2GB입니다. <b>RAM 4GB로 CPU 전용 구동은 안 됩니다.</b>
+      다만 원문을 다시 읽으면 그 조합이 의무가 아닙니다 — 표의
+      <span class="mono">LLM 실행</span> 값이 <b>“GPU 선택”</b>이고 본문도 “CPU만으로<b>도</b>
+      구동 가능”이며, <span class="mono">RAM 최소 4GB</span>는 블로그 한 곳의
+      <b>“권장 개발 환경”</b>(=개발 기계) 표에만 있습니다. 심사 실행기 사양을 적은 문면은
+      어디에도 없습니다. <b>대응은 하지 않습니다</b> — 권장 모델을 명시한 것도 RAM 값을 적은 것도
+      주최 측이고, 우리가 권장 모델을 그대로 쓰는 한 둘의 불일치는 우리가 풀 문제가 아닙니다.
+    </p>
+    <p class="src">dataset-analysis.md · design.md</p>
+
+    <figure class="bleed">
+      <div class="paper">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#E7EEEE","primaryTextColor":"#15201F","primaryBorderColor":"#8FA6A6","lineColor":"#5E7375","secondaryColor":"#F0E7D3","tertiaryColor":"#FBFCFC","fontSize":"14px","clusterBkg":"#F3F7F7","clusterBorder":"#B4C2C2"}}}%%
+flowchart TB
+  U["사용자 질문"] --> AG
+  subgraph AG["1. AI 에이전트 — LLM이 하는 일은 여기까지"]
+    L["Ollama 소형 LLM<br/>반환 컨텍스트로 답변 문장 생성"]
+  end
+  AG -->|"MCP tools/call"| RT
+  subgraph RT["2. 라우터 · MCP 도구 — 선택은 여기서, 규칙으로"]
+    R["요구 출력 형태 판별<br/>규칙 1~4"]
+  end
+  RT -.->|"직접 실행(A안) 또는 지시만(B안) — 미정"| TL
+  subgraph TL["3. 도구 3종 · MCP 도구"]
+    V["vector_search"]
+    S["nl2sql"]
+    K["knowledge_graph"]
+  end
+  TL --> DB[("4. PostgreSQL + pgvector<br/>문서 청크 · 정형 테이블 · 그래프 전부 여기")]
+  DB -->|"결과 컨텍스트"| AG
+</pre>
+      </div>
+      <figcaption>
+        <b>네 층과 그 사이의 분업선.</b> 1층만 LLM이고 2·3층은 전부 규칙과 코드입니다.
+        라우터에서 도구로 가는 화살표가 점선인 이유는 <b>누가 그 호출을 하는지가 아직
+        미정</b>이기 때문입니다 — ⑤에서 다룹니다.
+      </figcaption>
+    </figure>
+
+    <h3>확정된 것</h3>
+    <ul>
+      <li><b>라우터는 에이전트 밖, MCP 서버 측 도구다.</b> 판별 로직이 서버에 있고 에이전트에는
+        없습니다. 데이터셋 README의 도구 매핑 표가 라우터를 “MCP 도구”로 표기합니다.</li>
+      <li><b>등록 도구는 4개다.</b> 라우터 + 도구 3종 전부를 MCP 도구로 등록합니다. 라우터만
+        노출하면 “3개의 MCP 도구를 구현합니다”라는 문면을 미충족으로 해석할 심사 리스크가 있습니다.</li>
+      <li><b>스택은 공식 MCP SDK 직접 사용.</b> 주최사 프레임워크 air는 실제로 설치해 돌려본 뒤
+        기각했습니다.</li>
+    </ul>
+
+    <h3>부수 효과 — 에이전트 입장에서 선택지가 하나다</h3>
+    <p>
+      이 배치의 이득은 “규칙이 더 정확해서”가 아닙니다. 에이전트가 <b>도구 선택 문제를 아예 겪지
+      않는다</b>는 점입니다. Mem2ActBench(arXiv:2601.19935)는 후보 도구가
+      <span class="mono">1 → 2 → 5</span>개로 늘 때 hard negative 조건에서 선택 정확도가
+      <span class="mono">94.5% → 78.0% → 69.75%</span>로 떨어짐을 보입니다. 다만 같은 실험에서
+      random negative는 <span class="mono">93.5~95.5%</span>로 변화가 없었습니다 —
+      <b>원인은 후보 개수 자체가 아니라 의미적으로 겹치는 후보의 존재</b>입니다.
+      인용할 때는 개별 점(<span class="mono">69.75%</span>)이 아니라 <b>같은 후보 수에서 두 조건이
+      <span class="mono">24.75%p</span> 벌어졌다는 대조</b>를 씁니다 — 개별 점은 반복 실행 분산
+      안에 들어갑니다.
+    </p>
+    <p>
+      그리고 ③에서 보듯 우리 도구 3종은 정확히 그 hard negative 관계입니다.
+    </p>
+    <p>
+      <b>다만 이 이득은 조건부입니다.</b> 라우터가 도구를 직접 실행하거나(A안), 라우터의 지시를
+      <b>코드가 집행</b>할 때(B안 중 B2)만 성립합니다. 라우터가 고른 도구를 <b>LLM이 다시 읽고
+      호출</b>하는 방식(B1)이면 후보 4개 조건 그대로이며, 이것이 B1을 권하지 않는 이유입니다.
+      그리고 이 조건을 강제하는 것은 프로토콜이 아닙니다 — 도구 4개를 등록하면
+      <span class="mono">tools/list</span>에 4개가 전부 보이고 서버는 클라이언트가 무엇을 호출할지
+      막을 수 없습니다. <b>라우터 경유는 에이전트 코드에 하드코딩해야 하고</b>, 프롬프트 지시로
+      두면 소형 LLM에서 샙니다(엣지 <span class="mono">Q4</span>).
+    </p>
+
+    <div class="open-block">
+      <p class="open-title">라우터 배치 <span class="open">미정 · 구조</span></p>
+      <p style="margin:0">
+        라우터가 도구를 <b>직접 실행하는지</b>(A안 게이트웨이형), <b>어느 도구를 쓸지만
+        알려주는지</b>(B안 조언자형). 위 확정 사항은 두 안 모두 만족합니다. 공통부 구현 후
+        재평가하기로 했고, 근거는 ⑤에 있습니다.
+      </p>
+    </div>
+
+    <div class="evidence">
+      <div>
+        <p class="ev-label">과제 원문 문면</p>
+        <p>“규칙 기반 라우터가 질문 유형을 분석하여 적합한 도구를 자동 매칭합니다”(블로그).
+           README 표가 라우터를 MCP 도구로 표기. 외부 API 금지 · Ollama · CPU · RAM 4GB.</p>
+        <p class="src">requirements.md</p>
+      </div>
+      <div class="ev-measured">
+        <p class="ev-label">데이터 실측</p>
+        <p>air <span class="mono">0.3.0</span>을 설치해 확인 — <span class="mono">layer</span>
+           속성을 명시해도 무시되고 세 호출이 전부 <span class="mono">L4</span>로 분류됐습니다.
+           채택 근거였던 7-Layer Meter가 동작하지 않습니다.</p>
+        <p class="src">air-evaluation.md 8.3</p>
+      </div>
+      <div class="ev-ours">
+        <p class="ev-label">우리 판단</p>
+        <p>라우터를 MCP 도구로 두기(D1), 4개 등록(D2), 공식 SDK 직접 사용(D8). Pylon-7 계층
+           계측은 포기하지 않고 얇은 래퍼에서 상수로 붙입니다. 라우터 경유 강제는 코드 요건으로
+           두고 호출 로그로 검증합니다.</p>
+        <p class="src">design.md D1 · D2 · D8 · edge-cases.md Q4</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ============================ ③ ============================ -->
+
+  <section class="rung">
+    <div class="rung-head">
+      <span class="rung-no">③</span>
+      <div>
+        <p class="meter">추상 <span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> 구체</p>
+        <h2>무엇을 기준으로 고르는가</h2>
+      </div>
+    </div>
+
+    <p class="claim">
+      질문이 <b>어느 자산에 있는가</b>가 아니라 <b>어떤 형태의 답을 요구하는가</b>로 도구를 가른다.
+      자산으로 가르는 방법은 이 데이터셋에서 성립하지 않는다.
+    </p>
+
+    <p class="lede">
+      가장 자연스러운 설계는 “도구 하나에 자산 하나”입니다. 벡터 검색은 문서를, NL2SQL은 테이블을,
+      지식 그래프는 그래프를 맡는 식입니다. 데이터를 세어 보기 전에는 이 방법에 문제가 없어
+      보입니다. 세어 보면 무너집니다.
+    </p>
+
+    <div class="table-wrap bleed" style="margin-bottom:1.1rem">
+      <table>
+        <caption>세 자산이 얼마나 겹치는가 — 실측</caption>
+        <thead>
+          <tr><th>확인한 것</th><th>결과</th><th>뜻</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>그래프 관계 7종을 테이블에서 도출해 집합 단위로 대조</td>
+            <td class="num"><b>7종 전부 집합 일치</b></td>
+            <td>그래프는 새 정보를 담고 있지 않다. 테이블 관계의 비정규화 재표현이다.
+                지식 그래프 질문 10개는 전부 SQL로도 답할 수 있다.</td>
+          </tr>
+          <tr>
+            <td>문서 40건이 그래프 개체를 언급하는가</td>
+            <td class="num"><b>40 / 40</b></td>
+            <td>문서만 읽어도 개체가 나온다. 문서를 “문서 전용 질문”으로만 묶을 수 없다.</td>
+          </tr>
+          <tr>
+            <td><code>support_tickets</code>의 <code>title</code> 28종이 문서 본문과
+                주제어가 겹치는가</td>
+            <td class="num"><b>18 / 28</b></td>
+            <td>같은 주제를 티켓은 <i>목록</i>으로, 문서는 <i>서술</i>로 갖는다.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      즉 자산으로 도구를 가르면, <b>겹치는 구간에서 규칙이 정의되지 않습니다.</b>
+      그래서 경계를 다른 축으로 그었습니다.
+    </p>
+
+    <figure class="bleed">
+      <div class="paper">
+        <svg viewBox="0 0 900 410" role="img"
+             aria-label="왼쪽: 세 자산이 서로 겹쳐 자산 기준 경계가 겹침 구간에서 정의되지 않는 상태. 오른쪽: 같은 자산 위에 요구 출력 형태를 따라 그은 세 경계가 겹침과 무관하게 공간을 나누는 상태.">
+          <defs>
+            <pattern id="hatch45" width="9" height="9" patternUnits="userSpaceOnUse"
+                     patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="9" class="dg-hatch"/>
+            </pattern>
+            <clipPath id="clipTable">
+              <ellipse cx="180" cy="215" rx="148" ry="112"/>
+            </clipPath>
+            <marker id="ar3" viewBox="0 0 10 8" refX="9" refY="4"
+                    markerWidth="9" markerHeight="7" orient="auto-start-reverse">
+              <polygon points="0,0 10,4 0,8" class="dg-arrow"/>
+            </marker>
+          </defs>
+
+          <!-- ── 왼쪽: 자산 기준 ── -->
+          <text x="20" y="26" class="dg-th">자산으로 가르면</text>
+          <text x="20" y="46" class="dg-t2">각 도구가 자산 하나를 맡는다</text>
+
+          <ellipse cx="180" cy="215" rx="148" ry="112" class="dg-fill"/>
+          <ellipse cx="175" cy="222" rx="96" ry="58" class="dg-fill-a"/>
+          <ellipse cx="318" cy="192" rx="110" ry="86" class="dg-fill-b" fill-opacity=".55"/>
+          <ellipse cx="318" cy="192" rx="110" ry="86" fill="url(#hatch45)"
+                   clip-path="url(#clipTable)" stroke="none"/>
+          <ellipse cx="318" cy="192" rx="110" ry="86" class="dg-ghost"/>
+
+          <text x="70" y="124" class="dg-t">정형 테이블</text>
+          <text x="70" y="140" class="dg-t2">8개 · 818행</text>
+          <text x="128" y="226" class="dg-t">그래프</text>
+          <text x="128" y="242" class="dg-t2">133 / 354</text>
+          <text x="372" y="118" class="dg-t">문서</text>
+          <text x="372" y="134" class="dg-t2">40건</text>
+
+          <text x="246" y="300" class="dg-tm" text-anchor="middle">7종 집합 일치</text>
+          <line x1="246" y1="288" x2="212" y2="258" class="dg-line" marker-end="url(#ar3)"/>
+          <text x="300" y="162" class="dg-tm" text-anchor="middle">18 / 28</text>
+          <text x="238" y="196" class="dg-tm" text-anchor="middle">40 / 40</text>
+
+          <text x="180" y="374" class="dg-t" text-anchor="middle" fill="var(--paper-brass)">
+            빗금 구간 — 어느 도구인지 규칙이 정의되지 않는다
+          </text>
+
+          <line x1="450" y1="16" x2="450" y2="394" class="dg-ghost"/>
+
+          <!-- ── 오른쪽: 요구 출력 형태 기준 ── -->
+          <text x="472" y="26" class="dg-th">요구 출력 형태로 가르면</text>
+          <text x="472" y="46" class="dg-t2">같은 자산 위에 다른 축으로 경계를 긋는다</text>
+
+          <ellipse cx="672" cy="222" rx="128" ry="96" class="dg-ghost"/>
+          <ellipse cx="666" cy="228" rx="82" ry="50" class="dg-ghost"/>
+          <ellipse cx="790" cy="200" rx="94" ry="74" class="dg-ghost"/>
+
+          <line x1="690" y1="222" x2="690" y2="72" class="dg-cut"/>
+          <line x1="690" y1="222" x2="820" y2="297" class="dg-cut"/>
+          <line x1="690" y1="222" x2="560" y2="297" class="dg-cut"/>
+          <circle cx="690" cy="222" r="4" class="dg-acc"/>
+
+          <text x="592" y="126" class="dg-t" text-anchor="middle">서술을 요구</text>
+          <text x="592" y="144" class="dg-tm" text-anchor="middle" fill="var(--paper-accent)">vector_search</text>
+
+          <text x="792" y="126" class="dg-t" text-anchor="middle">수치·속성을 요구</text>
+          <text x="792" y="144" class="dg-tm" text-anchor="middle" fill="var(--paper-accent)">nl2sql</text>
+
+          <text x="690" y="336" class="dg-t" text-anchor="middle">개체 식별·연결을 요구</text>
+          <text x="690" y="354" class="dg-tm" text-anchor="middle" fill="var(--paper-accent)">knowledge_graph</text>
+
+          <text x="690" y="392" class="dg-t" text-anchor="middle" fill="var(--paper-accent)">
+            경계가 자산 모양과 무관하므로 겹쳐도 갈린다
+          </text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>같은 데이터, 다른 경계.</b> 왼쪽에서 그래프 타원이 테이블 타원 안에 완전히 들어가 있는
+        것이 실측 결과입니다(관계 7종 집합 일치). 문서는 두 자산 모두와 겹칩니다. 자산을 따라
+        경계를 그으면 빗금 친 구간이 미정의로 남지만, 오른쪽처럼 <b>요구하는 답의 형태</b>를 따라
+        그으면 겹침과 무관하게 갈립니다.
+      </figcaption>
+    </figure>
+
+    <h3>판별 규칙</h3>
+
+    <div class="table-wrap bleed" style="margin-bottom:1.1rem">
+      <table>
+        <caption>라우터의 규칙 — 질문이 무엇을 돌려받길 요구하는가</caption>
+        <thead>
+          <tr><th>#</th><th>질문이 요구하는 것</th><th>도구</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">1</td><td><b>서술</b> — 원인, 방법, 절차, 내용, 결정, 제안</td>
+              <td class="mono">vector_search</td></tr>
+          <tr><td class="mono">2</td><td><b>정형 속성·수치</b> — 금액, 연봉, 기간, 상태, 행 개수</td>
+              <td class="mono">nl2sql</td></tr>
+          <tr><td class="mono">3</td><td><b>개체 식별·연결</b> — 누가 / 무엇을 / 어디 소속 / 담당</td>
+              <td class="mono">knowledge_graph</td></tr>
+          <tr><td class="mono">4</td><td><b>관계를 세는 집계</b> — 세는 대상이 관계이므로 규칙 3에 귀속</td>
+              <td class="mono">knowledge_graph</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      이 규칙을 questions.json 30개에 대조한 결과 <b>29/30</b>이 일치합니다
+      (<span class="mono">vector_search</span> 10/10,
+      <span class="mono">nl2sql</span> 9/10,
+      <span class="mono">knowledge_graph</span> 10/10).
+    </p>
+    <p>
+      유일한 불일치 <span class="mono">#5</span>는 우리 규칙의 결함이 아니라 데이터셋 내부
+      비일관성입니다 — <span class="mono">#25</span>·<span class="mono">#29</span>와 구조가 같은
+      <i>관계 카운트의 최대</i>인데 배정만 반대입니다. 어떤 원칙적 규칙도 셋을 동시에 만족시킬 수
+      없고, 규칙 4를 뒤집으면 그 두 건이 대신 틀려 28/30이 됩니다. <b>29/30이 원칙적 규칙의
+      상한</b>이므로 예외를 넣지 않고 알려진 불일치로 문서화합니다.
+    </p>
+
+    <p class="aside">
+      규칙이 이 축을 쓰면 <b>도구 설명(<code>description</code>)도 같은 축으로 써야 합니다.</b>
+      자산으로 설명하면 설명끼리 겹쳐 그 자체가 hard negative가 됩니다.
+    </p>
+
+    <h3>그런데 실제로 가르는 것은 “피연산자”다</h3>
+    <p>
+      위 표는 <b>출력 형태</b>로 쓰여 있는데, 그것만으로는 두 도구가 갈리지 않습니다.
+      <span class="mono">#9</span> “평균 연봉이 가장 높은 부서는?”의 답은 <b>부서, 즉 개체</b>인데
+      정답은 <span class="mono">nl2sql</span>입니다. <span class="mono">knowledge_graph</span>도
+      개체를 냅니다. 갈리는 지점은 <b>무엇을 세느냐</b>입니다 — 속성이냐 관계냐.
+    </p>
+    <p>
+      규칙 4가 이미 그렇게 쓰여 있습니다: <i>“세는 대상이 <b>관계</b>이므로 규칙 3에 귀속”.</i>
+      그리고 데이터가 이를 확인합니다 — 집계 질문 10건을 피연산자로 가르면
+      <b>속성 집계 7건은 예외 없이 <span class="mono">nl2sql</span></b>이고, 관계 집계 3건만
+      <span class="mono">nl2sql</span> 1 / <span class="mono">knowledge_graph</span> 2로 갈립니다.
+      그 예외 하나가 <span class="mono">#5</span>입니다.
+    </p>
+
+    <h3>그래서 코드는 무엇을 보고 판정하는가 — 스키마 어휘</h3>
+    <p>
+      규칙 4개는 <b>의미</b>로 쓰여 있습니다. 코드가 볼 표층 신호는
+      <b>스키마의 관계명·컬럼명</b>에서 뽑습니다 — 관계 7종
+      (<span class="mono">USES</span> · <span class="mono">BELONGS_TO</span> ·
+      <span class="mono">MANAGES_ACCOUNT</span> …)과 테이블 컬럼
+      (<span class="mono">amount</span> · <span class="mono">salary</span> ·
+      <span class="mono">status</span> …).
+    </p>
+    <p>
+      <b>이 길만 규칙에 허용됩니다.</b> 스키마는 질문보다 먼저 있던 구조라 인스턴스 역산이
+      아닙니다. 반면 <b>30개 질문에서 키워드를 뽑는 것은 금지</b>입니다 — 30개는 회귀 전용이고
+      결함 2건을 포함하며, 그것으로 규칙을 만들면 <b>규칙을 검증할 수단이 사라집니다.</b>
+      후보였던 <b>의문사 매핑</b>(<i>어떻게/왜</i>→서술, <i>누구/어디</i>→개체)은 대조 결과
+      실패했습니다 — 개체 태그가 두 도구에 걸치고 9건이 무태그입니다.
+    </p>
+    <p class="aside">
+      거친 1차 구현으로 <span class="mono">28/30</span>이 나옵니다. 미스는
+      <span class="mono">#5</span>(알려진 데이터셋 불일치)와 <span class="mono">#17</span>
+      (<span class="mono">REPORTED_ISSUE</span>의 “이슈”가 일반 명사와 충돌 — 엣지
+      <span class="mono">R5</span>) 둘입니다. <b>다만 이 28/30을 실력으로 치지 않습니다</b> —
+      한국어 표층형 매핑을 사람이 썼고 그 사람이 30개를 이미 읽은 뒤였습니다. 자체 엣지
+      세트로 다시 재기 전까지는 “방향이 맞다”까지만 주장합니다.
+    </p>
+
+    <div class="evidence">
+      <div>
+        <p class="ev-label">과제 원문 문면</p>
+        <p>도구 3종의 이름과 questions.json의 <span class="mono">tool</span> 값
+           (<span class="mono">nl2sql</span> / <span class="mono">vector_search</span> /
+           <span class="mono">knowledge_graph</span>). 문면은 판별 기준을 정하지 않습니다.</p>
+        <p class="src">requirements.md</p>
+      </div>
+      <div class="ev-measured">
+        <p class="ev-label">데이터 실측</p>
+        <p>관계 7종 집합 일치, 문서 40/40 개체 언급, 티켓 18/28 주제 겹침, 규칙 대조 29/30 —
+           전부 직접 센 값이고 재현 명령이 있습니다.</p>
+        <p class="src">dataset-analysis.md 2·3·4·5장</p>
+      </div>
+      <div class="ev-ours">
+        <p class="ev-label">우리 판단</p>
+        <p>경계를 요구 출력 형태로 그은 것(D9), <span class="mono">#5</span>를 맞추려 예외 규칙을
+           넣지 않기로 한 것(D7). 둘 다 우리 선택입니다.</p>
+        <p class="src">design.md D9 · D9-a · D7 · D11</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ============================ ④ ============================ -->
+
+  <section class="rung">
+    <div class="rung-head">
+      <span class="rung-no">④</span>
+      <div>
+        <p class="meter">추상 <span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span> 구체</p>
+        <h2>겹치면, 없으면 어떻게 되는가</h2>
+      </div>
+    </div>
+
+    <p class="claim">
+      겹침에는 두 종류가 있고 처리가 <b>정반대</b>다. 두 도구가 같은 답을 내는 겹침은 하나만
+      부르고, 서로 다른 조각을 내는 겹침은 둘 다 불러 합친다.
+    </p>
+
+    <p class="lede">
+      ③에서 경계를 그었지만, 겹침 자체가 사라지지는 않습니다. 규칙이 어느 도구를 고를지는
+      정해지되, <b>다른 도구도 뭔가를 갖고 있는</b> 상황은 남습니다. 그 상황이 다섯 갈래입니다.
+    </p>
+
+    <figure class="bleed">
+      <div class="paper">
+        <svg viewBox="0 0 900 336" role="img"
+             aria-label="자산 관계 세 유형의 처리 대조. 동일 중복은 두 도구가 같은 조각을 내므로 하나만 선택하고, 상보 중복은 서로 다른 조각을 내므로 병합하며, 요구 형태 미충족은 요구된 형태가 비어 있어 두 필드로 나눠 반환한다.">
+          <defs>
+            <marker id="ar4" viewBox="0 0 10 8" refX="9" refY="4"
+                    markerWidth="9" markerHeight="7" orient="auto">
+              <polygon points="0,0 10,4 0,8" class="dg-arrow"/>
+            </marker>
+          </defs>
+
+          <text x="196" y="26" class="dg-tm" text-anchor="middle" fill="var(--paper-ink-2)">두 도구가 내는 것</text>
+          <text x="520" y="26" class="dg-tm" text-anchor="middle" fill="var(--paper-ink-2)">처리</text>
+
+          <!-- row 1 : 동일 중복 -->
+          <text x="14" y="76" class="dg-tm" fill="var(--paper-accent)">X1 · X2</text>
+          <text x="14" y="94" class="dg-t">동일 중복</text>
+          <text x="14" y="112" class="dg-t2">관계 집계 · 관계 조회</text>
+
+          <rect x="130" y="60" width="52" height="46" rx="2" class="dg-fill-a"/>
+          <text x="156" y="122" class="dg-t2" text-anchor="middle">그래프</text>
+          <text x="200" y="90" class="dg-t" text-anchor="middle">=</text>
+          <rect x="218" y="60" width="52" height="46" rx="2" class="dg-fill-a"/>
+          <text x="244" y="122" class="dg-t2" text-anchor="middle">테이블</text>
+
+          <line x1="292" y1="83" x2="336" y2="83" class="dg-line" marker-end="url(#ar4)"/>
+
+          <rect x="352" y="60" width="52" height="46" rx="2" class="dg-fill-a"/>
+          <text x="420" y="80" class="dg-t">단일 선택</text>
+          <text x="420" y="98" class="dg-t2">병렬하면 같은 답이 두 번</text>
+
+          <line x1="14" y1="140" x2="886" y2="140" class="dg-ghost"/>
+
+          <!-- row 2 : 상보 중복 -->
+          <text x="14" y="182" class="dg-tm" fill="var(--paper-accent)">X3 · X4</text>
+          <text x="14" y="200" class="dg-t">상보 중복</text>
+          <text x="14" y="218" class="dg-t2">사건 조회 · 개체 지목 서술</text>
+
+          <rect x="130" y="166" width="52" height="46" rx="2" class="dg-fill-a"/>
+          <text x="156" y="228" class="dg-t2" text-anchor="middle">티켓 목록</text>
+          <text x="200" y="196" class="dg-t" text-anchor="middle">+</text>
+          <rect x="218" y="166" width="52" height="46" rx="2" class="dg-fill-b"/>
+          <text x="244" y="228" class="dg-t2" text-anchor="middle">원인 서술</text>
+
+          <line x1="292" y1="189" x2="336" y2="189" class="dg-line" marker-end="url(#ar4)"/>
+
+          <rect x="352" y="166" width="52" height="46" rx="2" class="dg-fill-a"/>
+          <rect x="404" y="166" width="52" height="46" rx="2" class="dg-fill-b"/>
+          <text x="472" y="186" class="dg-t">병렬 호출 후 병합</text>
+          <text x="472" y="204" class="dg-t2">한 도구만으로는 답이 완성되지 않는다</text>
+
+          <line x1="14" y1="246" x2="886" y2="246" class="dg-ghost"/>
+
+          <!-- row 3 : 형태 미충족 -->
+          <text x="14" y="288" class="dg-tm" fill="var(--paper-accent)">X5</text>
+          <text x="14" y="306" class="dg-t">형태 미충족</text>
+          <text x="14" y="324" class="dg-t2">개체는 있고 형태만 없음</text>
+
+          <rect x="130" y="272" width="52" height="46" rx="2" class="dg-empty"/>
+          <text x="156" y="300" class="dg-t2" text-anchor="middle">없음</text>
+          <text x="200" y="302" class="dg-t" text-anchor="middle">+</text>
+          <rect x="218" y="272" width="52" height="46" rx="2" class="dg-fill-a"/>
+          <text x="244" y="300" class="dg-t2" text-anchor="middle">인접</text>
+
+          <line x1="292" y1="295" x2="336" y2="295" class="dg-line" marker-end="url(#ar4)"/>
+
+          <rect x="352" y="272" width="52" height="46" rx="2" class="dg-empty"/>
+          <rect x="404" y="272" width="52" height="46" rx="2" class="dg-fill-a"/>
+          <text x="472" y="292" class="dg-t">부분 응답 — 두 필드로 분리</text>
+          <text x="472" y="310" class="dg-t2">합치면 모델이 인접 사실로 답을 지어낸다</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>같은 “겹침”인데 처리가 반대인 이유.</b> 조각의 <i>색이 같으면</i> 두 도구가 같은 답을
+        낸다는 뜻이고(하나만 부른다), <i>다르면</i> 서로 다른 조각이라는 뜻입니다(합친다).
+        점선 빈칸은 요구한 형태의 자료가 그 자산에 없다는 뜻입니다.
+      </figcaption>
+    </figure>
+
+    <div class="table-wrap bleed" style="margin-bottom:1.1rem">
+      <table>
+        <caption>중복 지도 — 구조 엣지케이스 카탈로그 카테고리 1</caption>
+        <thead>
+          <tr><th>ID</th><th>케이스</th><th>겹치는 자산</th><th>두 도구의 답</th><th>처리</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">X1</td><td>관계를 세는 집계</td><td>테이블 ↔ 그래프</td>
+            <td><b>같다</b></td><td>단일 선택</td>
+          </tr>
+          <tr>
+            <td class="mono">X2</td><td>관계를 따라가는 조회</td><td>테이블 ↔ 그래프</td>
+            <td><b>같다</b></td><td>단일 선택</td>
+          </tr>
+          <tr>
+            <td class="mono">X3</td><td>사건 조회</td><td>테이블(티켓) ↔ 문서</td>
+            <td><b>다르다</b> — 티켓은 <i>목록</i>, 문서는 <i>서술</i></td><td>병렬 후 병합</td>
+          </tr>
+          <tr>
+            <td class="mono">X4</td><td>개체 지목 서술</td><td>그래프/테이블 ↔ 문서</td>
+            <td><b>다르다</b> — 사실 vs 서술</td><td>병렬 후 병합</td>
+          </tr>
+          <tr>
+            <td class="mono">X5</td><td>요구 형태 미충족</td><td>한쪽에만 없다</td>
+            <td>한쪽이 <b>비어 있다</b></td><td>부분 응답</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>병렬은 과제 요구가 아니다</h3>
+    <p>
+      여기서 용어를 하나 갈라 둡니다. 요강에는 “규칙 기반 라우터를 통한 도구 자동 선택
+      (<b>MCP Parallel 패턴</b>)”이라는 항목이 있습니다. 이 괄호 표기 때문에 병렬 호출이 과제
+      요구처럼 읽히기 쉬운데, 출처 3곳과 데이터셋을 전수 검사한 결과는 다릅니다.
+    </p>
+
+    <div class="table-wrap bleed" style="margin-bottom:1.1rem">
+      <table>
+        <caption>“병렬” / “Parallel” 출현 전수 검사</caption>
+        <thead>
+          <tr><th>출처</th><th>“병렬”</th><th>“Parallel”</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>KOSSA 요강 (전문 확보)</td><td class="num">0회</td>
+              <td class="num"><b>1회</b> — 위 항목의 괄호 표기</td></tr>
+          <tr><td>블로그 · 공지 · 데이터셋 전체</td><td class="num">0회</td><td class="num">0회</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <b>어느 출처도 무엇이 병렬인지 정의하지 않습니다.</b> 블로그의 라우터 서술(“적합한 도구를
+      자동 <b>매칭</b>” — “호출”이 아닙니다)은 <b>수를 명시하지 않습니다.</b> 한국어는 복수 표지가
+      선택적이라 “도구를”은 단수·복수 어느 쪽으로도 읽힙니다. 수를 정하는 것은 문면이 아니라
+      스키마입니다 — questions.json 30개의 <span class="mono">tool</span>이
+      <b>배열이 아니라 문자열</b>입니다(30/30, 예외 0건).
+    </p>
+    <p>
+      그래서 우리는 병렬을 <b>요구가 아니라 설계 선택</b>으로 규정합니다. 근거는 문면이 아니라
+      상보 중복 실측입니다 — X3·X4 구간에서는 한 도구만으로 답이 완성되지 않습니다. 반대로
+      X1·X2에 병렬을 걸면 같은 답을 두 번 받아 토큰만 두 배가 되고, 중복 컨텍스트 추가가 정확도를
+      떨어뜨린다는 Pylon-7의 L2.5 ablation에 정면으로 걸립니다.
+    </p>
+    <p class="aside">
+      이 구분의 이득은 <b>“왜 병렬을 했는가”뿐 아니라 “왜 X1·X2에는 병렬을 안 했는가”도 데이터로
+      설명된다</b>는 점입니다.
+    </p>
+
+    <h3>X5는 예외가 아니라 정상 경로다 — 그리고 도구 3종 전부에 있다</h3>
+    <p>
+      커버리지를 <b>개체 단위로 세면 놓칩니다.</b> 문서가 커버하는 제품은
+      <span class="mono">10/12</span>지만, <b>주제를 2개 이상 가진 제품은 0개</b>입니다 —
+      Product-C1은 설치 가이드만, Product-D1은 API 레퍼런스만 있습니다. 그래서
+      <b>(개체 × 요구 형태) 격자</b>로 재야 합니다.
+    </p>
+
+    <div class="table-wrap bleed" style="margin-bottom:1.1rem">
+      <table>
+        <caption>격자 밀도 — 밀도만 다르고 구조는 같다</caption>
+        <thead>
+          <tr><th>자산</th><th>격자</th><th>채워진 칸</th><th>밀도</th><th>빈손 케이스</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>문서</td><td>제품 × 기술주제</td><td class="num">10 / 60</td>
+              <td class="num"><b>17%</b></td><td class="mono">T4</td></tr>
+          <tr><td>문서</td><td>고객사 × 문서유형</td><td class="num">30 / 90</td>
+              <td class="num"><b>33%</b></td><td class="mono">T4</td></tr>
+          <tr><td>그래프</td><td>개체 × 가질 수 있는 관계</td><td class="num">322 / 416</td>
+              <td class="num">77%</td><td class="mono">T7</td></tr>
+          <tr><td>테이블</td><td>고객사 × 사실 테이블 4종</td><td class="num">106 / 120</td>
+              <td class="num">88%</td><td class="mono">T3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <b>X5는 <span class="mono">vector_search</span> 전용이 아닙니다.</b>
+      “이 직원이 이끄는 프로젝트는?”은 노드도 있고 소속도 있는데
+      <span class="mono">LEADS</span> 엣지만 없습니다(직원 <span class="mono">43/45</span>가
+      관계 일부 결손). “Client-X의 진행 중인 프로젝트는?”은
+      <span class="mono">projects</span> 0행인데 계약·매출·티켓은 있습니다.
+      <b>빈손 3종(T3·T4·T7)이 전부 X5 승격 후보</b>이고, 승격하지 않으면 확인된 사실을 버립니다.
+      개체 자체가 없는 T5만 승격 대상이 아닙니다.
+    </p>
+
+    <h3>응답은 여섯 상태, 두 계층</h3>
+    <p>
+      MCP 스펙의 에러 2계층에 대응시킵니다. <b>“데이터에 없음”과 “시스템 오류”는 다른 응답
+      타입</b>이라는 것이 공통 규약입니다.
+    </p>
+
+    <figure class="bleed">
+      <div class="paper">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#E7EEEE","primaryTextColor":"#15201F","primaryBorderColor":"#8FA6A6","lineColor":"#5E7375","secondaryColor":"#F0E7D3","tertiaryColor":"#FBFCFC","fontSize":"14px","clusterBkg":"#F3F7F7","clusterBorder":"#B4C2C2"}}}%%
+flowchart TB
+  C["도구 호출 결과"] --> E{"실행 자체가<br/>실패했나?"}
+  E -->|"예"| ERR["isError: true — 실행 오류<br/>T1 SQL 생성 실패 · T6 인프라 오류"]
+  E -->|"아니오"| OK["isError 없음 — 정상 결과<br/>structuredContent로 상태를 구분한다"]
+  OK --> S1["단일 정상"]
+  OK --> S2["병렬 병합 — X3 · X4"]
+  OK --> S3["부분 응답 — X5"]
+  OK --> S4["데이터 부재 — T3 0행 · T4 유사도 미달 · T5 개체 없음 · T7 관계 없음"]
+  OK --> S5["거절 out_of_scope — R1 무매칭"]
+</pre>
+      </div>
+      <figcaption>
+        <b>응답 여섯 상태와 그 위의 2계층.</b> 아래 다섯은 전부 <span class="mono">isError</span>
+        없는 <b>정상</b> 결과입니다 — 답을 못 찾은 것과 시스템이 고장 난 것을 같은 통에 넣지
+        않는다는 뜻입니다.
+      </figcaption>
+    </figure>
+
+    <div class="open-block">
+      <p class="open-title">거절 · 부재 응답 스키마 <span class="open">미정 · 구조</span></p>
+      <p style="margin:0">
+        위 다섯 상태를 <b>어떤 필드 구성으로</b> 표현할지가 아직 열려 있습니다 — 플래그·확신도·이유
+        문구의 조합. 부분 응답 스키마와 형태를 맞춰야 합니다. 이 항목은 문헌 2건
+        (Wen et al. TACL 2025 · When2Call NAACL 2025)이 닫습니다.
+      </p>
+    </div>
+
+    <div class="evidence">
+      <div>
+        <p class="ev-label">과제 원문 문면</p>
+        <p>“MCP Parallel 패턴”은 요강의 괄호 별칭 1회뿐이고 정의가 없습니다. 블로그 문면은 도구
+           개수를 명시하지 않습니다. MCP 스펙의 에러 2계층은 스펙 문면입니다.</p>
+        <p class="src">requirements.md · references/mcp-spec.md</p>
+      </div>
+      <div class="ev-measured">
+        <p class="ev-label">데이터 실측</p>
+        <p>“병렬” 0회 / “Parallel” 1회 전수 검사. 격자 밀도 문서 10/60 · 그래프 322/416 ·
+           테이블 106/120.
+           티켓 <span class="mono">description</span>이 5종 템플릿 문구뿐이라 서술이 없습니다.</p>
+        <p class="src">dataset-analysis.md 3·4·6장</p>
+      </div>
+      <div class="ev-ours">
+        <p class="ev-label">우리 판단</p>
+        <p>상보 중복에서만 병렬(D3), 무매칭은 정직한 거절(D6), 요구 형태 미충족은 부분 응답(D10).
+           X1~X5 카탈로그도 우리가 정의한 것입니다.</p>
+        <p class="src">design.md D3 · D6 · D10 · edge-cases.md</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ============================ ⑤ ============================ -->
+
+  <section class="rung">
+    <div class="rung-head">
+      <span class="rung-no">⑤</span>
+      <div>
+        <p class="meter">추상 <span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span> 구체</p>
+        <h2>실물</h2>
+      </div>
+    </div>
+
+    <p class="claim">
+      MCP 도구 4개를 등록하고, 부분 응답을 두 필드로 나눠 돌려준다. 라우터가
+      <b>실행자냐 조언자냐</b>는 아직 열려 있고, 그것을 미룬 것도 결정이다.
+    </p>
+
+    <h3>등록 도구 4개</h3>
+
+    <div class="table-wrap bleed" style="margin-bottom:1.1rem">
+      <table>
+        <caption>MCP 서버가 노출하는 도구 — 식별자는 questions.json의 <span class="mono">tool</span> 값과 일치시킨다</caption>
+        <thead>
+          <tr><th>도구</th><th>돌려주는 것</th><th>대응 데이터</th><th>Pylon-7 계층</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="mono">ask</span> 또는 <span class="mono">route</span></td>
+            <td>라우팅 — 규칙으로 요구 출력 형태 판별</td>
+            <td>—</td>
+            <td class="mono">L5 Routing</td>
+          </tr>
+          <tr>
+            <td class="mono">vector_search</td><td><b>서술</b></td>
+            <td>문서 40건 → 청크</td><td class="mono">L3 Resource</td>
+          </tr>
+          <tr>
+            <td class="mono">nl2sql</td><td><b>정형 속성·수치</b></td>
+            <td>테이블 8개 · 818행</td><td class="mono">L3 Resource</td>
+          </tr>
+          <tr>
+            <td class="mono">knowledge_graph</td><td><b>개체 식별·연결</b></td>
+            <td>노드 133 / 엣지 354</td><td class="mono">L3 Resource</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="aside">
+      계층 값은 도구 핸들러를 감싸는 얇은 래퍼에서 상수로 붙여 기록합니다. air의 Meter가
+      이름 패턴으로 추측하다 전부 <span class="mono">L4</span>로 뭉갠 것과 달리, 논문의 계층
+      정의에 맞춰 우리가 명시하는 편이 정확합니다.
+    </p>
+
+    <h3>부분 응답 스키마</h3>
+    <p>
+      ④의 X5가 실제로 어떻게 나가는지입니다. 핵심은 <b>“요구 유형의 자료 없음”과 “확인된 인접
+      사실”이 별도 필드</b>라는 점입니다.
+    </p>
+
+<pre class="code">{
+  "status": "partial",
+  "requested_form": "narrative",
+  "unavailable": { "asset": "documents", "reason": "no_document_for_entity" },
+  "adjacent_facts": { "source": "knowledge_graph", "data": [ <span class="cm">/* ... */</span> ] }
+}</pre>
+
+    <p style="margin-top:1.1rem">
+      필드를 나누지 않으면 어떻게 되는지가 이 스키마의 존재 이유입니다. 원인을 물었는데 “이슈가
+      있었다”는 사실만 주면, 응답만 보고는 모델이 그것이 <i>원인</i>인지 <i>인접 사실</i>인지
+      구분할 수 없습니다. 그러면 소형 LLM이 그로부터 원인을 지어냅니다. 에이전트 규약은
+      “원인 기록은 없습니다. 다만 …한 기록은 있습니다”입니다.
+    </p>
+
+    <h3>라우터 배치 — 두 안</h3>
+
+    <div class="open-block">
+      <p class="open-title">A안 게이트웨이형 vs B안 조언자형 <span class="open">보류 · 재평가 예정</span></p>
+      <p style="margin:0">
+        확정되어 흔들리지 않는 전제: 라우터는 에이전트 밖 <b>MCP 도구</b>이고, 도구 선택은
+        <b>규칙</b>이 하며, 등록 도구는 <b>4개</b>입니다. 두 안 모두 이를 만족합니다.
+        갈리는 것은 <b>판별한 뒤 도구를 직접 실행하는가</b>뿐입니다.
+      </p>
+    </div>
+
+    <div class="duo bleed">
+      <figure>
+        <div class="paper">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#E7EEEE","primaryTextColor":"#15201F","primaryBorderColor":"#8FA6A6","lineColor":"#5E7375","secondaryColor":"#F0E7D3","tertiaryColor":"#FBFCFC","fontSize":"13px","actorBkg":"#E7EEEE","actorTextColor":"#15201F","noteBkgColor":"#F0E7D3","noteTextColor":"#15201F"}}}%%
+sequenceDiagram
+  autonumber
+  participant A as 에이전트
+  participant S as MCP 서버
+  participant P as PostgreSQL
+  A->>S: ask(question)
+  Note over S: 규칙 판별 → nl2sql<br/>서버가 그대로 실행
+  S->>P: SELECT ...
+  P-->>S: rows
+  S-->>A: 결과 + routed_to · matched_rule
+  Note over A: LLM이 답변 문장 생성
+</pre>
+        </div>
+        <figcaption>
+          <b>A안 — 게이트웨이형.</b> MCP 왕복 <b>1회</b>. 라우터가 실행자입니다.
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="paper">
+<pre class="mermaid">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#E7EEEE","primaryTextColor":"#15201F","primaryBorderColor":"#8FA6A6","lineColor":"#5E7375","secondaryColor":"#F0E7D3","tertiaryColor":"#FBFCFC","fontSize":"13px","actorBkg":"#E7EEEE","actorTextColor":"#15201F","noteBkgColor":"#F0E7D3","noteTextColor":"#15201F"}}}%%
+sequenceDiagram
+  autonumber
+  participant A as 에이전트
+  participant S as MCP 서버
+  participant P as PostgreSQL
+  A->>S: route(question)
+  Note over S: 규칙 판별만 수행
+  S-->>A: {tool, arguments, confidence}
+  Note over A: 에이전트 코드가 집행
+  A->>S: nl2sql(arguments)
+  S->>P: SELECT ...
+  P-->>S: rows
+  S-->>A: 결과
+  Note over A: LLM이 답변 문장 생성
+</pre>
+        </div>
+        <figcaption>
+          <b>B안 — 조언자형.</b> MCP 왕복 <b>2회</b>. 라우팅 판단이 독립된 응답으로 드러납니다.
+          집행은 LLM이 아니라 <b>코드</b>가 합니다.
+        </figcaption>
+      </figure>
+    </div>
+
+    <div class="table-wrap bleed" style="margin:1.1rem 0">
+      <table>
+        <caption>저울 — 어느 쪽도 결정적이지 않다</caption>
+        <thead>
+          <tr><th>축</th><th>A안 (게이트웨이)</th><th>B안 (조언자)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>MCP 왕복 / 실패 지점</td><td class="num">1회 / 1곳</td><td class="num">2회 / 2곳</td></tr>
+          <tr><td>소형 LLM이 도구를 고르는가</td><td>아니오 — 선택지가 <span class="mono">ask</span> 하나</td><td>아니오 — 코드가 집행</td></tr>
+          <tr><td>라우팅 결과 가시성</td><td><b>낮음</b> — 메타데이터로 실어야 보임</td><td><b>높음</b> — 독립된 MCP 응답</td></tr>
+          <tr><td>조립 지점 (병렬 병합 · 부분 응답 · TACC 절사)</td><td><b>한 곳</b>에 모임</td><td>셋으로 분산 — 에이전트로 감</td></tr>
+          <tr><td>라우터 단위 테스트</td><td>판별 함수를 직접 호출 (MCP 밖)</td><td><b><span class="mono">route</span>만 30번 호출하면 끝</b> — DB·LLM 불필요</td></tr>
+          <tr><td>과제 흐름도와의 층위</td><td>어긋남 — 설명 필요</td><td><b>1:1 대응</b></td></tr>
+          <tr><td>도구 3종의 성격</td><td>검증·시연용 창구</td><td><b>실사용 경로</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      비대칭이 하나 있습니다. <b>B안의 가시성은 A안에서 <span class="mono">structuredContent</span>에
+      <span class="mono">routed_to</span>·<span class="mono">matched_rule</span>을 실어 상당 부분
+      회수되지만, A안의 복잡도 집중은 B안에서 회수할 방법이 없습니다</b> — 에이전트가 병합을 하는
+      것은 구조적입니다. 이 비대칭 때문에 A안이 근소하게 앞선다고 보되, “명확하다”고는 말하지
+      않습니다.
+    </p>
+
+    <h3>그래서 왜 지금 안 정했는가</h3>
+    <p>
+      선택의 핵심 입력 두 가지가 <b>만들어 봐야 손에 들어오기</b> 때문입니다 —
+      <b>병렬(X3·X4)이 실제로 얼마나 자주 발동하는가</b>(잦으면 B안의 가시성 이점이 커지고, 드물면
+      A안의 단순함이 이깁니다), <b>부분 응답 조립이 얼마나 지저분한가</b>(복잡하면 A안으로 모아야
+      하고, <span class="mono">expected_form</span> 스키마로 깔끔하게 떨어지면 B안 부담이
+      사라집니다).
+    </p>
+    <p>
+      그리고 <b>미루는 비용이 0입니다.</b> 도구 3종 핸들러·규칙 판별 함수·부분 응답 스키마는 두
+      안에서 동일하고 이것이 작업량의 대부분입니다. 지금 닫으면 정보 없이 닫는 것입니다.
+      재평가 시점은 <b>공통부 완성 및 라우팅 축 29/30 확인 직후, 에이전트 착수 전</b>입니다.
+    </p>
+
+    <div class="open-block">
+      <p class="open-title">그래프 적재 방식 <span class="open">미정 · 구조</span></p>
+      <p style="margin:0">
+        그래프가 테이블에서 100% 도출되므로 <span class="mono">nodes</span>/<span class="mono">edges</span>를
+        별도 테이블로 적재하지 않고 <b>기존 테이블 위 뷰</b>로 구성할 수도 있습니다. 다만
+        “온톨로지 기반” 요구에는 명시적 테이블이 설명하기 쉽습니다. 문헌이 아니라 스키마를 짜 보고
+        정합니다.
+      </p>
+    </div>
+
+    <div class="evidence">
+      <div>
+        <p class="ev-label">과제 원문 문면</p>
+        <p>“3개의 MCP 도구를 구현합니다”(블로그). 흐름도는 라우터를 독립 단계로 그려 문자 그대로는
+           B안에 가깝습니다. air는 “사용 의무는 없습니다”로 명시됩니다.</p>
+        <p class="src">requirements.md</p>
+      </div>
+      <div class="ev-measured">
+        <p class="ev-label">데이터 실측</p>
+        <p>SDK <span class="mono">1.30.0</span>의 <span class="mono">LATEST_PROTOCOL_VERSION</span>은
+           <span class="mono">2025-11-25</span> — 스펙 문서상 최신인 2026-07-28 리비전은 어떤 스택을
+           골라도 구현할 수 없습니다. 프레임워크 리스크가 아니라 생태계 상태였습니다.</p>
+        <p class="src">air-evaluation.md 8.2</p>
+      </div>
+      <div class="ev-ours">
+        <p class="ev-label">우리 판단</p>
+        <p>도구 4개 등록(D2), 부분 응답 스키마(D10), 그리고 <b>A/B를 지금 닫지 않기로 한 것</b>
+           자체가 기록된 결정입니다(D1, 2026-08-12).</p>
+        <p class="src">design.md D1 · D2 · D10 · routing-topology.md</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ============================ 미정 목록 ============================ -->
+
+  <section class="rung">
+    <div class="rung-head">
+      <span class="rung-no" style="color:var(--ink-3)">＊</span>
+      <div>
+        <p class="meter" style="color:var(--ink-3)">아직 안 정한 것</p>
+        <h2>값만 정하면 되는 8건</h2>
+      </div>
+    </div>
+
+    <p class="lede">
+      앞에서 점선으로 표시한 <b>구조 미정 3건</b>(라우터 배치 · 거절/부재 응답 스키마 · 그래프 적재
+      방식)과 달리, 아래 8건은 <b>상자 안에 들어갈 값</b>만 남은 항목입니다. 정해져도 그림은
+      바뀌지 않습니다.
+    </p>
+
+    <div class="table-wrap bleed">
+      <table>
+        <caption>design.md “열어둔 항목”에서 구조 3건을 뺀 나머지</caption>
+        <thead>
+          <tr><th>항목</th><th>현재</th><th>무엇이 닫나</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>청킹 전략</td><td>미정</td>
+            <td>Qu, Tu &amp; Bao (2025) 정독 — 결론은 알지만 <b>어떤 고정 길이·오버랩과 비교했는지</b>를
+                알아야 기본값을 정한다</td>
+          </tr>
+          <tr>
+            <td>임베딩 모델</td><td>후보 <span class="mono">bge-m3</span></td>
+            <td>후보를 <span class="mono">nomic-embed-text</span>에서 바꿨습니다 — 출처 3곳에 모델명이
+                없고(2026-08-14 재확인, 실제 출현은 데이터셋 README의 “또는 다른 임베딩 모델” 예시 한 줄),
+                nomic은 모델카드 언어 태그가 <span class="mono">en</span> 하나입니다.
+                <span class="mono">bge-m3</span>는 피어리뷰 다국어 실증(Findings of ACL 2024,
+                MIRACL ko 72.1)이 있고 컨텍스트가 8K입니다. <b>메모리 실측은 끝났습니다</b> — CPU 전용으로
+                bge-m3 1.2GB 대 nomic 376MB인데, LLM과 합치면 <b>둘 다 4GB를 넘어</b> 메모리로는 갈리지
+                않습니다. 남은 것은 <b>적재 후 검색 품질 비교</b>와 <b>차원</b> — 배포 스키마가
+                <span class="mono">vector(768)</span>이라 1024차원인 bge-m3는 DDL 변경이 따라옵니다</td>
+          </tr>
+          <tr>
+            <td>LLM 모델</td><td><b>확정</b> <span class="mono">gemma4:e2b-it-qat</span></td>
+            <td>블로그·공지가 동일 문면으로 <span class="mono">Gemma 4 E2B (Ollama 로컬 실행)</span>을
+                명시하고 레지스트리에 실물이 있습니다. KOSSA 요강의 “7B” 차이는 존속하지만 <b>문의
+                대상에서는 뺐습니다</b> — 리원에이스 2출처가 일치해 문의로 얻을 정보가 없습니다. 태그는
+                최소인 <span class="mono">e2b-it-qat</span>(4.3GB)로 정했고, <b>CPU 전용 실측도
+                끝냈습니다</b>(4.0GB · 100% CPU). <span class="mono">e2b</span>(7.2GB) 상향은 뺐습니다 —
+                최소 태그가 이미 하한에 닿았습니다</td>
+          </tr>
+          <tr>
+            <td>RAM 4GB 하한</td><td><b>닫힘</b> — 권장 모델 사용, 대응 없음</td>
+            <td>CPU 전용 실측: LLM 단독 4.0GB, <span class="mono">+nomic</span> 약 4.4GB,
+                <span class="mono">+bge-m3</span> 5.2GB. 컨텍스트 2048 기준이라 <b>하한</b>이므로
+                (기본값 131072) <b>RAM 4GB로 CPU 전용 구동은 안 됩니다.</b> 그래도 우리 쪽 대응은
+                없습니다 — <span class="mono">Gemma 4 E2B</span>를 권장한 것도 같은 표에
+                <span class="mono">RAM 최소 4GB</span>를 적은 것도 주최 측이고, <b>권장 모델을 그대로
+                쓰는 한 그 불일치는 우리 설계 선택이 아닙니다.</b> 모델 교체는 검토하지 않고
+                문의 후보로도 올리지 않습니다(사양을 알아내도 결정이 같습니다). 실측값은
+                <b>시연 환경이 4GB를 넘어야 한다는 근거</b>로만 씁니다</td>
+          </tr>
+          <tr>
+            <td>MCP transport</td><td>stdio로 시작</td>
+            <td>심사 시연에 원격 접근이 필요하면 Streamable HTTP 추가 검토. 프로토타입에서 stdio
+                동작 확인됨</td>
+          </tr>
+          <tr>
+            <td>유사도 임계값 <span class="mono">T4</span></td><td>미정</td>
+            <td>논문으로 정할 수 없다. 자체 엣지 세트로 실험하되 questions.json에서 역산하지 않는다</td>
+          </tr>
+          <tr>
+            <td>nl2sql 생성 정확도·값 접지</td><td><b>미정</b> — 측정조차 안 됨</td>
+            <td>이 표의 nl2sql 항목은 오래도록 <b>재시도 횟수 하나뿐</b>이었습니다. 재시도가 얼마나
+                자주 필요한지를 재는 항목이 없었다는 건 “생성은 대체로 된다”를 검증 없이 전제해
+                왔다는 뜻입니다. 특히 <span class="mono">WHERE category='보안'</span>처럼
+                <b>문법이 완전하고 실행되며 0행을 반환하는</b> 실패는
+                <span class="mono">T1</span>·<span class="mono">T2</span>·<span class="mono">T3</span>
+                어디에도 맞지 않아 <b>T3로 위장</b>됩니다. 컬럼 값이 한국어·영어로 섞여 있어
+                (<span class="mono">region='서울'</span> 대 <span class="mono">category='security'</span>)
+                구조적으로 생길 수 있습니다. 문헌이 아니라 <b>측정으로</b> 닫습니다 —
+                이슈 #2 → #3 → #4 → #5, 0행 처리 여부는 #6</td>
+          </tr>
+          <tr>
+            <td>nl2sql 재시도 <span class="mono">T1</span></td><td>제약 하나 확정</td>
+            <td>재시도는 <b>실행 오류 메시지 같은 외부 신호를 반드시 물어야 하고</b>, 자기교정 루프는
+                금지 (Huang et al., ICLR 2024). air의 <span class="mono">retryPlugin</span>은 쓸 수 없다</td>
+          </tr>
+          <tr>
+            <td>엔티티 정규화 수준 <span class="mono">T5</span></td><td>미정</td>
+            <td>데이터셋 개체명이 전부 <span class="mono">Client-A</span>~<span class="mono">Client-AD</span>
+                합성 패턴이라 문헌으로도 데이터로도 안 닫힌다 — 자체 엣지 세트로 정한다</td>
+          </tr>
+          <tr>
+            <td>TACC 적용 세부</td><td>방향 확정</td>
+            <td>적용 지점은 <b>라우터 반환 컨텍스트 선별 하나</b>. 테이블이 8개뿐이라 nl2sql 스키마
+                선별은 대상이 아니다. 병렬 병합·부분 응답이 반환량을 늘려 이 지점의 중요도가 크다</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>검증은 두 세트로 나눈다</h3>
+    <p>
+      questions.json 30개는 <b>회귀 전용</b>이고 규칙 튜닝에 쓰지 않습니다. 30개에 맞춰 규칙을
+      고치면 그게 곧 과적합이기 때문입니다. 그리고 회귀는 하나의 점수가 아니라 <b>두 축</b>으로
+      잽니다 — 데이터셋 결함 2건의 성격이 다르기 때문입니다.
+    </p>
+
+    <div class="table-wrap bleed">
+      <table>
+        <caption>회귀 2축</caption>
+        <thead>
+          <tr><th>축</th><th>기대값</th><th>알려진 예외</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>라우팅 축</b> — 고른 도구가 기대 도구와 같은가</td>
+            <td class="num"><b>29 / 30</b></td>
+            <td><span class="mono">#5</span> — <span class="mono">#25</span>·<span class="mono">#29</span>와
+                구조가 같은데 배정이 반대. 예외 규칙을 넣지 않고 문서화한다</td>
+          </tr>
+          <tr>
+            <td><b>실행 축</b> — 선택된 도구가 올바른 응답 <i>유형</i>을 내는가</td>
+            <td class="num"><b>30 / 30</b></td>
+            <td><span class="mono">#23</span>(“서울물산”) — 존재하지 않는 개체명. 정답을 “결과 반환”이
+                아니라 <b>“개체 부재(T5) 응답”</b>으로 재정의하면 실패 케이스가 아니라 검증 실물이 된다</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:1.1rem">
+      나머지는 <b>자체 엣지 세트</b>가 맡습니다. 데이터셋이 작고 정형적이라 30개로는 검증되지 않는
+      것들이 있습니다 — 존재하지 않는 개체명(T5), 관계 카운트 애매(X1), 부분 응답(X5),
+      무매칭·스몰토크(R1, 30개 중 0건), 병렬 대상 질문(X3·X4, 30개 전부 <span class="mono">tool</span>
+      단수라 검증 수단 자체가 없음).
+    </p>
+    <p style="margin-top:1.1rem">
+      그 세트를 <b>1차 29문항으로 작성했습니다</b> (2026-08-14). 기대값을 “기대 도구 1개”가 아니라
+      <b>도구 배열 + 응답 상태</b>로 두어 거절(도구 0개)·부분 응답·의존 질문까지 담았고, 채점은 회귀와
+      같은 2축입니다. <b>판정 LLM은 쓰지 않습니다</b> — 기대값이 결정적 라벨이라 검증이 집합·문자열
+      비교로 끝나므로, LLM 판정의 편향을 스키마 설계로 원천 회피합니다.
+    </p>
+    <p style="margin-top:1.1rem">
+      역산이 아니라는 것은 세 가지로 남깁니다. 생성 입력(페르소나 카드·골격 매트릭스·프롬프트 템플릿)이
+      커밋 실물로 있고 그 안에 <span class="mono">questions.json</span>이 없다는 것, <b>골격 커밋이 문면
+      커밋보다 먼저</b>라는 git 히스토리, 그리고 회귀 30개와의 문자 3-gram 자카드 최대값이
+      <b>0.212</b>(임계 0.5)라는 기계 대조입니다. 다만 <b>골격 작성자가 30개를 이미 읽었다는 오염은
+      제거되지 않았습니다</b> — 배제되는 것은 표절형 역산까지입니다.
+    </p>
+    <p class="aside">
+      세트 실물과 작성 절차·역산 방지 규약은 <code>edge-set/README.md</code>와
+      <code>edge-set/edge-questions.json</code>에 있습니다.
+    </p>
+  </section>
+
+  <hr class="divider">
+
+  <section class="rung">
+    <h3 style="margin-top:0">이 페이지와 원본 문서</h3>
+    <p class="aside">
+      이 페이지는 파생물입니다. 결정이 바뀌면 <code>docs/design.md</code>가 먼저 바뀌고 이 페이지가
+      따라옵니다. 참조도 한 방향입니다 — 여기서 원본 문서로만 링크하고, 원본 문서에서 이 페이지로
+      거는 링크는 만들지 않습니다. 그래야 A/B가 확정될 때 고칠 곳이 원본과 이 페이지 둘로 끝납니다.
+    </p>
+    <div class="table-wrap bleed" style="margin-top:1rem">
+      <table>
+        <caption>원본 문서 — 무엇을 담고 무엇을 담지 않는가</caption>
+        <thead>
+          <tr><th>파일</th><th>담는 것</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">CONTEXT.md</td><td>용어집. 원문 용어를 정의할 때는 <b>원문이 정의하지 않는 부분을 명시</b>한다</td></tr>
+          <tr><td class="mono">docs/requirements.md</td><td>과제가 요구하는 것<b>만</b>. 우리 판단은 넣지 않는다</td></tr>
+          <tr><td class="mono">docs/dataset-analysis.md</td><td>데이터 실측 <b>사실</b>과 재현 명령. 판단을 담지 않는다</td></tr>
+          <tr><td class="mono">docs/design.md</td><td>우리 결정 D1~D11, 기각한 대안, 열어둔 항목</td></tr>
+          <tr><td class="mono">docs/edge-cases.md</td><td>구조 엣지케이스 카탈로그 — X1~X5 · R1~R5 · T1~T7 · Q1~Q4</td></tr>
+          <tr><td class="mono">docs/routing-topology.md</td><td>A/B 비교와 보류 결정 기록</td></tr>
+          <tr><td class="mono">docs/air-evaluation.md</td><td>air 프레임워크 검증과 기각 근거 (실측 포함)</td></tr>
+          <tr><td class="mono">docs/reading-priority.md</td><td>정독 우선순위 — 읽으면 결정이 닫히는 문헌만 읽는다</td></tr>
+          <tr><td class="mono">edge-set/</td><td>자체 엣지 세트 실물 — 스키마·케이스 매트릭스·역산 방지 규약과 문항 29개</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="colophon">
+      문서 기준 시점 2026-08-18 · 결정 D1~D11 중 D1(라우터 배치)만 보류 · LLM 모델 확정,
+      자체 엣지 세트 1차 29문항 작성 완료 · CPU 전용 메모리 실측 완료(권장 모델 단독 4.0GB —
+      시연 환경은 4GB를 넘어야 함) · 코드 착수 전
+    </p>
+  </section>
+
+</main>

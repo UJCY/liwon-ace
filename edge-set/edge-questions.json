@@ -1,0 +1,490 @@
+[
+  {
+    "id": "X1-01",
+    "q": "프로젝트들을 가장 많이 이끌고 있는 직원은 누구인가요?",
+    "case": "X1",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "knowledge_graph"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "관계 카운트 최대 — LEADS 40엣지 (dataset-analysis 2장). 세는 대상이 관계이므로 D9 규칙 4",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"프로젝트를 가장 많이 이끄는(=맡아 진행하는) 직원이 누구인지\" · 페르소나 P4"
+    }
+  },
+  {
+    "id": "X1-02",
+    "q": "가장 많은 고객사가 사용하고 있는 제품이 무엇인지 알려주시겠습니까?",
+    "case": "X1",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "knowledge_graph"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "관계 카운트 최대 — USES 61엣지 (dataset-analysis 2장). D9 규칙 4",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"가장 많은 고객사가 사용 중인 제품이 무엇인지\" · 페르소나 P1"
+    }
+  },
+  {
+    "id": "X2-01",
+    "q": "경영지원팀에 소속된 직원 명단 알려주세요",
+    "case": "X2",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "knowledge_graph"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "관계 단독 순회 — BELONGS_TO 45엣지. 부서는 departments 6행 중 첫 행(경영지원팀), sql/02-data.sql",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"경영지원팀에 소속된 직원이 누구누구인지\" · 페르소나 P3"
+    }
+  },
+  {
+    "id": "X2-02",
+    "q": "각 직원의 담당 고객사들에 대한 총 계약 금액이 얼마인지 알려주시겠어요?",
+    "case": "X2",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "nl2sql"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "관계 + 정형 속성 동반 — MANAGES_ACCOUNT 63엣지 + contracts.amount 컬럼. 속성이 함께 걸리면 nl2sql (D9 규칙 2·3 우선순위)",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"직원별로 자신이 담당하는 고객사들의 계약 금액이 각각 얼마나 되는지\" · 페르소나 P1"
+    }
+  },
+  {
+    "id": "X3-01",
+    "q": "API 응답 지연 건수 있었어? 그 문제의 근본 원인은 뭐였는지 좀 알려줄래?",
+    "case": "X3",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "nl2sql",
+        "vector_search"
+      ],
+      "response": "parallel_merge"
+    },
+    "provenance": {
+      "structure_basis": "상보 중복 — support_tickets는 사건 목록만 갖고 원인 서술은 문서에만 있다 (dataset-analysis 4장). 주제는 title 28종 중 첫 토큰이 장애보고서 본문에 등장하는 10종을 사전순 정렬한 1번째",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"API 응답 지연 문제가 접수된 적이 있는지와, 그 원인이 무엇이었는지를 함께\" · 페르소나 P2"
+    }
+  },
+  {
+    "id": "X3-02",
+    "q": "DB 연결 타임아웃 문제가 들어온 티켓 목록은 뭐고, 왜 그런 거야?",
+    "case": "X3",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "nl2sql",
+        "vector_search"
+      ],
+      "response": "parallel_merge"
+    },
+    "provenance": {
+      "structure_basis": "상보 중복 — 동일 근거. 주제는 같은 목록의 2번째",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"DB 연결 타임아웃 문제가 접수된 목록과, 그 원인이 무엇이었는지를 함께\" · 페르소나 P2"
+    }
+  },
+  {
+    "id": "X3-03",
+    "q": "혹시 포드 재시작 반복되는 문제 생겼던 적 있어?",
+    "case": "X3",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "vector_search"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "경계 대조 — 요구 원소가 1개(존재 확인)면 병렬이 아니다 (D11-4, edge-cases X3 단서). 주제는 같은 목록의 3번째",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"Pod 재시작이 반복되는 문제가 있었는지 여부만 (원인이나 목록은 묻지 않는다)\" · 페르소나 P2"
+    }
+  },
+  {
+    "id": "X4-01",
+    "q": "Client-A의 현재 주요 제품 사용 현황과 최근 겪은 주요 이슈는 무엇인가요?",
+    "case": "X4",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "knowledge_graph",
+        "vector_search"
+      ],
+      "response": "parallel_merge"
+    },
+    "provenance": {
+      "structure_basis": "개체 지목 상보 중복 — 문서가 커버하는 고객사 15개(Client-A~Client-O) 중 1번째 (dataset-analysis 3장)",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"Client-A가 어떤 제품을 쓰고 있는지와, Client-A에게 무슨 일이 있었는지 그 내용을 함께\" · 페르소나 P1"
+    }
+  },
+  {
+    "id": "X4-02",
+    "q": "Client-B가 어떤 제품을 쓰고 있는지와 최근 무슨 일이 있었는지 함께 알려주시겠어요?",
+    "case": "X4",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "knowledge_graph",
+        "vector_search"
+      ],
+      "response": "parallel_merge"
+    },
+    "provenance": {
+      "structure_basis": "개체 지목 상보 중복 — 같은 목록의 2번째 (dataset-analysis 3장)",
+      "written_by": "manual",
+      "notes": "생성 후보 3개가 모두 개체명을 '클라이언트 B'로 음차해 개체 지목이 흐려졌다 — 수동 작성"
+    }
+  },
+  {
+    "id": "X5-01",
+    "q": "Client-P에서 발생한 장애의 원인이 뭐야?",
+    "case": "X5",
+    "subcase": "T4-entity",
+    "expected": {
+      "routing": [
+        "vector_search"
+      ],
+      "response": "partial"
+    },
+    "provenance": {
+      "structure_basis": "문서 격자 빈칸 — 고객사 × 문서유형 30/90, 미커버 구간 Client-P~Client-AD의 첫 개체 (dataset-analysis 3장)",
+      "written_by": "manual",
+      "notes": "생성 후보가 모두 개체명을 음차하고 증상·시점 조건을 덧붙였다 — 수동 작성"
+    }
+  },
+  {
+    "id": "X5-02",
+    "q": "Product-C1의 API 인증은 어떤 방식으로 하는 거야?",
+    "case": "X5",
+    "subcase": "T4-form",
+    "expected": {
+      "routing": [
+        "vector_search"
+      ],
+      "response": "partial"
+    },
+    "provenance": {
+      "structure_basis": "문서 격자 빈칸 — 제품 × 기술주제 10/60, Product-C1은 설치 주제만 보유 (dataset-analysis 3장)",
+      "written_by": "manual",
+      "notes": "생성 후보가 개체명을 '제품 C1'·'프로덕트 C1'으로 음차했다 — 수동 작성"
+    }
+  },
+  {
+    "id": "X5-03",
+    "q": "윤소연 님이 이끄는 프로젝트가 무엇인가요?",
+    "case": "X5",
+    "subcase": "T7",
+    "expected": {
+      "routing": [
+        "knowledge_graph"
+      ],
+      "response": "partial"
+    },
+    "provenance": {
+      "structure_basis": "그래프 격자 빈칸 — employee 43/45가 관계 일부 결손. LEADS 결손 직원 중 격자 스니펫 출력 순 1번째(employee_1) (dataset-analysis 3장)",
+      "written_by": "manual",
+      "notes": "생성 후보가 '이끄는'을 '담당하는'으로 바꿔 관계가 LEADS에서 MANAGES_ACCOUNT로 흐려졌다 — 수동 작성"
+    }
+  },
+  {
+    "id": "X5-04",
+    "q": "박성민 님이 현재 어떤 프로젝트를 맡고 계신가요?",
+    "case": "X5",
+    "subcase": "T7",
+    "expected": {
+      "routing": [
+        "knowledge_graph"
+      ],
+      "response": "partial"
+    },
+    "provenance": {
+      "structure_basis": "그래프 격자 빈칸 — 같은 목록의 2번째(employee_4) (dataset-analysis 3장)",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"박성민 님이 이끄는 프로젝트가 무엇인지\" · 페르소나 P4"
+    }
+  },
+  {
+    "id": "X5-05",
+    "q": "Client-A와 현재 진행 중인 프로젝트가 무엇인지 알려주시겠어요?",
+    "case": "X5",
+    "subcase": "T3",
+    "expected": {
+      "routing": [
+        "nl2sql"
+      ],
+      "response": "partial"
+    },
+    "provenance": {
+      "structure_basis": "테이블 격자 빈칸 — projects 결손 고객사 8개 중 알파벳 순 첫 개체 (dataset-analysis 3장)",
+      "written_by": "manual",
+      "notes": "생성 후보가 개체명을 음차하고 '상세 내용'을 덧붙여 서술 요구로 바뀌었다 — 수동 작성"
+    }
+  },
+  {
+    "id": "R1-01",
+    "q": "오늘 하루 어떻게 지내셨어요?",
+    "case": "R1",
+    "subcase": null,
+    "expected": {
+      "routing": [],
+      "response": "out_of_scope"
+    },
+    "provenance": {
+      "structure_basis": "후보 도구 없음 — 스몰토크는 세 자산 어디에도 대응하는 출력 형태가 없다 (D6)",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"업무와 무관한 인사말 — 오늘 기분이 어떤지 묻는 잡담\" · 페르소나 P3"
+    }
+  },
+  {
+    "id": "R1-02",
+    "q": "쿠버네티스라는 기술이 처음 개발된 장소에 대해 알고 싶어요.",
+    "case": "R1",
+    "subcase": null,
+    "expected": {
+      "routing": [],
+      "response": "out_of_scope"
+    },
+    "provenance": {
+      "structure_basis": "후보 도구 없음 — 일반 지식이며 Company-X 데이터 범위 밖 (D6)",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"회사 데이터와 무관한 일반 상식 — 쿠버네티스라는 기술이 원래 어디서 만들어졌는지\" · 페르소나 P4"
+    }
+  },
+  {
+    "id": "R1-03",
+    "q": "Company-X의 최근 주가 변동 추이에 대해 조사해 주실 수 있나요?",
+    "case": "R1",
+    "subcase": null,
+    "expected": {
+      "routing": [],
+      "response": "out_of_scope"
+    },
+    "provenance": {
+      "structure_basis": "후보 도구 없음 — 데이터 인접이나 범위 밖. 주가는 테이블 8개·문서 40건·그래프 어디에도 없다 (D6)",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"회사와 관련은 있지만 우리 데이터에 없는 것 — Company-X의 주가가 지금 얼마인지\" · 페르소나 P1"
+    }
+  },
+  {
+    "id": "R4-01",
+    "q": "Client-A가 쓰고 있는 제품에서 난 장애, 원인이 뭐야?",
+    "case": "R4",
+    "subcase": null,
+    "expected": {
+      "routing": [],
+      "response": "r4_defined_state"
+    },
+    "provenance": {
+      "structure_basis": "요구 원소 간 의존 — USES 순회 결과가 문서 검색의 인자가 된다 (D11-5)",
+      "written_by": "manual",
+      "notes": "생성 후보가 개체명을 음차하고 증상·로그 조건을 덧붙였다 — 수동 작성. 이 구조의 예시 문장은 design.md D11-5와 edge-cases R4에 먼저 실려 있다"
+    }
+  },
+  {
+    "id": "R4-02",
+    "q": "Client-B를 담당하는 직원의 연봉은 얼마인가요?",
+    "case": "R4",
+    "subcase": null,
+    "expected": {
+      "routing": [],
+      "response": "r4_defined_state"
+    },
+    "provenance": {
+      "structure_basis": "요구 원소 간 의존 — MANAGES_ACCOUNT 순회 결과가 employees.salary 조회의 인자가 된다 (D11-5)",
+      "written_by": "manual",
+      "notes": "생성 후보가 고객사를 '팀'으로 바꾸고 인건비 총액으로 변형했다 — 수동 작성"
+    }
+  },
+  {
+    "id": "R5-01",
+    "q": "지난주 팀 회의에서 나온 배포 일정 관련 이슈가 어떤 내용이었는지 알려주세요.",
+    "case": "R5",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "vector_search"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "표층 충돌 — 관계명 REPORTED_ISSUE의 '이슈'가 일반 명사와 겹친다. 요구는 회의록의 서술이므로 관계가 아니다 (D9-a, edge-cases R5)",
+      "written_by": "manual",
+      "notes": "생성 후보가 '이슈'를 '문제'로 바꿔 충돌 자체가 사라졌다 — 수동 작성"
+    }
+  },
+  {
+    "id": "R5-02",
+    "q": "가장 큰 예산이 배정된 프로젝트가 무엇인지 알려주시겠어요?",
+    "case": "R5",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "nl2sql"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "표층 충돌 — 관계명 HAS_PROJECT의 '프로젝트'가 일반 명사와 겹친다. 요구는 projects.budget 속성이다 (D9-a)",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"프로젝트에 배정된 예산이 가장 큰 프로젝트가 무엇인지 (프로젝트라는 일반 명사를 쓴다)\" · 페르소나 P3"
+    }
+  },
+  {
+    "id": "R5-03",
+    "q": "백업 정책이 어떻게 돼 있고 지금 어떤 상태로 운영되고 있는지 알려줘",
+    "case": "R5",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "vector_search"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "표층 충돌 — 컬럼명 status의 '상태'가 일반 명사와 겹친다. 요구는 절차·운영 서술이다 (D9-a)",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"백업 정책이 어떻게 되어 있고 어떤 상태로 운영되는지 그 내용 (상태라는 일반 명사를 쓴다)\" · 페르소나 P2"
+    }
+  },
+  {
+    "id": "T5-01",
+    "q": "한빛테크 건을 담당하고 있는 분은 누구입니까?",
+    "case": "T5",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "knowledge_graph"
+      ],
+      "response": "entity_not_found"
+    },
+    "provenance": {
+      "structure_basis": "개체 부재 — clients 30행의 name이 전부 Client-A~Client-AD 합성 패턴이라 한국어 상호형은 그래프에 없다 (sql/02-data.sql)",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"한빛테크라는 회사를 담당하는 직원이 누구인지\" · 페르소나 P1 / questions.json #23의 '서울물산'은 재사용하지 않는다 — 그 인스턴스를 피하려고 다른 상호형을 썼다"
+    }
+  },
+  {
+    "id": "T5-02",
+    "q": "Client-ZZ의 담당 매니저는 누구인가요?",
+    "case": "T5",
+    "subcase": null,
+    "expected": {
+      "routing": [
+        "knowledge_graph"
+      ],
+      "response": "entity_not_found"
+    },
+    "provenance": {
+      "structure_basis": "개체 부재 — 합성 패턴의 상한이 Client-AD이므로 Client-ZZ는 존재하지 않는다 (sql/02-data.sql clients 30행)",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"Client-ZZ를 담당하는 직원이 누구인지\" · 페르소나 P1"
+    }
+  },
+  {
+    "id": "OP-01",
+    "q": "월 구독료가 가장 비싼 제품이 무엇인지 알려주십시오.",
+    "case": "OP",
+    "subcase": "superlative",
+    "expected": {
+      "routing": [
+        "nl2sql"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "연산 축 — 최상급 단독(집계 없는 argmax). products.price_monthly 정렬 (question-taxonomy 10.3)",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"월 구독료가 가장 비싼 제품이 무엇인지\" · 페르소나 P1"
+    }
+  },
+  {
+    "id": "OP-02",
+    "q": "8000만원 이상 받는 직원 명단 좀 알려주세요.",
+    "case": "OP",
+    "subcase": "comparison",
+    "expected": {
+      "routing": [
+        "nl2sql"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "연산 축 — 비교(>=). employees.salary 임계 비교 (question-taxonomy 10.3)",
+      "written_by": "generated",
+      "notes": "생성 모델 exaone3.5:2.4b · 골격 명세 \"연봉이 8000만원을 넘는 직원이 누구인지\" · 페르소나 P3"
+    }
+  },
+  {
+    "id": "OP-03",
+    "q": "2025년 4분기 전체 매출액이 얼마인지 알려주시겠습니까?",
+    "case": "OP",
+    "subcase": "temporal",
+    "expected": {
+      "routing": [
+        "nl2sql"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "연산 축 — 시간 제약 + 정형 속성. sales.quarter(2024-Q1~2026-Q2) + amount (question-taxonomy 10.3)",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"2025년 4분기 매출이 모두 얼마인지\" · 페르소나 P1"
+    }
+  },
+  {
+    "id": "OP-04",
+    "q": "지난 분기에 SSL 인증서 만료 때문에 어떤 장애가 있었고, 그 원인이 뭐였는지 알려줘",
+    "case": "OP",
+    "subcase": "temporal",
+    "expected": {
+      "routing": [
+        "nl2sql",
+        "vector_search"
+      ],
+      "response": "parallel_merge"
+    },
+    "provenance": {
+      "structure_basis": "연산 축 — 시간 + 사건 + 서술 복합. 시간 제약이 D9 규칙 1과 2에 동시에 걸리는 지점이고 구조상 X3와 같다 (question-taxonomy 10.2 (3)). 주제는 X3와 같은 목록의 4번째",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"지난 분기에 있었던 SSL 인증서 만료 장애 사례와 그 원인을 함께\" · 페르소나 P2"
+    }
+  },
+  {
+    "id": "OP-05",
+    "q": "계약 기록이 전혀 없는 고객사는 어디인가요?",
+    "case": "OP",
+    "subcase": "negation",
+    "expected": {
+      "routing": [
+        "nl2sql"
+      ],
+      "response": "single"
+    },
+    "provenance": {
+      "structure_basis": "연산 축 — 부정·차집합. contracts 결손 고객사 3개 (dataset-analysis 3장 테이블 격자)",
+      "written_by": "generated",
+      "notes": "생성 모델 gemma4:e2b-it-qat · 골격 명세 \"계약이 한 건도 없는 고객사가 어디인지\" · 페르소나 P1"
+    }
+  }
+]
