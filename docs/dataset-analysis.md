@@ -389,7 +389,7 @@ print('배열:', sum(1 for q in qs if isinstance(q['tool'],list)), '/', len(qs))
 - 본문은 *"CPU만으로**도** 구동 가능합니다"*이다. **가능 서술이지 의무 서술이 아니다.**
 - `RAM 최소 4GB`가 실린 표의 표제는 **"권장 개발 환경"**이다. 심사 실행 환경의 사양을 적은 문면은 출처 3곳 어디에도 없다(미확인).
 
-이 세 문면과 아래 CPU 전용 실측을 함께 놓으면 **동시에 만족할 수 없는 조합**이 나온다: 권장 모델 `Gemma 4 E2B` + `RAM 최소 4GB` + *"GPU 없이 CPU만으로도 구동"* — 셋 중 둘까지만 성립한다(CPU 전용 단독 4.0GB). 어떻게 읽을지는 판단이고 [design.md](./design.md) 열어둔 항목 **RAM 4GB 하한 대응**에 있다.
+이 세 문면과 아래 CPU 전용 실측을 함께 놓으면 **동시에 만족할 수 없는 조합**이 나온다: 권장 모델 `Gemma 4 E2B` + `RAM 최소 4GB` + *"GPU 없이 CPU만으로도 구동"* — 셋 중 둘까지만 성립한다(CPU 전용 단독 4.0GB). 어떻게 읽을지는 판단이고 [design.md](./design.md) 열어둔 항목 **RAM 4GB 하한**에 있다.
 
 ```bash
 UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
