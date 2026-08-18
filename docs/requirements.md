@@ -62,9 +62,10 @@ PostgreSQL + pgvector 위에 벡터 검색, NL2SQL, 지식 그래프를 **MCP(Mo
 
 ## 제약 조건
 
-- **외부 API 사용 불가** (OpenAI, Claude 등). 모든 모델은 Ollama 로컬 실행. GPU 없이 CPU만으로 구동 가능해야 함.
+- **외부 API 사용 불가** (OpenAI, Claude 등). 모든 모델은 Ollama 로컬 실행.
+- **GPU는 "선택"이다** — 권장 개발 환경 표의 `LLM 실행` 값이 두 출처 모두 `Ollama (로컬, GPU 선택)`이고, 블로그 본문은 *"GPU 없이 CPU만으로**도** 구동 가능합니다"*로 쓴다. **가능 서술이지 의무 서술이 아니다** (2026-08-18 재확인. 종전 서술 *"CPU만으로 구동 가능해야 함"*은 원문보다 강한 표현이라 정정했다).
 - PostgreSQL 15+ / pgvector.
-- RAM 최소 4GB, Linux 권장 (macOS / WSL2 가능).
+- **RAM 최소 4GB** · Linux 권장 (macOS / WSL2 가능). 단 **이 두 행은 블로그 `blog/9`의 "권장 개발 환경" 표 한 곳에만 있다** — 공지·요강에는 `RAM` 표기가 0회다. 그리고 표제가 *"권장 개발 환경"*이므로 **개발 기계 사양**이고, **심사 실행 환경의 사양을 적은 문면은 출처 3곳 어디에도 없다**(미확인). 전 항목 대조는 [dataset-analysis.md](./dataset-analysis.md) 7장.
 - `air` 프레임워크(리원에이스 오픈소스, Apache-2.0)는 **권장이지 의무 아님**. https://airmcp.dev / https://docs.airmcp.dev
 - LLM 권장: 블로그·공지는 "권장 개발 환경" 표에 **`Gemma 4 E2B (Ollama 로컬 실행)`**을 명시(2026-08-14 재확인, 두 출처 문면 동일), KOSSA 요강은 "온프레미스 소형 LLM(7B)"로 표기 — **차이 존속**. 공통분모는 "Ollama 로컬 소형 LLM". 문면 확인 기록은 [dataset-analysis.md](./dataset-analysis.md) 7장.
 - 임베딩 권장: 공지는 *"Ollama의 임베딩 모델을 활용하여 적재"*까지만 쓰고 **모델명을 지정하지 않는다**. 블로그·요강에는 임베딩 모델 언급이 없다 (2026-08-14 재확인).

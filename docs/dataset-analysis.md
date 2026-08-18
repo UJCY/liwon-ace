@@ -366,6 +366,48 @@ print('배열:', sum(1 for q in qs if isinstance(q['tool'],list)), '/', len(qs))
 - KOSSA 요강의 `7B` 표기와의 차이는 **존속한다**.
 - 공지의 임베딩 문면은 *"Ollama의 임베딩 모델"*까지이고 **특정 모델명을 지정하지 않는다.** 2026-08-14 기준 **출처 3곳 어디에도 `nomic`은 없다**. (과거 문면에 있었는지는 확인 수단이 없다.)
 
+### 권장 개발 환경 표 전 항목 대조 (2026-08-18) — RAM·GPU 문면은 **블로그에만** 있다
+
+앞 표는 LLM·임베딩 행만 봤다. 표 전체를 대조하면 **출처마다 항목 수가 다르다**.
+
+| 항목 | 블로그 `blog/9` | 공지 `notice/2` | KOSSA 요강 |
+|---|---|---|---|
+| LLM | `Gemma 4 E2B (Ollama 로컬 실행)` | 동일 | — (본문에 `소형 LLM(7B)`) |
+| **LLM 실행** | **`Ollama (로컬, GPU 선택)`** | **`Ollama (로컬 실행, GPU 선택)`** | — |
+| 데이터베이스 | `PostgreSQL 15+ / pgvector` | 동일 | — |
+| MCP 서버 | `air 프레임워크 권장 (선택사항)` | 동일 | — |
+| OS | `Linux 권장 (macOS / WSL2 가능)` | **항목 없음** | — |
+| **RAM** | **`최소 4GB`** | **항목 없음** | — |
+
+`grep` 계수로도 확인된다: `RAM` 출현은 블로그 **1회**, 공지 **0회**, 요강 **0회**. `권장 개발 환경`이라는 표제 자체가 요강에는 없다(0회).
+
+**두 문면을 정확히 옮긴다.** 표 아래 본문은 다음과 같다.
+
+> 모든 모델은 Ollama로 로컬 실행합니다. 외부 API(OpenAI, Claude 등) 사용은 불가합니다. **GPU 없이 CPU만으로도 구동 가능합니다.**
+
+- 표의 `LLM 실행` 값이 **`GPU 선택`**이다 — 두 출처 모두.
+- 본문은 *"CPU만으로**도** 구동 가능합니다"*이다. **가능 서술이지 의무 서술이 아니다.**
+- `RAM 최소 4GB`가 실린 표의 표제는 **"권장 개발 환경"**이다. 심사 실행 환경의 사양을 적은 문면은 출처 3곳 어디에도 없다(미확인).
+
+이 세 문면과 아래 CPU 전용 실측을 함께 놓으면 **동시에 만족할 수 없는 조합**이 나온다: 권장 모델 `Gemma 4 E2B` + `RAM 최소 4GB` + *"GPU 없이 CPU만으로도 구동"* — 셋 중 둘까지만 성립한다(CPU 전용 단독 4.0GB). 어떻게 읽을지는 판단이고 [design.md](./design.md) 열어둔 항목 **RAM 4GB 하한 대응**에 있다.
+
+```bash
+UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+strip() { python3 -c "
+import sys,re,html
+t=sys.stdin.read(); t=re.sub(r'<[^>]+>',' ',t); t=html.unescape(t); print(re.sub(r'\\s+',' ',t))
+"; }
+for u in https://liwonace.co.kr/blog/9 https://liwonace.co.kr/notice/2 \
+         https://www.kossa.kr/materials/2026/ossp/tasks-liwonace.html; do
+  echo "== $u"
+  curl -sS -L -A "$UA" "$u" | strip \
+    | grep -o 'RAM 최소 [0-9]\+GB\|GPU 선택\|CPU만으로도 구동 가능\|권장 개발 환경' || echo '  (해당 없음)'
+done
+# blog/9  : 권장 개발 환경 · GPU 선택 · RAM 최소 4GB · CPU만으로도 구동 가능
+# notice/2: 권장 개발 환경 · GPU 선택          (RAM·CPU 문면 없음)
+# kossa   : (해당 없음)
+```
+
 ### `nomic-embed-text`가 나오는 곳은 출처 3곳이 아니라 **데이터셋 README**다
 
 전수 검색 결과 `nomic`의 유일한 출현은 데이터셋 안이다.
@@ -463,7 +505,7 @@ grep -n "embedding" sql/01-schema.sql    # 123:    embedding       vector(768),
 
 `gemma4:e2b-it-qat`는 한국어로 답한다. 프롬프트 *"Company-X의 매출 데이터를 요약하는 역할을 한 문장으로 설명해줘"* → *"이 문서는 회사 X의 총매출액 추이와 주요 재무 성과를 분석하여 이해하기 쉽게 요약한 데이터 보고서입니다."* (36 토큰, 1.2초).
 
-**이 수치는 RAM 4GB·CPU 전용 조건의 실측이 아니다.** 측정 환경에 GPU가 있어 `ollama ps`의 `PROCESSOR`가 3종 모두 `100% GPU`로 나왔다 (NVIDIA RTX 4070 Laptop 8GB, RAM 15Gi). 과제 제약은 *"GPU 없이 CPU만으로 구동"* + RAM 최소 4GB이므로, 위 SIZE는 **필요 메모리의 근사**로만 읽고 CPU 전용 실측은 별도로 남는다.
+**이 표의 SIZE는 CPU 전용 조건의 값이 아니다.** 측정 환경에 GPU가 있어 `ollama ps`의 `PROCESSOR`가 3종 모두 `100% GPU`로 나왔다 (NVIDIA RTX 4070 Laptop 8GB, RAM 15Gi). **CPU 전용 실측은 아래 「CPU 전용 실측 (2026-08-18)」 절에서 따로 했고, 값이 크게 다르다** — `gemma4:e2b-it-qat` 단독이 1.7GB가 아니라 **4.0GB**다(약 2.4배). 따라서 **이 표를 필요 메모리의 근사로도 쓰면 안 된다.** 남겨 두는 이유는 GPU/CPU 대조의 한쪽 항이기 때문이다.
 
 ```bash
 ollama pull gemma4:e2b-it-qat && ollama pull bge-m3 && ollama pull nomic-embed-text
@@ -477,4 +519,78 @@ for m in bge-m3 nomic-embed-text; do
 done       # bge-m3 1024 · nomic-embed-text 768
 
 ollama ps  # SIZE·PROCESSOR·CONTEXT — PROCESSOR가 GPU면 CPU 전용 실측이 아니다
+```
+
+### CPU 전용 실측 (2026-08-18)
+
+바로 위 수치는 GPU 적재 상태라 원문의 *"GPU 없이 CPU만으로**도** 구동 가능합니다"*를 검증한 것이 아니었다 (문면은 위 「권장 개발 환경 표 전 항목 대조」 절). `options.num_gpu = 0`으로 GPU를 끄고 다시 쟀다. 측정마다 `nvidia-smi`로 VRAM `0 MiB`를 확인해 CPU 전용임을 검증했다.
+
+| 모델 | 파일 크기 | `ollama ps` SIZE (**`100% CPU`**) | 컨텍스트 |
+|---|---:|---:|---:|
+| `gemma4:e2b-it-qat` | 4.3GB | **4.0GB** | 2048 |
+| `gemma4:e2b-it-qat` | 4.3GB | **4.0GB** | 4096 |
+| `bge-m3` | 1.2GB | **1.2GB** | 4096 |
+| `nomic-embed-text` | 274MB | **376MB** | 2048 |
+
+동시 적재 조합:
+
+| 조합 | 합계 |
+|---|---:|
+| LLM 단독 | **4.0GB** |
+| LLM + `nomic-embed-text` | **약 4.4GB** |
+| LLM + `bge-m3` | **5.2GB** |
+
+제약은 *"RAM 최소 4GB"*다 ([requirements.md](./requirements.md) 제약 조건). **LLM 단독 4.0GB로 이미 그 하한과 같다.**
+
+시스템 메모리로도 같은 값이 나온다 — LLM + `bge-m3` 적재 전후로 `MemAvailable`이 **7301MB → 1851MB**(Δ 약 5450MB)로 줄었다. `ollama ps` 합계 5.2GB와 정합한다.
+
+**컨텍스트는 변수가 아니다.** 2048과 4096에서 SIZE가 4.0GB로 같다. 다만 `e2b`의 기본 컨텍스트는 **131072**이므로 위 값은 **하한**이다.
+
+#### GPU 수치는 CPU 요구량의 대리값이 될 수 없다
+
+같은 모델·같은 컨텍스트(2048)로 대조했다.
+
+| 적재 | `ollama ps` SIZE | `nvidia-smi` VRAM |
+|---|---:|---:|
+| `100% GPU` | **1.7GB** | 2831MiB |
+| `100% CPU` | **4.0GB** | 0MiB |
+
+두 가지가 관측된다. ① GPU 적재 시 `ollama ps`의 SIZE(1.7GB)는 실제 VRAM 점유(2831MiB)보다 **작다** — SIZE는 전량 회계가 아니다. ② 같은 조건에서 CPU 적재는 GPU 적재의 **약 2.4배**다. **원인은 미확인이다.** 참고로 모델 메타데이터는 아래와 같다 (`ollama show`).
+
+| 항목 | 값 |
+|---|---|
+| architecture | `gemma4` |
+| parameters | **4.6B** |
+| quantization | `Q4_0` |
+| context length | **131072** |
+| embedding length | 1536 |
+| capabilities | completion · vision · audio · tools · thinking |
+| projector | `clip` 475.73M |
+
+측정 환경: WSL2 (당시 VM 메모리 상한 16GB, 호스트 63.5GB) · CPU 22 · ollama 0.31.2. **호스트에 GPU가 있어도 `num_gpu:0`이면 `PROCESSOR`가 `100% CPU`로 바뀌고 VRAM 점유가 0이 된다** — CPU 전용 측정에 GPU 없는 기계가 필요하지는 않다.
+
+### 재현
+
+```bash
+# CPU 전용 강제: options.num_gpu = 0
+load() { curl -sS localhost:11434/api/generate -d "{\"model\":\"$1\",\"prompt\":\"안녕\",\"stream\":false,\"keep_alive\":\"120s\",\"options\":{\"num_gpu\":$2,\"num_ctx\":$3,\"num_predict\":4}}" >/dev/null; }
+unload() { curl -sS localhost:11434/api/generate -d "{\"model\":\"$1\",\"keep_alive\":0}" >/dev/null; sleep 2; }
+
+free -m | awk '/Mem:/{print "적재 전 available:", $7, "MB"}'      # 7301 MB
+
+load gemma4:e2b-it-qat 0 2048
+ollama ps                                                        # 4.0 GB · 100% CPU · 2048
+nvidia-smi --query-gpu=memory.used --format=csv,noheader          # 0 MiB  ← CPU 전용 검증
+
+curl -sS localhost:11434/api/embed -d '{"model":"bge-m3","input":"서울 지역 매출","keep_alive":"120s","options":{"num_gpu":0}}' >/dev/null
+ollama ps                                                        # + 1.2 GB · 100% CPU → 합 5.2 GB
+free -m | awk '/Mem:/{print "적재 후 available:", $7, "MB"}'      # 1851 MB  (Δ 약 5450 MB)
+
+# GPU/CPU 대조 — 컨텍스트를 2048로 고정해 변수 제거
+unload gemma4:e2b-it-qat; load gemma4:e2b-it-qat 99 2048
+ollama ps; nvidia-smi --query-gpu=memory.used --format=csv,noheader   # 1.7 GB · 100% GPU / 2831 MiB
+unload gemma4:e2b-it-qat; load gemma4:e2b-it-qat 0 2048
+ollama ps; nvidia-smi --query-gpu=memory.used --format=csv,noheader   # 4.0 GB · 100% CPU / 0 MiB
+
+ollama show gemma4:e2b-it-qat | head -8    # architecture·parameters·quantization·context length
 ```
