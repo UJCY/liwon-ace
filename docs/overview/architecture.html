@@ -1558,6 +1558,18 @@ sequenceDiagram
             <td>논문으로 정할 수 없다. 자체 엣지 세트로 실험하되 questions.json에서 역산하지 않는다</td>
           </tr>
           <tr>
+            <td>nl2sql 생성 정확도·값 접지</td><td><b>미정</b> — 측정조차 안 됨</td>
+            <td>이 표의 nl2sql 항목은 오래도록 <b>재시도 횟수 하나뿐</b>이었습니다. 재시도가 얼마나
+                자주 필요한지를 재는 항목이 없었다는 건 “생성은 대체로 된다”를 검증 없이 전제해
+                왔다는 뜻입니다. 특히 <span class="mono">WHERE category='보안'</span>처럼
+                <b>문법이 완전하고 실행되며 0행을 반환하는</b> 실패는
+                <span class="mono">T1</span>·<span class="mono">T2</span>·<span class="mono">T3</span>
+                어디에도 맞지 않아 <b>T3로 위장</b>됩니다. 컬럼 값이 한국어·영어로 섞여 있어
+                (<span class="mono">region='서울'</span> 대 <span class="mono">category='security'</span>)
+                구조적으로 생길 수 있습니다. 문헌이 아니라 <b>측정으로</b> 닫습니다 —
+                이슈 #2 → #3 → #4 → #5, 0행 처리 여부는 #6</td>
+          </tr>
+          <tr>
             <td>nl2sql 재시도 <span class="mono">T1</span></td><td>제약 하나 확정</td>
             <td>재시도는 <b>실행 오류 메시지 같은 외부 신호를 반드시 물어야 하고</b>, 자기교정 루프는
                 금지 (Huang et al., ICLR 2024). air의 <span class="mono">retryPlugin</span>은 쓸 수 없다</td>
