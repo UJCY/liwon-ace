@@ -1,4 +1,8 @@
 {
+ "_provenance": {
+  "column_values_ko": "derived — 02-data.sql 의 저카디널리티 컬럼 값",
+  "tables": "authored — 사람이 쓴 표층형"
+ },
  "column_values_ko": [
   "DB 마이그레이션 자동화 도구.",
   "건설",

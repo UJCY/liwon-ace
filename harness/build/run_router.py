@@ -20,6 +20,11 @@ SIGNATURES = json.load(open(os.path.join(A, "tool-signatures.json"), encoding="u
 GATE       = json.load(open(os.path.join(A, "surface-gate.json"), encoding="utf-8"))
 
 GATE_WORDS = ([w for ws in GATE["tables"].values() for w in ws] + GATE["column_values_ko"])
+
+# route() 가 실제로 낼 수 있는 응답 상태. 병렬 승격(parallel_merge)과
+# 부재 판정(partial · entity_not_found)은 아직 구현하지 않았다 (design.md D12 말미).
+# 실행 축 점수를 이 집합으로 나눠 읽어야 한다 — 아래 ceiling 계산 참조.
+EMITTABLE_STATES = {"single", "out_of_scope"}
 ENTITY = re.compile(r"(Client|Product|employee|project|dept)[-_ ]?[A-Za-z0-9]+"
                     r"|[가-힣]{2,4}(?:물산|전자|산업|그룹)")
 
@@ -67,7 +72,7 @@ def route(question, qvec, docvecs):
 
 
 docvecs = doc_vectors()
-SIGVEC  = {t: embed(v) for t, v in SIGNATURES.items()}
+SIGVEC  = {t: embed(v) for t, v in SIGNATURES.items() if not t.startswith("_")}
 
 regression = json.load(open(os.path.join(ROOT, "companyx-dataset-v1.0", "questions.json"), encoding="utf-8"))
 edge       = json.load(open(os.path.join(ROOT, "edge-set", "edge-questions.json"), encoding="utf-8"))
@@ -90,5 +95,18 @@ for x in edge:
     if not ok:
         efail.append((x["id"], x["case"],
                       f"기대{sorted(x['expected']['routing'])} 실제{sorted(got)}", x["q"][:32]))
-print(f"\n엣지 {len(edge)}문항 · 라우팅 축: {routing}/{len(edge)} · 실행 축: {execution}/{len(edge)}")
+ceiling = sum(1 for x in edge if x["expected"]["response"] in EMITTABLE_STATES)
+unreachable = {}
+for x in edge:
+    r = x["expected"]["response"]
+    if r not in EMITTABLE_STATES:
+        unreachable[r] = unreachable.get(r, 0) + 1
+
+print(f"\n엣지 {len(edge)}문항 · 라우팅 축: {routing}/{len(edge)} · "
+      f"실행 축: {execution}/{len(edge)}  (도달 가능 상한 {ceiling}"
+      f"{' — 포화' if execution == ceiling else ''})")
+if unreachable:
+    print("  route() 가 낼 수 없는 상태: "
+          + " · ".join(f"{k} {v}" for k, v in sorted(unreachable.items()))
+          + f"  → 실행 축은 {ceiling}/{len(edge)} 를 넘을 수 없다")
 for m in efail: print(f"  {m[0]:8} {m[1]:3} {m[2]:52} {m[3]}")

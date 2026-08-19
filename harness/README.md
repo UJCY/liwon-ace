@@ -10,7 +10,7 @@ harness/
 │   ├── build_assets.py     ← 데이터셋에서 자산을 결정적으로 생성한다
 │   ├── run_nl2sql.py       ← 생성 SQL을 PostgreSQL에 실행해 채점한다
 │   └── run_router.py       ← 엣지 세트 29 + 회귀 30 을 나란히 채점한다
-├── assets/                 ← 생성물. 손으로 고치지 않는다 (프롬프트 2건 제외)
+├── assets/                 ← 파생 자산은 손으로 고치지 않는다. 저작 자산은 _provenance 로 표시
 │   ├── schema-annotated.sql
 │   ├── column-values.json
 │   ├── surface-gate.json
@@ -32,7 +32,7 @@ harness/
 | `schema-annotated.sql` | DDL 각 컬럼 줄 끝에 **실제 값 목록과 단위**를 `--` 주석으로 붙인 것 | `nl2sql` 프롬프트 |
 | `column-values.json` | 저카디널리티 컬럼의 실제 값 (19개 컬럼) | 위 생성 입력 · 라우터 게이트 |
 | `surface-gate.json` | 테이블 표층형 8개 + 컬럼의 한국어 값 | 라우터 **거절 게이트** |
-| `tool-signatures.json` | 도구 3종의 능력 서술 각 1문장 | 라우터 **도구 선택** (임베딩) |
+| `tool-signatures.json` | 도구 3종의 능력 서술 각 1문장. **사람이 썼다** — D11-1 표를 문장화한 것이고 데이터셋에서 도출된 것이 아니다 | 라우터 **도구 선택** (임베딩) |
 | `model.json` | 모델명·호출 옵션·임계값 | 전 호출 지점 |
 
 **`surface-gate.json`은 도구 선택에 쓰지 않는다.** 게이트는 "스키마 어휘가 걸렸는가"만 본다 —
@@ -57,7 +57,7 @@ harness/
 python3 harness/build/build_assets.py
 ```
 
-입력은 `companyx-dataset-v1.0/` 의 스키마와 데이터뿐이다.
+**파생 자산의** 입력은 `companyx-dataset-v1.0/` 의 스키마와 데이터뿐이다. 저작 자산(`tool-signatures.json` · `model.json` · 게이트의 `tables`)은 사람이 쓴 것을 그대로 덤프하며, 그 오염은 [harness-evaluation.md](../docs/harness-evaluation.md) 6절에 기록돼 있다.
 `questions.json` 과 `edge-set/` 은 입력에 들어가지 않는다 ([design.md](../docs/design.md) D7).
 
 ## 채점
@@ -67,7 +67,8 @@ python3 harness/build/run_nl2sql.py --set holdout --harness annotated
 ```
 
 ```bash
-python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29 · 실행 16/29
+python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29
+                                        # 실행 축 16/29 는 포화 상한이다 — 러너가 함께 출력한다
 ```
 
 `--harness bare | blocks | annotated` 로 세 구성을 비교할 수 있다.

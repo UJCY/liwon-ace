@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
-"""하네스 자산 생성기 — 데이터셋에서 결정적으로 만든다.
+"""하네스 자산 생성기.
 
-입력은 companyx-dataset-v1.0/ 의 스키마와 데이터뿐이다.
-questions.json 과 edge-set/ 은 입력에 들어가지 않는다 (docs/design.md D7).
+자산은 두 종류다. **섞어서 "생성물"이라고 부르면 안 된다.**
+
+  파생(derived)  — 데이터셋에서 기계적으로 뽑는다. 사람 손이 닿지 않는다.
+                   schema-annotated.sql · column-values.json
+  저작(authored) — 사람이 쓴 것을 이 파일이 그대로 덤프한다.
+                   tool-signatures.json · model.json · surface-gate.json 의 tables
+
+**저작 자산에는 사람 판단이 들어 있다.** 특히 TOOL_SIGNATURES 는 라우터의
+도구 선택 기제 전부이고, 작성자는 questions.json 30문항을 이미 읽은 사람이다 —
+docs/design.md D12 가 옛 표층 사전을 기각할 때 든 논거("사람이 30문항을 읽은 뒤 썼다")가
+여기에도 그대로 적용된다. 한계는 docs/harness-evaluation.md 6절에 기록돼 있다.
+
+파생 자산의 입력은 companyx-dataset-v1.0/ 의 스키마와 데이터뿐이고,
+questions.json 과 edge-set/ 은 어느 쪽 입력에도 들어가지 않는다 (docs/design.md D7).
 
   python3 harness/build/build_assets.py
 """
@@ -75,6 +87,8 @@ def surface_gate(values):
 
     도구 선택에는 쓰지 않는다 — 게이트는 '걸렸는가'만 본다.
     """
+    # tables 는 **저작**이다 — 테이블명의 한국어 표층형을 사람이 썼다.
+    # column_values_ko 만 데이터에서 파생된다.
     tables = {
         "departments": ["부서", "부서장"], "employees": ["직원", "인력", "팀원", "사원"],
         "clients": ["고객", "고객사", "거래처"], "products": ["제품", "상품"],
@@ -82,10 +96,17 @@ def surface_gate(values):
         "sales": ["매출", "판매", "영업"], "support_tickets": ["티켓", "문의", "지원요청"],
     }
     korean = sorted({v for vs in values.values() for v in vs if re.search(r"[가-힣]", v)})
-    return {"tables": tables, "column_values_ko": korean}
+    return {"_provenance": {"tables": "authored — 사람이 쓴 표층형",
+                        "column_values_ko": "derived — 02-data.sql 의 저카디널리티 컬럼 값"},
+            "tables": tables, "column_values_ko": korean}
 
 
+# 저작 자산 — 사람이 썼다. design.md D11-1 의 (연산 × 피연산자 × 출력 형태)
+# 표를 문장화한 것이고, 데이터셋에서 도출된 것이 아니다.
 TOOL_SIGNATURES = {
+    "_provenance": "authored — design.md D11-1 표를 사람이 문장화. "
+                   "작성자는 questions.json 30문항을 읽은 뒤였다 "
+                   "(harness-evaluation.md 6절 한계). 소비자는 밑줄로 시작하는 키를 건너뛴다.",
     "vector_search":
         "문서에서 원인, 이유, 방법, 절차, 결정, 제안을 서술로 찾는다. "
         "장애보고서, 기술문서, 회의록, 제안서 본문.",
@@ -98,6 +119,7 @@ TOOL_SIGNATURES = {
         "누가 담당·리드하는지, 누가 이슈를 보고했는지.",
 }
 
+# 저작 자산 — 사람이 썼다. 값의 근거는 실측이지만 구성은 판단이다.
 MODEL = {
     "llm": {
         "name": "gemma4:e2b-it-qat",
