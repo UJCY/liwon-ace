@@ -8,7 +8,8 @@
 harness/
 ├── build/
 │   ├── build_assets.py     ← 데이터셋에서 자산을 결정적으로 생성한다
-│   └── run_nl2sql.py       ← 생성 SQL을 PostgreSQL에 실행해 채점한다
+│   ├── run_nl2sql.py       ← 생성 SQL을 PostgreSQL에 실행해 채점한다
+│   └── run_router.py       ← 엣지 세트 29 + 회귀 30 을 나란히 채점한다
 ├── assets/                 ← 생성물. 손으로 고치지 않는다 (프롬프트 2건 제외)
 │   ├── schema-annotated.sql
 │   ├── column-values.json
@@ -63,6 +64,10 @@ python3 harness/build/build_assets.py
 
 ```bash
 python3 harness/build/run_nl2sql.py --set holdout --harness annotated
+```
+
+```bash
+python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29 · 실행 16/29
 ```
 
 `--harness bare | blocks | annotated` 로 세 구성을 비교할 수 있다.
