@@ -1,0 +1,386 @@
+[
+ {
+  "id": "TM-02",
+  "cat": "TM",
+  "q": "2024년 2분기 매출 합계는?",
+  "ref": "SELECT SUM(amount) FROM sales WHERE quarter='2024-Q2'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "AG-06",
+  "cat": "AG",
+  "q": "평균 예산은 얼마야?",
+  "ref": "SELECT AVG(budget) FROM projects",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "TM-10",
+  "cat": "TM",
+  "q": "2025년에 시작한 프로젝트는 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE EXTRACT(YEAR FROM start_date)=2025",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "TM-03",
+  "cat": "TM",
+  "q": "2024년 3분기 매출 합계는?",
+  "ref": "SELECT SUM(amount) FROM sales WHERE quarter='2024-Q3'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-22",
+  "cat": "VG",
+  "q": "데이터 매출이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM sales WHERE category='data'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-14",
+  "cat": "KV",
+  "q": "클라우드사업부 직원이 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees e JOIN departments d ON e.dept_id=d.id WHERE d.name='클라우드사업부'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-02",
+  "cat": "UN",
+  "q": "연봉이 6천만원 넘는 직원은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM employees WHERE salary>6000",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-02",
+  "cat": "VG",
+  "q": "계획 단계인 프로젝트이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE status='planning'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-01",
+  "cat": "VG",
+  "q": "진행 중인 프로젝트이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE status='in_progress'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "JN-01",
+  "cat": "JN",
+  "q": "고객사별 계약 총액 상위 3곳 알려줘",
+  "ref": "SELECT c.name,SUM(k.amount) s FROM contracts k JOIN clients c ON k.client_id=c.id GROUP BY c.name ORDER BY s DESC LIMIT 3",
+  "rows": 3,
+  "pg_rows": 3
+ },
+ {
+  "id": "AG-02",
+  "cat": "AG",
+  "q": "평균 매출은 얼마야?",
+  "ref": "SELECT AVG(amount) FROM sales",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-02",
+  "cat": "KV",
+  "q": "경기 지역 고객사는 몇 곳이야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE region='경기'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-08",
+  "cat": "KV",
+  "q": "제주 지역 고객사는 몇 곳이야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE region='제주'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-18",
+  "cat": "KV",
+  "q": "유통/물류 업종 고객사 이름 알려줘",
+  "ref": "SELECT name FROM clients WHERE industry='유통/물류' ORDER BY name",
+  "rows": 3,
+  "pg_rows": 3
+ },
+ {
+  "id": "TM-08",
+  "cat": "TM",
+  "q": "2024년에 시작한 프로젝트는 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE EXTRACT(YEAR FROM start_date)=2024",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-19",
+  "cat": "KV",
+  "q": "의료/바이오 업종 고객사 이름 알려줘",
+  "ref": "SELECT name FROM clients WHERE industry='의료/바이오' ORDER BY name",
+  "rows": 3,
+  "pg_rows": 3
+ },
+ {
+  "id": "KV-12",
+  "cat": "KV",
+  "q": "보안솔루션팀 직원이 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees e JOIN departments d ON e.dept_id=d.id WHERE d.name='보안솔루션팀'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "TM-01",
+  "cat": "TM",
+  "q": "2024년 1분기 매출 합계는?",
+  "ref": "SELECT SUM(amount) FROM sales WHERE quarter='2024-Q1'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-03",
+  "cat": "KV",
+  "q": "부산 지역 고객사는 몇 곳이야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE region='부산'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-15",
+  "cat": "VG",
+  "q": "낮은 티켓이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM support_tickets WHERE priority='low'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-11",
+  "cat": "VG",
+  "q": "닫힌 티켓이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM support_tickets WHERE status='closed'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "NG-03",
+  "cat": "NG",
+  "q": "티켓이 한 건도 없는 고객사는 몇 곳이야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE id NOT IN (SELECT client_id FROM support_tickets)",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-17",
+  "cat": "VG",
+  "q": "보안 제품이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE category='security'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "AG-01",
+  "cat": "AG",
+  "q": "전체 매출 합계가 얼마야?",
+  "ref": "SELECT SUM(amount) FROM sales",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-19",
+  "cat": "VG",
+  "q": "컨설팅 제품이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE category='consulting'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-03",
+  "cat": "VG",
+  "q": "보류된 프로젝트이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE status='on_hold'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-11",
+  "cat": "UN",
+  "q": "월 구독료이 200만원 넘는 제품은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE price_monthly>200",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-25",
+  "cat": "VG",
+  "q": "프로젝트형 계약이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE contract_type='project'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-23",
+  "cat": "VG",
+  "q": "컨설팅 매출이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM sales WHERE category='consulting'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "AG-05",
+  "cat": "AG",
+  "q": "전체 예산 합계가 얼마야?",
+  "ref": "SELECT SUM(budget) FROM projects",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-26",
+  "cat": "VG",
+  "q": "유지보수 계약이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE contract_type='maintenance'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "SU-01",
+  "cat": "SU",
+  "q": "월 구독료이 가장 높은 제품 이름은?",
+  "ref": "SELECT name FROM products WHERE price_monthly IS NOT NULL ORDER BY price_monthly DESC LIMIT 1",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-09",
+  "cat": "UN",
+  "q": "계약 금액이 1억원 넘는 계약은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE amount>10000",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-17",
+  "cat": "KV",
+  "q": "IT/SW 업종 고객사 이름 알려줘",
+  "ref": "SELECT name FROM clients WHERE industry='IT/SW' ORDER BY name",
+  "rows": 3,
+  "pg_rows": 3
+ },
+ {
+  "id": "KV-15",
+  "cat": "KV",
+  "q": "제조업 업종 고객사 이름 알려줘",
+  "ref": "SELECT name FROM clients WHERE industry='제조업' ORDER BY name",
+  "rows": 3,
+  "pg_rows": 3
+ },
+ {
+  "id": "VG-30",
+  "cat": "VG",
+  "q": "활성 제품이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE status='active'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-21",
+  "cat": "VG",
+  "q": "보안 매출이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM sales WHERE category='security'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "NG-04",
+  "cat": "NG",
+  "q": "담당 계약이 없는 직원은 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees WHERE id NOT IN (SELECT manager_id FROM contracts)",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-12",
+  "cat": "UN",
+  "q": "월 구독료이 300만원 넘는 제품은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE price_monthly>300",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-01",
+  "cat": "KV",
+  "q": "서울 지역 고객사는 몇 곳이야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE region='서울'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-14",
+  "cat": "VG",
+  "q": "보통 티켓이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM support_tickets WHERE priority='medium'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-09",
+  "cat": "KV",
+  "q": "경영지원팀 직원이 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees e JOIN departments d ON e.dept_id=d.id WHERE d.name='경영지원팀'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-04",
+  "cat": "VG",
+  "q": "완료된 프로젝트이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE status='completed'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "JN-03",
+  "cat": "JN",
+  "q": "담당 고객사가 가장 많은 직원 이름은?",
+  "ref": "SELECT e.name FROM contracts k JOIN employees e ON k.manager_id=e.id GROUP BY e.name ORDER BY COUNT(DISTINCT k.client_id) DESC LIMIT 1",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "TM-06",
+  "cat": "TM",
+  "q": "2025년 2분기 매출 합계는?",
+  "ref": "SELECT SUM(amount) FROM sales WHERE quarter='2025-Q2'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-08",
+  "cat": "UN",
+  "q": "계약 금액이 5천만원 넘는 계약은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE amount>5000",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "TM-04",
+  "cat": "TM",
+  "q": "2024년 4분기 매출 합계는?",
+  "ref": "SELECT SUM(amount) FROM sales WHERE quarter='2024-Q4'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-24",
+  "cat": "VG",
+  "q": "구독형 계약이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE contract_type='subscription'",
+  "rows": 1,
+  "pg_rows": 1
+ }
+]
