@@ -16,27 +16,43 @@ MODEL = json.load(open(os.path.join(A, "model.json"), encoding="utf-8"))["llm"]
 
 BARE      = open(os.path.join(ROOT, "companyx-dataset-v1.0", "sql", "01-schema.sql"), encoding="utf-8").read()
 ANNOTATED = open(os.path.join(A, "schema-annotated.sql"), encoding="utf-8").read()
-RULES = ("\n[출력 규칙]\n- SELECT 문 하나만 출력한다.\n"
-         "- 설명·주석·코드펜스를 붙이지 않는다.\n- 세미콜론으로 끝낸다.\n"
-         "- PostgreSQL 문법만 쓴다. 날짜에서 연도를 뽑을 때는 EXTRACT(YEAR FROM 컬럼)을 쓴다.\n")
+
+
+def adopted_template():
+    """채택안 프롬프트는 assets/prompts/nl2sql.md 의 첫 코드블록이 실물이다.
+
+    여기에 다시 적지 않는다 — 두 벌이 되면 갈라진다 (docs/design.md D13).
+    """
+    md = open(os.path.join(A, "prompts", "nl2sql.md"), encoding="utf-8").read()
+    m = re.search(r"```\n(.*?)```", md, re.S)
+    if not m:
+        sys.exit("prompts/nl2sql.md 에서 프롬프트 코드블록을 찾지 못했다")
+    return m.group(1)
+
+
+ADOPTED = adopted_template()
 
 
 def build_prompt(harness, question):
-    if harness == "bare":                      # 대조군 — DDL만
+    """`annotated` 만이 채택안이다. 나머지 둘은 **대조군**이고 자산이 아니다 —
+    "값·단위를 안 주면 / 별도 블록으로 주면 어떻게 되는가"를 재려고 여기에만 둔다."""
+    if harness == "annotated":
+        return ADOPTED.replace("{{SCHEMA}}", ANNOTATED).replace("{{QUESTION}}", question)
+
+    rules = ("\n[출력 규칙]\n- SELECT 문 하나만 출력한다.\n"
+             "- 설명·주석·코드펜스를 붙이지 않는다.\n- 세미콜론으로 끝낸다.\n"
+             "- PostgreSQL 문법만 쓴다. 날짜에서 연도를 뽑을 때는 EXTRACT(YEAR FROM 컬럼)을 쓴다.\n")
+    if harness == "bare":                      # 대조군 ① — DDL만, 출력 규칙도 없다
         return (f"너는 SQL 생성기다. 아래 스키마에 대해 PostgreSQL SELECT 문 하나를 만든다.\n\n"
                 f"[스키마]\n{BARE}\n\n[질문]\n{question}\n\nSQL만 출력해라.\n")
-    if harness == "blocks":                    # 값·단위를 별도 블록으로
-        vals = json.load(open(os.path.join(A, "column-values.json"), encoding="utf-8"))
-        vb = "\n".join(f"- {k}: {', '.join(v)}" for k, v in sorted(vals.items()))
-        ub = ("- salary / price_monthly / amount / budget: 단위 만원 "
-              "(1억원=10000, 5천만원=5000, 100만원=100)")
-        return (f"너는 SQL 생성기다. 아래 스키마에 대해 PostgreSQL SELECT 문 하나를 만든다.\n\n"
-                f"[스키마]\n{BARE}\n\n[컬럼에 실제로 들어있는 값]\n{vb}\n"
-                f"\n[컬럼 의미와 단위]\n{ub}\n\n[질문]\n{question}\n" + RULES)
-    return (                                    # annotated — 채택안
-        "너는 SQL 생성기다. 아래 스키마에 대해 PostgreSQL SELECT 문 하나를 만든다.\n"
-        "주석(--)에 그 컬럼에 실제로 들어있는 값과 단위가 적혀 있다. 반드시 그 값을 그대로 써라.\n\n"
-        f"[스키마]\n{ANNOTATED}\n\n[질문]\n{question}\n" + RULES)
+    vals = json.load(open(os.path.join(A, "column-values.json"), encoding="utf-8"))
+    vb = "\n".join(f"- {k}: {', '.join(v)}" for k, v in sorted(vals.items()))
+    ub = ("- salary / price_monthly / amount / budget: 단위 만원 "
+          "(1억원=10000, 5천만원=5000, 100만원=100)")
+    return (                                   # 대조군 ② — 같은 정보를 별도 블록으로
+        f"너는 SQL 생성기다. 아래 스키마에 대해 PostgreSQL SELECT 문 하나를 만든다.\n\n"
+        f"[스키마]\n{BARE}\n\n[컬럼에 실제로 들어있는 값]\n{vb}\n"
+        f"\n[컬럼 의미와 단위]\n{ub}\n\n[질문]\n{question}\n" + rules)
 
 
 def generate(prompt):

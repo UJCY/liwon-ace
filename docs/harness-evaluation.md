@@ -110,11 +110,19 @@ H7은 개발 실패만 보고 규칙 넷을 더했다. 개발은 37 → 43으로
 
 인접 사실이 답처럼 보이도록 일부러 유혹을 세게 만든 8문항으로 쟀다 ([`harness/tests/answer-protocol.json`](../harness/tests/answer-protocol.json)).
 
+```bash
+python3 harness/build/run_answer.py
+```
+
 | 하네스 | 결과 |
 |---|---|
 | 구조화 응답만 준다 | 환각 1건 — 계약 한 건을 *"진행 중인 프로젝트"* 로 제시 |
 | + 응답 규약 (partial·out_of_scope·entity_not_found별 지시) | 의미상 통과하나 **결정적 채점 불가** |
-| + **열거형 첫 줄** (`답변가능: 예\|아니오`) | **7/8** · 실패 1건이 진짜 환각 |
+| + **열거형 첫 줄** (`답변가능: 예\|아니오`) — 채택 | **형식 축 8/8 · 판정 축 7/8** |
+
+**두 축으로 잰다.** 형식 축(열거형 3줄 준수)은 **판정 축이 성립하는 전제**다 — 형식이 깨지면
+환각 여부를 결정적으로 읽을 수 없다. 실패 1건(`H-03`)은 판정 축의 진짜 실패로,
+`contracts` 한 행을 *"진행 중인 프로젝트"* 로 제시하고 `답변가능: 예` 를 낸다.
 
 **작은 모델은 구조는 따르고 리터럴은 안 따른다.** 두 줄 형식(`확인된 답:` / `인접 사실:`)을 주면
 형식은 8/8 지키면서도 `없음` 대신 *"…확인되지 않습니다"* 로 쓴다 — 리터럴 준수는 0/8이었다.
@@ -182,6 +190,8 @@ python3 harness/build/build_assets.py                                  # 자산 
 python3 harness/build/run_nl2sql.py --set holdout --harness bare       # 대조군
 python3 harness/build/run_nl2sql.py --set holdout --harness blocks     # 별도 블록
 python3 harness/build/run_nl2sql.py --set holdout --harness annotated  # 채택안
+python3 harness/build/run_router.py                                    # 라우터 2세트
+python3 harness/build/run_answer.py                                    # 답변 규약
 ```
 
 ## 6. 한계

@@ -9,7 +9,8 @@ harness/
 ├── build/
 │   ├── build_assets.py     ← 데이터셋에서 자산을 결정적으로 생성한다
 │   ├── run_nl2sql.py       ← 생성 SQL을 PostgreSQL에 실행해 채점한다
-│   └── run_router.py       ← 엣지 세트 29 + 회귀 30 을 나란히 채점한다
+│   ├── run_router.py       ← 엣지 세트 29 + 회귀 30 을 나란히 채점한다
+│   └── run_answer.py       ← 답변 규약 8문항을 두 축으로 채점한다
 ├── assets/                 ← 파생 자산은 손으로 고치지 않는다. 저작 자산은 _provenance 로 표시
 │   ├── schema-annotated.sql
 │   ├── column-values.json
@@ -47,7 +48,11 @@ harness/
 **② 규칙을 더 넣으면 과적합한다.** 개발 실패를 보고 규칙 넷을 더했더니
 개발 77% → 90%, 홀드아웃 88% → 81%였다 (탐색 측정). 개발·홀드아웃 격차가 그 자체로 지표다.
 
-**③ `think: false`를 반드시 넣는다.** 켜면 숨은 추론 토큰이 `num_predict`를 소진해
+**③ 프롬프트는 러너가 자산에서 읽는다.** `run_nl2sql.py` 와 `run_answer.py` 는 채택안 프롬프트를
+`assets/prompts/*.md` 의 첫 코드블록에서 추출한다 — 코드에 두 번째 사본을 두지 않는다.
+`bare`·`blocks` 는 대조군이라 자산이 아니고 러너 안에 있다.
+
+**④ `think: false`를 반드시 넣는다.** 켜면 숨은 추론 토큰이 `num_predict`를 소진해
 **빈 문자열**이 반환된다. 이는 T1(무효 SQL 생성)으로 오분류된다.
 정확도 이득은 작고(+2/27) 지연은 6.6배다.
 
@@ -69,6 +74,7 @@ python3 harness/build/run_nl2sql.py --set holdout --harness annotated
 ```bash
 python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29
                                         # 실행 축 16/29 는 포화 상한이다 — 러너가 함께 출력한다
+python3 harness/build/run_answer.py     # 형식 축 8/8 · 판정 축 7/8
 ```
 
 `--harness bare | blocks | annotated` 로 세 구성을 비교할 수 있다.
