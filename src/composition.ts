@@ -24,12 +24,27 @@ export async function runTool(
   return nl2sql(question);
 }
 
+/** 합성이 낼 수 있는 응답 상태 전부. 채점 라벨과 같은 어휘다 (edge-set/README.md). */
+export type ComposedState =
+  | "single" | "parallel_merge" | "out_of_scope"
+  | "partial" | "entity_not_found" | "ambiguous_entity";
+
 export interface Composed {
   tools: ToolName[];
-  state: string;
+  state: ComposedState;
   results: Partial<Record<ToolName, ToolResult>>;
   routing: Routing;
 }
+
+/**
+ * 태운 도구 중 **실행에 실패한** 것이 있는가.
+ *
+ * MCP 에러 2계층 판정의 입력이다 — 실행 실패(T1·T6)만 `isError` 이고
+ * 데이터 부재(`no_result`·`partial`·`entity_not_found`)는 정상 결과다
+ * (docs/edge-cases.md 공통 규약).
+ */
+export const hasExecutionError = (results: Composed["results"]): boolean =>
+  Object.values(results).some((r) => r?.status === "error");
 
 /** 병렬 후보를 고른다 — 유사도 상위 N + 서술 쪽 후보. */
 export function parallelCandidates(r: Routing): ToolName[] {
@@ -59,5 +74,12 @@ export async function compose(question: string): Promise<Composed> {
   return { tools: r.tools, state: normalize(res.status), results: { [chosen]: res }, routing: r };
 }
 
-const normalize = (s: string) =>
-  ({ ok: "single", no_result: "single", error: "single" })[s] ?? s;
+/**
+ * 도구 응답 상태를 채점 어휘로 옮긴다.
+ *
+ * `error` 도 `single` 로 접는 것은 **채점 축의 규약**이다 — 라우팅이 맞았는지를
+ * 실행 실패가 가리면 안 된다. 실행 실패 자체는 `results` 안에 남고 MCP 응답의
+ * `isError` 로 올라간다 (hasExecutionError).
+ */
+const normalize = (s: ToolResult["status"]): ComposedState =>
+  s === "ok" || s === "no_result" || s === "error" ? "single" : s;

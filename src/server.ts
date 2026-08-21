@@ -19,6 +19,7 @@ import { embed } from "./ollama.js";
 import { pool } from "./db.js";
 import { toolSignatures } from "./assets.js";
 import { ask } from "./gateway.js";
+import { hasExecutionError } from "./composition.js";
 import { vectorSearch } from "./tools/vector-search.js";
 import { nl2sql } from "./tools/nl2sql.js";
 import { knowledgeGraph } from "./tools/knowledge-graph.js";
@@ -56,9 +57,13 @@ server.registerTool(
   },
   async ({ question }) => {
     const r = await ask(question);
+    // 게이트웨이도 같은 2계층 규약을 따른다 — 태운 도구가 **실행에 실패**했으면
+    // `isError: true` 다. `status` 는 채점 어휘라 `single` 로 접히므로, 그것만으로는
+    // 실행 실패가 에이전트에게 보이지 않는다 (docs/edge-cases.md 공통 규약).
     return {
       content: [{ type: "text" as const, text: JSON.stringify(r, null, 1) }],
       structuredContent: r as unknown as Record<string, unknown>,
+      ...(hasExecutionError(r.results) ? { isError: true } : {}),
     };
   },
 );
