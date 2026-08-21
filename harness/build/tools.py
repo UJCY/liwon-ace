@@ -156,3 +156,55 @@ def vector_search(question, qvec, threshold):
                 "adjacent_facts": {"source": "knowledge_graph",
                                    "data": [{"relation": r, "target": t} for r, t in adj]}}
     return {"status": "no_result", "asset": "documents"}              # T4 단독
+
+# ── 요구 원소가 둘인가 (D11-4) ─────────────────────────────────────────────
+# 저작 — 한국어 접속 표층형. "요구 원소 2개"는 문서가 정의한 개념이고(D11-4),
+# 그것이 한국어 문장에서 드러나는 자리는 접속이다.
+# **이 신호만으로는 병렬을 확정하지 않는다** — 접속된 두 요구가 같은 도구에 걸리면
+# 단일 선택이다(X1·X2). 그래서 후보를 실제로 태워 둘 다 내용이 있을 때만 병렬로 굳힌다.
+CONJUNCTION = [r"[고]\s*,", r"는지와", r"현황과", r"[가-힣]과\s", r"[가-힣]와\s",
+               r"\?\s*\S", r"[가-힣],\s*[가-힣]", r"그리고", r"[고]\s+[그왜어]"]
+
+
+def has_two_requests(question):
+    import re
+    return any(re.search(p, question) for p in CONJUNCTION)
+
+
+# ── nl2sql 실행부 ────────────────────────────────────────────────────────
+_A = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
+_MODEL = json.load(open(os.path.join(_A, "model.json"), encoding="utf-8"))["llm"]
+_SCHEMA = open(os.path.join(_A, "schema-annotated.sql"), encoding="utf-8").read()
+
+
+def _sql_prompt(question):
+    import re
+    md = open(os.path.join(_A, "prompts", "nl2sql.md"), encoding="utf-8").read()
+    tpl = re.search(r"```\n(.*?)```", md, re.S).group(1)
+    return tpl.replace("{{SCHEMA}}", _SCHEMA).replace("{{QUESTION}}", question)
+
+
+def nl2sql(question):
+    """SQL 생성 → 실행. 0행은 실패가 아니라 T3 다 (edge-cases.md T3)."""
+    import re, urllib.request
+    body = {"model": _MODEL["name"], "prompt": _sql_prompt(question), "stream": False,
+            "options": _MODEL["options"]}
+    if not _MODEL.get("think", False):
+        body["think"] = False
+    req = urllib.request.Request("http://localhost:11434/api/generate",
+        data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    raw = json.loads(urllib.request.urlopen(req, timeout=900).read())["response"]
+    m = re.search(r"```(?:sql)?\s*(.*?)```", raw, re.S)
+    if m:
+        raw = m.group(1)
+    m = re.search(r"(SELECT\b.*?)(?:;|$)", raw, re.S | re.I)
+    sql = (m.group(1).strip() if m else raw.strip())
+    if not re.match(r"^\s*SELECT\b", sql, re.I):
+        return {"status": "error", "reason": "not_select"}          # T2
+    try:
+        rows = psql(sql)
+    except RuntimeError as e:
+        return {"status": "error", "reason": str(e)}                # T1
+    if not rows:
+        return {"status": "no_result", "asset": "tables", "sql": sql}   # T3
+    return {"status": "ok", "rows": len(rows), "sql": sql}

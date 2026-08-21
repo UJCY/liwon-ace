@@ -84,7 +84,7 @@ python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29
                                         # 실행 축 16/29 는 포화 상한이다 — 러너가 함께 출력한다
 python3 harness/build/run_answer.py     # 형식 축 8/8 · 판정 축 7/8
 python3 harness/build/load_pg.py        # 측정 전 1회 — 청크·그래프 적재
-python3 harness/build/run_e2e.py        # 라우팅 22/29 · 실행 22/29 (상한 23)
+python3 harness/build/run_e2e.py        # 엣지 라우팅 25/29 · 실행 27/29 · 회귀 24/30
 ```
 
 `--harness bare | blocks | annotated` 로 세 구성을 비교할 수 있다.

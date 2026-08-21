@@ -69,3 +69,9 @@ def route(question, qvec, docvecs):
             return [], "out_of_scope"                   # 거절(R1)
     scores = {t: cosine(qvec, v) for t, v in SIGVEC.items()}
     return [max(scores, key=scores.get)], "single"
+
+
+def ranked_tools(qvec):
+    """시그니처 유사도 내림차순. 병렬 후보를 고를 때 쓴다."""
+    scores = {t: cosine(qvec, v) for t, v in SIGVEC.items()}
+    return sorted(scores, key=scores.get, reverse=True)
