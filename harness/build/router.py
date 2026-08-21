@@ -26,11 +26,21 @@ EMITTABLE_STATES = {"single", "out_of_scope"}
 CHUNK, STRIDE, MIN_LEN = 600, 500, 80
 
 
-def embed(text):
-    req = urllib.request.Request("http://localhost:11434/api/embed",
-        data=json.dumps({"model": EMB, "input": text}).encode(),
-        headers={"Content-Type": "application/json"})
-    return json.loads(urllib.request.urlopen(req, timeout=600).read())["embeddings"][0]
+def embed(text, attempts=3):
+    """일시 오류에 재시도한다 — 측정 도중 Ollama 가 400 을 한 번 내면
+    59문항 측정이 통째로 죽는다. 실제로 두 번 겪었다.
+    이것은 T1 재시도 정책과 무관하다 — 생성 품질이 아니라 전송 실패다."""
+    import time
+    for i in range(attempts):
+        try:
+            req = urllib.request.Request("http://localhost:11434/api/embed",
+                data=json.dumps({"model": EMB, "input": text}).encode(),
+                headers={"Content-Type": "application/json"})
+            return json.loads(urllib.request.urlopen(req, timeout=600).read())["embeddings"][0]
+        except Exception:
+            if i == attempts - 1:
+                raise
+            time.sleep(2 * (i + 1))
 
 
 def cosine(a, b):
