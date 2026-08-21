@@ -36,8 +36,10 @@ def run_tool(tool, question, qvec):
     return tools.nl2sql(question)
 
 
-def answer(question):
-    qvec = router.embed(question)
+def answer(question, qvec=None):
+    """판별 → 실행 → (필요하면) 병렬 확정. **덤프도 이 함수를 쓴다** —
+    대조가 러너와 다른 경로를 보면 출하 경로의 이식 버그를 못 잡는다."""
+    qvec = router.embed(question) if qvec is None else qvec
     chosen, state = router.route(question, qvec, docvecs)
     if not chosen:
         return chosen, state                              # 거절 — 도구를 안 부른다
@@ -102,7 +104,8 @@ def score_regression():
         print(f"    {r[0]:5} {r[1]:52} {r[2]}")
 
 
-if ARG in ("edge", "both"):
-    score_edge()
-if ARG in ("regression", "both"):
-    score_regression()
+if __name__ == "__main__":
+    if ARG in ("edge", "both"):
+        score_edge()
+    if ARG in ("regression", "both"):
+        score_regression()

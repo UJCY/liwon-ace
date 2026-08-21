@@ -3,31 +3,22 @@
 
   python3 harness/build/dump_harness.py > /tmp/harness.json
 
-병렬 합성을 **끈 상태**로 덤프한다. 서버에 그 계층이 아직 없어서
-켜 두면 모든 접속 문항이 "다르다"로 나와 이식 버그가 묻힌다.
-병렬 자체의 대조는 4번째 도구가 생긴 뒤에 한다.
+**병렬 합성까지 덤프한다.** 예전에는 껐다 — 서버에 그 계층이 없었기 때문이다.
+지금은 `src/composition.ts` 가 그 계층이고 `ask` 가 그것을 부르므로, 끄면
+출하 경로의 절반이 대조 밖에 남는다. 양쪽 다 `run_e2e.answer` / `compose` 라는
+**러너와 같은 함수**를 부른다.
 """
 import json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import router, tools
+import router, tools, run_e2e
 
 ROOT = router.ROOT
-docvecs = router.doc_vectors()
 
 
 def decide(question):
     qvec = router.embed(question)
-    chosen, state = router.route(question, qvec, docvecs)
-    if not chosen:
-        return {"tools": [], "state": state,
-                "twoRequests": tools.has_two_requests(question),
-                "ranked": router.ranked_tools(qvec)}
-    t = chosen[0]
-    r = (tools.knowledge_graph(question) if t == "knowledge_graph"
-         else tools.vector_search(question, qvec, router.THRESHOLD) if t == "vector_search"
-         else tools.nl2sql(question))
-    st = {"ok": "single", "no_result": "single", "error": "single"}.get(r["status"], r["status"])
-    return {"tools": chosen, "state": st,
+    chosen, state = run_e2e.answer(question, qvec)
+    return {"tools": chosen, "state": state,
             "twoRequests": tools.has_two_requests(question),
             "ranked": router.ranked_tools(qvec)}
 
