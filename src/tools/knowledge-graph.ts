@@ -39,6 +39,19 @@ async function traverse(ids: string[], relations: string[] | null): Promise<Edge
   );
 }
 
+/**
+ * 그래프 결과에서 **사실 목록만** 꺼낸다.
+ *
+ * 어느 상태가 사실을 어느 필드에 담는지는 이 모듈이 안다 — 호출자가 `ok` 는 `data`,
+ * `partial` 은 `adjacent_facts.data` 라는 것을 알고 분기하면 상태를 하나 더할 때마다
+ * 호출자도 같이 고쳐야 한다.
+ */
+export function graphFacts(r: ToolResult): unknown[] {
+  if (r.status === "ok") return r.data;
+  if (r.status === "partial") return r.adjacent_facts.data;
+  return [];
+}
+
 export async function knowledgeGraph(question: string): Promise<ToolResult> {
   const { matched, unmatched } = await findEntities(question);
 

@@ -8,7 +8,7 @@
 import { query, toVector } from "../db.js";
 import { model } from "../assets.js";
 import { findEntities } from "./entities.js";
-import { knowledgeGraph } from "./knowledge-graph.js";
+import { graphFacts, knowledgeGraph } from "./knowledge-graph.js";
 import type { ToolResult } from "./types.js";
 
 interface Chunk { doc_id: string; sim: string }
@@ -43,10 +43,7 @@ export async function vectorSearch(question: string, qvec: number[]): Promise<To
   }
 
   // T4 → X5 승격: 개체는 다른 자산에 있으니 인접 사실을 분리해서 함께 준다
-  const adj = await knowledgeGraph(question);
-  const facts = adj.status === "ok" || adj.status === "partial"
-    ? (adj.status === "ok" ? adj.data : adj.adjacent_facts.data)
-    : [];
+  const facts = graphFacts(await knowledgeGraph(question));
   return {
     status: "partial",
     requested_form: "narrative",
