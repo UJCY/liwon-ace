@@ -13,10 +13,13 @@ const client = new Client({ name: "smoke", version: "0.0.1" });
 await client.connect(new StdioClientTransport({ command: "node", args: ["dist/server.js"] }));
 
 const { tools } = await client.listTools();
-console.log(`tools/list — ${tools.length}개 (결정적 순서)`);
+console.log(`tools/list — ${tools.length}개 (결정적 순서, ask 가 첫째)`);
 for (const t of tools) console.log(`  ${t.name}  ${t.description.slice(0, 46)}…`);
 
 const cases = [
+  ["ask", "Client-A가 사용 중인 제품 목록은?", "single 기대 — 게이트웨이"],
+  ["ask", "박성민 님이 이끄는 프로젝트는?", "ambiguous_entity 기대 (동명이인)"],
+  ["ask", "오늘 날씨 어때?", "out_of_scope 기대 (R1)"],
   ["knowledge_graph", "Client-A가 사용 중인 제품 목록은?", "ok 기대"],
   ["knowledge_graph", "Client-ZZ의 담당 매니저는 누구인가요?", "entity_not_found 기대 (T5)"],
   ["vector_search", "Client-P에서 발생한 장애의 원인이 뭐야?", "partial 기대 (T4→X5)"],

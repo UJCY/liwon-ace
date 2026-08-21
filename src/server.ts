@@ -2,10 +2,11 @@
 /**
  * Company-X MCP 서버.
  *
- * 지금 등록하는 것은 **도구 3종**이다. 네 번째(라우터 도구 `ask` 또는 `route`)는
- * 라우터 배치가 정해진 뒤에 붙는다 — D1 이 *"공통부 구현 후 재평가"* 로 미뤄 두었고,
- * 도구 3종·판별 함수·응답 스키마가 그 공통부다. 배치가 정해지면 이 파일에
- * 도구 하나가 추가되고 나머지는 그대로다 (D2 — 최종 4개).
+ * 등록 도구는 **4개** — `ask` + 도구 3종 (D2).
+ *
+ * `ask` 가 게이트웨이다 (A안, D1 확정 2026-08-21). 판별·실행·병합까지 하고
+ * 결과와 **라우팅 판단**을 함께 돌려준다. 도구 3종도 등록해 두는 것은 개별
+ * 검증·시연·심사 창구를 남기기 위해서다.
  *
  * transport 는 stdio 로 시작한다 (열어둔 항목). 심사 시연에서 원격 접근이
  * 필요해지면 Streamable HTTP 를 더한다.
@@ -17,6 +18,7 @@ import { z } from "zod";
 import { embed } from "./ollama.js";
 import { pool } from "./db.js";
 import { toolSignatures } from "./assets.js";
+import { ask } from "./gateway.js";
 import { vectorSearch } from "./tools/vector-search.js";
 import { nl2sql } from "./tools/nl2sql.js";
 import { knowledgeGraph } from "./tools/knowledge-graph.js";
@@ -43,6 +45,24 @@ const server = new McpServer(
 );
 
 // 등록 순서를 고정한다 — tools/list 가 결정적이어야 클라이언트·프롬프트 캐시가 산다.
+server.registerTool(
+  "ask",
+  {
+    description:
+      "사내 데이터에 대한 자연어 질문에 답한다. 규칙 기반 라우터가 적합한 도구를 " +
+      "골라 실행하고 결과를 돌려준다. 어느 도구를 왜 골랐는지도 함께 온다. " +
+      "평소에는 이 도구 하나만 부르면 된다.",
+    inputSchema: { question: z.string().describe("사용자 질문 한 문장") },
+  },
+  async ({ question }) => {
+    const r = await ask(question);
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify(r, null, 1) }],
+      structuredContent: r as unknown as Record<string, unknown>,
+    };
+  },
+);
+
 server.registerTool(
   "vector_search",
   {
