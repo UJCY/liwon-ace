@@ -28,6 +28,15 @@ docvecs = router.doc_vectors()
 HAS_CONTENT = {"ok"}
 
 
+def normalize(status):
+    """도구 응답 상태를 채점 어휘로 옮긴다 — src/composition.ts 의 normalize 와 같다.
+
+    `error` 도 `single` 로 접는 것은 채점 축의 규약이다. 실행 실패 자체는
+    서버 쪽에서 MCP 응답의 `isError` 로 올라간다 (docs/edge-cases.md 공통 규약).
+    """
+    return "single" if status in ("ok", "no_result", "error") else status
+
+
 def run_tool(tool, question, qvec):
     if tool == "knowledge_graph":
         return tools.knowledge_graph(question)
@@ -60,13 +69,10 @@ def answer(question, qvec=None):
         # 한쪽만 살았다 → 병렬이 아니다. **라우터의 원래 선택으로 되돌아간다** —
         # 병렬 분기는 도구를 더하기만 하고, 라우터의 판정을 덮어쓰지 않는다.
         if chosen[0] in results:
-            r = results[chosen[0]]
-            return chosen, {"ok": "single", "no_result": "single",
-                            "error": "single"}.get(r["status"], r["status"])
+            return chosen, normalize(results[chosen[0]]["status"])
 
     r = run_tool(chosen[0], question, qvec)
-    return chosen, {"ok": "single", "no_result": "single",
-                    "error": "single"}.get(r["status"], r["status"])
+    return chosen, normalize(r["status"])
 
 
 def score_edge():
