@@ -103,6 +103,12 @@ def surface_gate(values):
 
 # 저작 자산 — 사람이 썼다. design.md D11-1 의 (연산 × 피연산자 × 출력 형태)
 # 표를 문장화한 것이고, 데이터셋에서 도출된 것이 아니다.
+# 저작 — 데이터에 **없는** 이름을 알아보기 위한 상호 접미사.
+# T5(개체 부재)는 정의상 데이터 밖이라 데이터에서 뽑을 수 없다.
+# 라우터(개체 한정어 인식)와 knowledge_graph(미등록 언급 판정)가 **같은 목록을 쓴다** —
+# 갈라지면 라우터가 거절한 질문이 도구에 닿지 못한다.
+COMPANY_SUFFIX = ["테크", "물산", "전자", "산업", "그룹", "솔루션", "시스템", "코퍼", "홀딩스"]
+
 TOOL_SIGNATURES = {
     "_provenance": "authored — design.md D11-1 표를 사람이 문장화. "
                    "작성자는 questions.json 30문항을 읽은 뒤였다 "
@@ -145,6 +151,10 @@ def main():
     for name, obj in (("column-values.json", values),
                       ("surface-gate.json", surface_gate(values)),
                       ("tool-signatures.json", TOOL_SIGNATURES),
+                      ("entity-patterns.json", {"_provenance": "authored — 데이터 밖의 이름을 잡는 목록",
+                                                "company_suffix": COMPANY_SUFFIX,
+                                                "id_prefixes": ["Client", "Product", "employee",
+                                                                "project", "dept"]}),
                       ("model.json", MODEL)):
         json.dump(obj, open(os.path.join(OUT, name), "w", encoding="utf-8"),
                   ensure_ascii=False, indent=1, sort_keys=True)

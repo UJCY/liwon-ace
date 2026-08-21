@@ -10,7 +10,11 @@ harness/
 │   ├── build_assets.py     ← 데이터셋에서 자산을 결정적으로 생성한다
 │   ├── run_nl2sql.py       ← 생성 SQL을 PostgreSQL에 실행해 채점한다
 │   ├── run_router.py       ← 엣지 세트 29 + 회귀 30 을 나란히 채점한다
-│   └── run_answer.py       ← 답변 규약 8문항을 두 축으로 채점한다
+│   ├── run_answer.py       ← 답변 규약 8문항을 두 축으로 채점한다
+│   ├── router.py           ← 판별 함수 (두 러너가 공유)
+│   ├── tools.py            ← vector_search · knowledge_graph 실행부
+│   ├── load_pg.py          ← 문서 청크·임베딩·그래프를 PostgreSQL 에 적재
+│   └── run_e2e.py          ← 도구까지 태워 실행 축을 잰다
 ├── assets/                 ← 파생 자산은 손으로 고치지 않는다. 저작 자산은 _provenance 로 표시
 │   ├── schema-annotated.sql
 │   ├── column-values.json
@@ -52,7 +56,11 @@ harness/
 `assets/prompts/*.md` 의 첫 코드블록에서 추출한다 — 코드에 두 번째 사본을 두지 않는다.
 `bare`·`blocks` 는 대조군이라 자산이 아니고 러너 안에 있다.
 
-**④ `think: false`를 반드시 넣는다.** 켜면 숨은 추론 토큰이 `num_predict`를 소진해
+**④ 실행 축을 여는 것은 도구다.** `partial` 과 `entity_not_found` 는 라우터가 낼 수 없다 —
+도구를 태워 빈손인지, 개체가 있는지 봐야 안다. `run_router.py` 의 실행 축은 16/29 에서
+포화하고, `run_e2e.py` 는 22/29(상한 23)다.
+
+**⑤ `think: false`를 반드시 넣는다.** 켜면 숨은 추론 토큰이 `num_predict`를 소진해
 **빈 문자열**이 반환된다. 이는 T1(무효 SQL 생성)으로 오분류된다.
 정확도 이득은 작고(+2/27) 지연은 6.6배다.
 
@@ -75,6 +83,8 @@ python3 harness/build/run_nl2sql.py --set holdout --harness annotated
 python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29
                                         # 실행 축 16/29 는 포화 상한이다 — 러너가 함께 출력한다
 python3 harness/build/run_answer.py     # 형식 축 8/8 · 판정 축 7/8
+python3 harness/build/load_pg.py        # 측정 전 1회 — 청크·그래프 적재
+python3 harness/build/run_e2e.py        # 라우팅 22/29 · 실행 22/29 (상한 23)
 ```
 
 `--harness bare | blocks | annotated` 로 세 구성을 비교할 수 있다.

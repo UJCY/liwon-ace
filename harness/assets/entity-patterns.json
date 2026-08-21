@@ -1,0 +1,21 @@
+{
+ "_provenance": "authored — 데이터 밖의 이름을 잡는 목록",
+ "company_suffix": [
+  "테크",
+  "물산",
+  "전자",
+  "산업",
+  "그룹",
+  "솔루션",
+  "시스템",
+  "코퍼",
+  "홀딩스"
+ ],
+ "id_prefixes": [
+  "Client",
+  "Product",
+  "employee",
+  "project",
+  "dept"
+ ]
+}
