@@ -1,0 +1,386 @@
+[
+ {
+  "id": "JN-02",
+  "cat": "JN",
+  "q": "제품별 계약 건수 알려줘",
+  "ref": "SELECT p.name,COUNT(*) c FROM contracts k JOIN products p ON k.product_id=p.id GROUP BY p.name ORDER BY p.name",
+  "rows": 12,
+  "pg_rows": 12
+ },
+ {
+  "id": "KV-10",
+  "cat": "KV",
+  "q": "기술지원팀 직원이 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees e JOIN departments d ON e.dept_id=d.id WHERE d.name='기술지원팀'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-10",
+  "cat": "UN",
+  "q": "월 구독료이 100만원 넘는 제품은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE price_monthly>100",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "AG-03",
+  "cat": "AG",
+  "q": "전체 계약 금액 합계가 얼마야?",
+  "ref": "SELECT SUM(amount) FROM contracts",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "AG-07",
+  "cat": "AG",
+  "q": "직원 평균 연봉 알려줘",
+  "ref": "SELECT AVG(salary) FROM employees",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "SU-06",
+  "cat": "SU",
+  "q": "계약 총액이 가장 큰 고객사 이름은?",
+  "ref": "SELECT c.name FROM contracts k JOIN clients c ON k.client_id=c.id GROUP BY c.name ORDER BY SUM(k.amount) DESC LIMIT 1",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-13",
+  "cat": "KV",
+  "q": "영업팀 직원이 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees e JOIN departments d ON e.dept_id=d.id WHERE d.name='영업팀'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-03",
+  "cat": "UN",
+  "q": "연봉이 8천만원 넘는 직원은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM employees WHERE salary>8000",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-05",
+  "cat": "KV",
+  "q": "대구 지역 고객사는 몇 곳이야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE region='대구'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "NG-02",
+  "cat": "NG",
+  "q": "계약이 없는 제품 이름 알려줘",
+  "ref": "SELECT name FROM products WHERE id NOT IN (SELECT product_id FROM contracts) ORDER BY name",
+  "rows": 0,
+  "pg_rows": 0
+ },
+ {
+  "id": "KV-06",
+  "cat": "KV",
+  "q": "인천 지역 고객사는 몇 곳이야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE region='인천'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "AG-09",
+  "cat": "AG",
+  "q": "지역별 고객사 수 알려줘",
+  "ref": "SELECT region,COUNT(*) c FROM clients GROUP BY region ORDER BY region",
+  "rows": 8,
+  "pg_rows": 8
+ },
+ {
+  "id": "KV-04",
+  "cat": "KV",
+  "q": "대전 지역 고객사는 몇 곳이야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE region='대전'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "JN-04",
+  "cat": "JN",
+  "q": "보안 제품의 매출 합계는?",
+  "ref": "SELECT SUM(s.amount) FROM sales s JOIN products p ON s.product_id=p.id WHERE p.category='security'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-27",
+  "cat": "VG",
+  "q": "스타트업 고객사이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE company_size='startup'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-07",
+  "cat": "KV",
+  "q": "광주 지역 고객사는 몇 곳이야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE region='광주'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-18",
+  "cat": "VG",
+  "q": "데이터 제품이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE category='data'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-06",
+  "cat": "VG",
+  "q": "해지된 계약이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE status='cancelled'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "SU-05",
+  "cat": "SU",
+  "q": "티켓이 가장 많은 제품 이름은?",
+  "ref": "SELECT p.name FROM support_tickets t JOIN products p ON t.product_id=p.id GROUP BY p.name ORDER BY COUNT(*) DESC LIMIT 1",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "NG-01",
+  "cat": "NG",
+  "q": "프로젝트가 하나도 없는 고객사 이름 알려줘",
+  "ref": "SELECT name FROM clients WHERE id NOT IN (SELECT client_id FROM projects) ORDER BY name",
+  "rows": 8,
+  "pg_rows": 8
+ },
+ {
+  "id": "UN-06",
+  "cat": "UN",
+  "q": "예산이 1억 5천만원 넘는 프로젝트은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE budget>15000",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "SU-03",
+  "cat": "SU",
+  "q": "예산이 가장 높은 프로젝트 이름은?",
+  "ref": "SELECT name FROM projects WHERE budget IS NOT NULL ORDER BY budget DESC LIMIT 1",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-29",
+  "cat": "VG",
+  "q": "대기업 고객사이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE company_size='enterprise'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-16",
+  "cat": "VG",
+  "q": "클라우드 제품이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE category='cloud'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "SU-02",
+  "cat": "SU",
+  "q": "연봉이 가장 높은 직원 이름은?",
+  "ref": "SELECT name FROM employees WHERE salary IS NOT NULL ORDER BY salary DESC LIMIT 1",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "TM-09",
+  "cat": "TM",
+  "q": "2025년에 입사한 직원은 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees WHERE EXTRACT(YEAR FROM hire_date)=2025",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-05",
+  "cat": "UN",
+  "q": "예산이 1억원 넘는 프로젝트은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE budget>10000",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "AG-10",
+  "cat": "AG",
+  "q": "분기별 매출 합계 알려줘",
+  "ref": "SELECT quarter,SUM(amount) s FROM sales GROUP BY quarter ORDER BY quarter",
+  "rows": 10,
+  "pg_rows": 10
+ },
+ {
+  "id": "TM-05",
+  "cat": "TM",
+  "q": "2025년 1분기 매출 합계는?",
+  "ref": "SELECT SUM(amount) FROM sales WHERE quarter='2025-Q1'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-31",
+  "cat": "VG",
+  "q": "베타 제품이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE status='beta'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-09",
+  "cat": "VG",
+  "q": "해결된 티켓이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM support_tickets WHERE status='resolved'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-04",
+  "cat": "UN",
+  "q": "예산이 5천만원 넘는 프로젝트은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE budget>5000",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-07",
+  "cat": "UN",
+  "q": "계약 금액이 3천만원 넘는 계약은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE amount>3000",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-12",
+  "cat": "VG",
+  "q": "긴급 티켓이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM support_tickets WHERE priority='critical'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-05",
+  "cat": "VG",
+  "q": "유효한 계약이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE status='active'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-28",
+  "cat": "VG",
+  "q": "중견 고객사이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM clients WHERE company_size='mid'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "AG-04",
+  "cat": "AG",
+  "q": "평균 계약 금액은 얼마야?",
+  "ref": "SELECT AVG(amount) FROM contracts",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-08",
+  "cat": "VG",
+  "q": "열려 있는 티켓이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM support_tickets WHERE status='open'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "SU-04",
+  "cat": "SU",
+  "q": "금액이 가장 높은 계약 이름은?",
+  "ref": "SELECT id FROM contracts ORDER BY amount DESC LIMIT 1",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-16",
+  "cat": "KV",
+  "q": "금융 업종 고객사 이름 알려줘",
+  "ref": "SELECT name FROM clients WHERE industry='금융' ORDER BY name",
+  "rows": 3,
+  "pg_rows": 3
+ },
+ {
+  "id": "VG-13",
+  "cat": "VG",
+  "q": "높은 티켓이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM support_tickets WHERE priority='high'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "AG-08",
+  "cat": "AG",
+  "q": "부서별 직원 수 알려줘",
+  "ref": "SELECT d.name,COUNT(*) c FROM employees e JOIN departments d ON e.dept_id=d.id GROUP BY d.name ORDER BY d.name",
+  "rows": 6,
+  "pg_rows": 6
+ },
+ {
+  "id": "VG-10",
+  "cat": "VG",
+  "q": "진행 중인 티켓이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM support_tickets WHERE status='in_progress'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-07",
+  "cat": "VG",
+  "q": "완료된 계약이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE status='completed'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "TM-07",
+  "cat": "TM",
+  "q": "2024년에 입사한 직원은 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees WHERE EXTRACT(YEAR FROM hire_date)=2024",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "UN-01",
+  "cat": "UN",
+  "q": "연봉이 5천만원 넘는 직원은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM employees WHERE salary>5000",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "VG-20",
+  "cat": "VG",
+  "q": "클라우드 매출이 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM sales WHERE category='cloud'",
+  "rows": 1,
+  "pg_rows": 1
+ },
+ {
+  "id": "KV-11",
+  "cat": "KV",
+  "q": "데이터플랫폼팀 직원이 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees e JOIN departments d ON e.dept_id=d.id WHERE d.name='데이터플랫폼팀'",
+  "rows": 1,
+  "pg_rows": 1
+ }
+]

@@ -1,0 +1,20 @@
+{
+ "embedding": {
+  "_note": "nomic-embed-text는 라우팅 정확도가 절반이고 거절 임계가 성립하지 않는다. document_chunks.embedding 을 vector(1024) 로 바꿔야 한다.",
+  "dim": 1024,
+  "name": "bge-m3"
+ },
+ "llm": {
+  "_note": "think를 켜면 숨은 추론 토큰이 num_predict를 소진해 빈 응답이 나온다. 정확도 이득은 작고 지연은 6배 이상이다.",
+  "name": "gemma4:e2b-it-qat",
+  "options": {
+   "num_predict": 400,
+   "temperature": 0
+  },
+  "think": false
+ },
+ "router": {
+  "_note": "0.48~0.57 구간에서 점수가 동일하다.",
+  "reject_threshold": 0.52
+ }
+}

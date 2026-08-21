@@ -14,16 +14,16 @@
 
 ## 1. 스키마
 
-`questions.json`의 `{q, tool, hint}`로는 이 세트를 담을 수 없다. **R1 거절**(도구 0개)·**X5 부분 응답**·**R4 정의 상태**·**T5 개체 부재**는 "기대 도구 1개"로 표현되지 않기 때문이다. 그래서 기대값을 **도구 배열 + 응답 상태** 두 필드로 나눈다.
+`questions.json`의 `{q, tool, hint}`로는 이 세트를 담을 수 없다. **R1 거절**(도구 0개)·**X5 부분 응답**·**병렬 병합**(도구 2개)·**T5 개체 부재**는 "기대 도구 1개"로 표현되지 않기 때문이다. 그래서 기대값을 **도구 배열 + 응답 상태** 두 필드로 나눈다.
 
 ```jsonc
 {
   "id": "X5-03",
   "q": "…",                          // 한국어 1문장
-  "case": "X5",                      // X1 X2 X3 X4 X5 R1 R4 R5 T5 OP
+  "case": "X5",                      // X1 X2 X3 X4 X5 R1 R5 T5 OP
   "subcase": "T7",                   // 아래 어휘표. 없으면 null
   "expected": {
-    "routing": ["knowledge_graph"],  // 기대 도구 배열. 병렬=2개, 거절·R4=[]
+    "routing": ["knowledge_graph"],  // 기대 도구 배열. 병렬=2개, 거절=[]
     "response": "partial"            // 아래 어휘표
   },
   "provenance": {
@@ -44,7 +44,7 @@
 | `X4` | 개체 지목 서술 (상보 중복) | X4 |
 | `X5` | 요구 형태 미충족 → 부분 응답 | X5 |
 | `R1` | 무매칭 → 거절 | R1 |
-| `R4` | 의존(멀티홉) 질문 | R4 |
+| ~~`R4`~~ | ~~의존(멀티홉) 질문~~ — **폐기 (2026-08-19)**. 두 문항은 `X3`·`X2`로 재라벨됐다 | [edge-cases.md](../docs/edge-cases.md) R4 |
 | `R5` | 표층 문자열 충돌 | R5 |
 | `T5` | 개체 자체가 없음 | T5 |
 | `OP` | 연산 축 (최상급·비교·시간·부정) | [question-taxonomy.md](../docs/references/question-taxonomy.md) 10.3 |
@@ -66,9 +66,10 @@
 | `partial` | 도구·개체는 맞고 요구 형태만 없다 → 부분 응답 | D10 · X5 |
 | `out_of_scope` | 후보 도구가 없다 → 구조화 거절 | D6 · R1 |
 | `entity_not_found` | 개체 자체가 그래프에 없다 | T5 |
-| `r4_defined_state` | 의존 탐지가 걸려 도구를 실행하지 않고 정의된 상태를 반환 | D11-5 · R4 |
+| `ambiguous_entity` | 개체 이름이 여럿을 가리킨다 (동명이인) | T8 |
+| ~~`r4_defined_state`~~ | ~~의존 탐지 상태~~ — **폐기 (2026-08-19)**. 이 값을 쓰는 문항은 없다 | — |
 
-> **`r4_defined_state`는 플레이스홀더다.** R4의 반환 형태(부분 응답 D10이냐 거절 D6이냐)는 [design.md](../docs/design.md) **열어둔 항목**이고 아직 미정이다. 그래서 라벨을 **케이스 수준**에 두어 미정 스키마에 비종속으로 만든다 — 열린 항목이 닫히면 `r4_defined_state`가 어느 응답 타입으로 사상되는지만 정하면 되고, 문항은 고치지 않는다.
+> **`r4_defined_state`는 폐기됐다 (2026-08-19).** 열린 항목이 닫히기를 기다리던 이 라벨은 **케이스 자체가 폐기**되면서 함께 사라졌다. R4의 두 소재가 멀티홉이 아니었고(테이블 조인 1회), 표층으로도 임베딩으로도 X4와 구분되지 않았다 ([edge-cases.md](../docs/edge-cases.md) R4 행). **문면은 고치지 않았다** — 바뀐 것은 라벨뿐이고 그 근거를 `provenance.notes`에 남겼다.
 
 ---
 
@@ -106,7 +107,7 @@
 | `X5-03` `X5-04` | 관계 부재(T7). **`LEADS` 결손 직원 중 그래프 격자 스니펫 출력 순 첫 2명** → `employee_1`(윤소연) · `employee_4`(박성민) | `[knowledge_graph]` | `partial` (`T7`) |
 | `X5-05` | 테이블 0행(T3). **`projects` 결손 고객사 8개 중 알파벳 순 첫 개체** → `Client-A` | `[nl2sql]` | `partial` (`T3`) |
 | `R1-01` `R1-02` `R1-03` | 스몰토크 1 · 일반 지식 1 · 데이터 인접이나 범위 밖 1 | `[]` | `out_of_scope` |
-| `R4-01` `R4-02` | 2홉 의존. 관계 조합 `USES`→문서 서술 1, `MANAGES_ACCOUNT`→정형 속성 1 | `[]` | `r4_defined_state` |
+| ~~`R4-01`~~ `R4-02` | ~~2홉 의존~~ → **재라벨 (2026-08-19)**: `R4-01`은 `X3`, `R4-02`는 `X2`. 두 소재 모두 테이블 조인 한 번으로 닿아 멀티홉이 아니었다 | `[nl2sql, vector_search]` / `[nl2sql]` | `parallel_merge` / `single` |
 | `R5-01` `R5-02` `R5-03` | 표층 충돌. `REPORTED_ISSUE`의 "이슈"(서술 요구) · `HAS_PROJECT`의 "프로젝트"(속성 요구) · `status`의 "상태"(서술 요구) | `[vector_search]` / `[nl2sql]` / `[vector_search]` | `single` |
 | `T5-01` `T5-02` | 미존재 개체. 한국어 상호형 1 (**`#23`의 "서울물산"은 재사용 금지** — 그 인스턴스를 피한다) · 합성 패턴 초과형 `Client-ZZ` 1 | `[knowledge_graph]` | `entity_not_found` |
 | `OP-01` | 최상급 단독 (집계 없는 argmax — 속성 정렬) | `[nl2sql]` | `single` (`superlative`) |
@@ -115,7 +116,8 @@
 | `OP-04` | **시간 + 사건 + 서술 복합** — question-taxonomy 10.2 (3)이 지적한 "최근"이 걸리는 지점. 구조상 X3 정의와 일치한다. 주제는 `X3`와 **같은 기계 목록의 4번째** → `SSL 인증서 만료 알림` | `[nl2sql, vector_search]` | `parallel_merge` (`temporal`) |
 | `OP-05` | 부정·차집합 ("~않은 / 없는") | `[nl2sql]` | `single` (`negation`) |
 
-**합계 29문항** — `X1` 2 · `X2` 2 · `X3` 3 · `X4` 2 · `X5` 5 · `R1` 3 · `R4` 2 · `R5` 3 · `T5` 2 · `OP` 5.
+**합계 29문항** — `X1` 2 · `X2` **3** · `X3` **4** · `X4` 2 · `X5` 5 · `R1` 3 · `R5` 3 · `T5` 2 · `OP` 5.
+(2026-08-19 재라벨 후. `R4` 2문항이 `X2`·`X3`로 옮겨졌고 문항 수와 문면은 그대로다.)
 
 ### 1차 범위에서 뺀 것
 
@@ -171,8 +173,8 @@ python3 - <<'EOF'
 import json
 from collections import Counter
 qs=json.load(open('edge-set/edge-questions.json'))
-CASES={'X1','X2','X3','X4','X5','R1','R4','R5','T5','OP'}
-RESP={'single','parallel_merge','partial','out_of_scope','entity_not_found','r4_defined_state'}
+CASES={'X1','X2','X3','X4','X5','R1','R5','T5','OP'}
+RESP={'single','parallel_merge','partial','out_of_scope','entity_not_found'}
 TOOLS={'nl2sql','vector_search','knowledge_graph'}
 for x in qs:  # ① 스키마·어휘 검사
     assert x['case'] in CASES and x['expected']['response'] in RESP
@@ -198,7 +200,7 @@ EOF
 
 ```
 ① 스키마 OK, 29 문항
-② 커버리지: {'X1': 2, 'X2': 2, 'X3': 3, 'X4': 2, 'X5': 5, 'R1': 3, 'R4': 2, 'R5': 3, 'T5': 2, 'OP': 5}
+② 커버리지: {'X1': 2, 'X2': 3, 'X3': 4, 'X4': 2, 'X5': 5, 'R1': 3, 'R5': 3, 'T5': 2, 'OP': 5}
 ③ 회귀 세트 최대 3-gram 자카드: 0.212 (0.5 미만이어야 함)
    ('지난 분기에 SSL 인증서 만료 때문에 어떤 장애가 있었고, 그 원인이 뭐였는지 알려줘',
     'SSL 인증서 관련 장애가 있었어?')

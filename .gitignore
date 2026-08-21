@@ -1,0 +1,5 @@
+harness/build/.cache/
+__pycache__/
+*.pyc
+node_modules/
+dist/

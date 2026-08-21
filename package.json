@@ -1,0 +1,22 @@
+{
+  "name": "companyx-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Company-X MCP 검색 시스템 — 벡터 검색 · NL2SQL · 지식 그래프",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "pg": "8.23.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/pg": "8.11.10",
+    "typescript": "5.7.2"
+  }
+}
