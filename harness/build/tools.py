@@ -90,6 +90,23 @@ def knowledge_graph(question):
                         WHERE e.relation IN ({rel}) GROUP BY e.relation;""")
         return {"status": "ok" if hits else "no_result",
                 "data": [{"relation": r, "count": int(c)} for r, c in hits]}
+    # 같은 이름이 여럿을 가리키면 관계를 합쳐서 답하면 안 된다 — 어느 쪽인지 모른다.
+    # src/tools/knowledge-graph.ts 와 같은 판정이어야 한다 (대조: scripts/dump-server.mjs).
+    by_name = {}
+    for e in matched:
+        by_name.setdefault(e["name"], []).append(e)
+    for name, group in by_name.items():
+        if len(group) < 2:
+            continue
+        gid = ",".join("'" + _q(g["id"]) + "'" for g in group)
+        hints = psql(f"""SELECT n.id, n.type,
+                                coalesce(string_agg(DISTINCT m.name, ', '), '(관계 없음)')
+                           FROM nodes n LEFT JOIN edges e ON e.source = n.id
+                           LEFT JOIN nodes m ON m.id = e.target
+                          WHERE n.id IN ({gid}) GROUP BY n.id, n.type;""")
+        return {"status": "ambiguous_entity", "name": name,
+                "candidates": [{"id": a, "type": b, "hint": c} for a, b, c in hints]}
+
     ids = ",".join("'" + _q(e["id"]) + "'" for e in matched)
     wanted = requested_relations(question)
     if wanted:

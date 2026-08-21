@@ -59,6 +59,21 @@ export async function knowledgeGraph(question: string): Promise<ToolResult> {
       : { status: "no_result", asset: "graph" };
   }
 
+  // 같은 이름이 여럿을 가리키면 관계를 합쳐서 답하면 안 된다 — 어느 쪽인지 모른다.
+  const byName = new Map<string, typeof matched>();
+  for (const e of matched) byName.set(e.name, [...(byName.get(e.name) ?? []), e]);
+  for (const [name, group] of byName) {
+    if (group.length < 2) continue;
+    const hints = await query<{ id: string; type: string; hint: string }>(
+      `SELECT n.id, n.type, coalesce(string_agg(DISTINCT m.name, ', '), '(관계 없음)') AS hint
+         FROM nodes n LEFT JOIN edges e ON e.source = n.id
+         LEFT JOIN nodes m ON m.id = e.target
+        WHERE n.id = ANY($1) GROUP BY n.id, n.type`,
+      [group.map((g) => g.id)],
+    );
+    return { status: "ambiguous_entity", name, candidates: hints };
+  }
+
   const ids = matched.map((e) => e.id);
   if (wanted.length) {
     const hits = await traverse(ids, wanted);

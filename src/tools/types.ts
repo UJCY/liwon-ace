@@ -43,4 +43,15 @@ export interface ErrorResult {
   reason: string;
 }
 
-export type ToolResult = OkResult | NoResult | EntityNotFound | PartialResult | ErrorResult;
+/**
+ * 개체 이름이 여럿을 가리킨다 — 답이 없는 것이 아니라 **어느 것인지 모르는** 것이다.
+ * T5(개체 부재)와 다르고 X5(형태 부재)와도 다르다. 하나를 골라 답하면 조용히 틀린다.
+ */
+export interface AmbiguousEntity {
+  status: "ambiguous_entity";
+  name: string;
+  candidates: { id: string; type: string; hint: string }[];
+}
+
+export type ToolResult =
+  | OkResult | NoResult | EntityNotFound | PartialResult | ErrorResult | AmbiguousEntity;
