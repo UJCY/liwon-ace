@@ -43,9 +43,10 @@ def answer(question):
         return chosen, state                              # 거절 — 도구를 안 부른다
 
     if tools.has_two_requests(question):                  # ① 접속 탐지
-        # 후보는 **유사도 상위 2개**다. 셋을 다 태워 살아남는 것으로 짝을 정해 봤으나
-        # 짝이 더 자주 틀렸다 (엣지 라우팅 25 → 23) — X4 가 {graph, vector} 대신
-        # {graph, nl2sql} 로 갔다. 유사도 순서가 짝을 고르는 데 정보를 준다.
+        # 후보는 **유사도 상위 2개**다. 셋을 다 태워 살아남는 것으로 짝을 정하는 안과
+        # 견줘 이쪽을 택했다 — X4 가 {graph, vector} 대신 {graph, nl2sql} 로 갔다.
+        # **이 선택의 근거는 엣지 세트 점수뿐이다** (25 대 23). 위 두 규약과 달리 설계 쪽
+        # 독립 논거가 없어 D7 경계에 있고, 그 노출을 harness-evaluation.md 6절에 적어 두었다.
         ranked = router.ranked_tools(qvec)
         cands = ranked[:2]
         if "vector_search" not in cands:                  # 서술 쪽 후보를 반드시 포함
