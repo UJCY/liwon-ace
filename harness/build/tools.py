@@ -131,7 +131,10 @@ def vector_search(question, qvec, threshold):
     # 정작 그 개체를 다루는 청크가 상위에 안 든다 — Client-A 를 담은 청크 2개가
     # 상위 5에 못 드는 것을 실측했다. 좁혀서 0건이면 그것이 T4 다.
     if matched:
-        names = " OR ".join("content LIKE '%" + _q(e["name"]) + "%'" for e in matched)
+        # ILIKE — 대소문자를 구분하지 않는다. src/tools/vector-search.ts 와 맞춘 것이다.
+        # 이 데이터셋의 개체명은 대소문자가 하나뿐이라 결과가 같지만, 두 구현이
+        # 다른 연산자를 쓰면 언젠가 갈라진다 (대조: scripts/dump-server.mjs).
+        names = " OR ".join("content ILIKE '%" + _q(e["name"]) + "%'" for e in matched)
         rows = psql(f"""SELECT doc_id, 1 - (embedding <=> '{v}') AS sim
                         FROM document_chunks WHERE {names}
                         ORDER BY embedding <=> '{v}' LIMIT 5;""")
