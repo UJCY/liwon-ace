@@ -81,8 +81,9 @@ def knowledge_graph(question):
     """개체 식별 → 관계 순회. 빈손이면 인접 사실을 함께 돌려준다."""
     matched, unmatched = find_entities(question)
     if unmatched and not matched:
+        # `searched` 는 자산 이름이다 (src/tools/types.ts Asset = documents|graph|tables).
         return {"status": "entity_not_found", "entity": unmatched[0],
-                "searched": "knowledge_graph"}                       # T5
+                "searched": "graph"}                                 # T5
     if not matched:
         # 개체 **언급 자체가 없는** 질문이다 (집계·최상급 등). 부재가 아니라 무관이다.
         # 관계 전체를 세는 질의로 넘긴다 — 빈손이면 no_result 이지 entity_not_found 가 아니다.
@@ -138,8 +139,12 @@ def knowledge_graph(question):
                     UNION ALL
                     SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.source
                     WHERE e.target IN ({ids});""")
-    return {"status": "ok" if hits else "partial",
-            "data": [{"relation": r, "target": t} for r, t in hits]}
+    if hits:
+        return {"status": "ok", "data": [{"relation": r, "target": t} for r, t in hits]}
+    # 관계가 하나도 없다. **partial 로 내지 않는다** — partial 은 `unavailable` 과
+    # `adjacent_facts` 를 분리해 담아야 하는 타입인데(D10 · types.ts PartialResult)
+    # 여기엔 붙일 인접 사실이 없다. src/tools/knowledge-graph.ts 와 같은 판정이다.
+    return {"status": "no_result", "asset": "graph"}
 
 
 def vector_search(question, qvec, threshold):
@@ -235,4 +240,6 @@ def nl2sql(question):
         return {"status": "error", "reason": str(e)}                # T1
     if not rows:
         return {"status": "no_result", "asset": "tables", "sql": sql}   # T3
-    return {"status": "ok", "rows": len(rows), "sql": sql}
+    # 계약 필드는 `data` 다 (src/tools/types.ts OkResult). `sql` 은 하네스 전용
+    # 부가 필드로 남긴다 — 어떤 SQL 이 그 답을 냈는지 러너 출력에서 봐야 한다.
+    return {"status": "ok", "data": rows, "sql": sql}
