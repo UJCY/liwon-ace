@@ -124,21 +124,27 @@ def knowledge_graph(question):
 def vector_search(question, qvec, threshold):
     """문서 청크 유사도 검색. 임계 미만이면 T4 — 인접 사실이 있으면 부분 응답."""
     v = "[" + ",".join(f"{x:.6f}" for x in qvec) + "]"
-    rows = psql(f"""SELECT doc_id, 1 - (embedding <=> '{v}') AS sim
-                    FROM document_chunks ORDER BY embedding <=> '{v}' LIMIT 5;""")
-    top = [(d, float(s)) for d, s in rows]
     matched, _ = find_entities(question)
-    # **개체 지목 검색은 유사도만으로 판정하지 않는다.** 질문이 개체를 지목했는데
-    # 상위 청크가 그 이름을 하나도 담고 있지 않으면, 유사도가 높아도 그 개체에 대한
-    # 문서가 아니다 — T4 다 (edge-cases.md T4 · X5 의 T4-entity 갈래).
-    grounded = True
-    if matched and top:
-        docs = ",".join("'" + _q(d) + "'" for d, _ in top)
+
+    # **개체를 지목한 질문은 그 개체를 담은 청크로 좁혀서 찾는다** (하이브리드 검색).
+    # 순수 유사도만 쓰면 개체명이 질문의 의미 벡터에 거의 기여하지 않아
+    # 정작 그 개체를 다루는 청크가 상위에 안 든다 — Client-A 를 담은 청크 2개가
+    # 상위 5에 못 드는 것을 실측했다. 좁혀서 0건이면 그것이 T4 다.
+    if matched:
         names = " OR ".join("content LIKE '%" + _q(e["name"]) + "%'" for e in matched)
-        hit = psql(f"SELECT count(*) FROM document_chunks WHERE doc_id IN ({docs}) AND ({names});")
-        grounded = bool(hit) and int(hit[0][0]) > 0
-    if top and top[0][1] >= threshold and grounded:
-        return {"status": "ok", "data": [{"doc": d, "sim": round(s, 3)} for d, s in top]}
+        rows = psql(f"""SELECT doc_id, 1 - (embedding <=> '{v}') AS sim
+                        FROM document_chunks WHERE {names}
+                        ORDER BY embedding <=> '{v}' LIMIT 5;""")
+        top = [(d, float(s)) for d, s in rows]
+        if top:
+            return {"status": "ok", "data": [{"doc": d, "sim": round(s, 3)} for d, s in top]}
+        # 개체를 담은 청크가 0건 — T4. 아래에서 인접 사실을 붙여 부분 응답으로 승격한다.
+    else:
+        rows = psql(f"""SELECT doc_id, 1 - (embedding <=> '{v}') AS sim
+                        FROM document_chunks ORDER BY embedding <=> '{v}' LIMIT 5;""")
+        top = [(d, float(s)) for d, s in rows]
+        if top and top[0][1] >= threshold:
+            return {"status": "ok", "data": [{"doc": d, "sim": round(s, 3)} for d, s in top]}
                                                                       # T4 → X5 승격 후보
     if matched:
         ids = ",".join("'" + _q(e["id"]) + "'" for e in matched)
