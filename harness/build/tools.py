@@ -29,6 +29,7 @@ RELATION_WORDS = {
 _EP = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                   "assets", "entity-patterns.json"), encoding="utf-8"))
 COMPANY_SUFFIX = _EP["company_suffix"]
+ID_PREFIXES = _EP["id_prefixes"]
 
 
 def psql(sql):
@@ -53,10 +54,13 @@ def find_entities(question):
     matched = [{"id": i, "type": t, "name": n} for i, t, n in rows if n and n in question]
 
     # 등록되지 않은 언급: 합성 패턴 초과형 · 한국어 상호형
+    # 접두사 목록도 자산에서 읽고 대소문자를 무시한다 — src/tools/entities.ts 의
+    # ID_RE 가 `gi` 플래그로 같은 목록을 쓴다. 하드코딩해 두면 `project-7`·
+    # `employee-99`·`dept-3` 이 서버에서만 미등록 언급으로 잡혀 T5 가 갈린다.
     unmatched = []
-    for pat in (r"(?:Client|Product|Employee)[- ]?[A-Za-z0-9]+",
-                r"[가-힣]{2,5}(?:" + "|".join(COMPANY_SUFFIX) + ")"):
-        for m in re.finditer(pat, question):
+    for pat, flags in ((r"(?:" + "|".join(ID_PREFIXES) + r")[- ]?[A-Za-z0-9]+", re.I),
+                       (r"[가-힣]{2,5}(?:" + "|".join(COMPANY_SUFFIX) + ")", 0)):
+        for m in re.finditer(pat, question, flags):
             mention = m.group(0)
             if mention not in names:
                 unmatched.append(mention)
