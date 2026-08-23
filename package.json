@@ -7,7 +7,9 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "agent": "node dist/agent/cli.js",
+    "agent:check": "node scripts/agent-check.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
