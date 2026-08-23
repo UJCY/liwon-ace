@@ -13,7 +13,21 @@ import type { ToolResult } from "./types.js";
 
 interface Chunk { doc_id: string; sim: string }
 
+/**
+ * 실행 실패를 **도구 안에서** 구조화로 바꾼다 (D14, edge-cases.md T6).
+ *
+ * 승격 경로에서 부르는 `knowledgeGraph` 도 같은 래퍼를 갖고, 그것이 `error` 를
+ * 내면 `graphFacts` 가 빈 배열을 주므로 여기서 따로 볼 것이 없다.
+ */
 export async function vectorSearch(question: string, qvec: number[]): Promise<ToolResult> {
+  try {
+    return await vectorSearchInner(question, qvec);
+  } catch (e) {
+    return { status: "error", reason: (e as Error).message.slice(0, 120) };  // T6
+  }
+}
+
+async function vectorSearchInner(question: string, qvec: number[]): Promise<ToolResult> {
   const v = toVector(qvec);
   const { matched } = await findEntities(question);
 

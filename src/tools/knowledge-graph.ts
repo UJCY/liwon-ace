@@ -52,7 +52,22 @@ export function graphFacts(r: ToolResult): unknown[] {
   return [];
 }
 
+/**
+ * 실행 실패를 **도구 안에서** 구조화로 바꾼다 (D14, edge-cases.md T6).
+ *
+ * `findEntities` 의 DB 실패도 이 래퍼가 덮는다 — 연결이 죽으면 어느 질의든
+ * 똑같이 죽으므로 개체 식별과 관계 순회를 나눠 감쌀 이유가 없다.
+ * 절단 폭 120자는 `nl2sql` 의 T1 과 맞춘 것이다.
+ */
 export async function knowledgeGraph(question: string): Promise<ToolResult> {
+  try {
+    return await knowledgeGraphInner(question);
+  } catch (e) {
+    return { status: "error", reason: (e as Error).message.slice(0, 120) };  // T6
+  }
+}
+
+async function knowledgeGraphInner(question: string): Promise<ToolResult> {
   const { matched, unmatched } = await findEntities(question);
 
   if (unmatched.length && !matched.length) {
