@@ -27,6 +27,23 @@ export interface AgentAnswer {
 const firstLine = (s: string) => s.split("\n").map((l) => l.trim()).find((l) => l) ?? "";
 
 /**
+ * 실패 원인을 봉투에서 건져 온다.
+ *
+ * `env.text` 는 content 앞 200자인데, 구조화 에러일 때 그 앞부분은 봉투 머리
+ * (`status`·`routed_to`·`why`)라 **정작 `reason` 이 한 글자도 안 들어간다.**
+ * 원인은 `results` 안에 이미 있다 — 없어서 못 적는 것이 아니라 안 적고 있었다.
+ * 봉투 자체가 없는 실패(라우팅·임베딩 단계)에서만 `text` 로 떨어진다.
+ */
+function failureReason(env: { results?: Record<string, unknown>; text: string }): string {
+  const failed = Object.entries(env.results ?? {}).find(
+    ([, v]) => (v as { status?: string } | null)?.status === "error",
+  );
+  if (!failed) return env.text;
+  const reason = (failed[1] as { reason?: string }).reason;
+  return reason ? `${failed[0]}: ${reason}` : env.text;
+}
+
+/**
  * 동명이인 부록 줄 — 후보를 **코드가** 덧붙인다.
  *
  * 프롬프트에 규칙을 더하지 않는다 (D13 규약 2). 채점기는 앞 3줄만 읽으므로
@@ -59,7 +76,7 @@ export async function answerQuestion(
     const record: AgentLogRecord = {
       ...base,
       guard: "is_error",
-      error_text: env.text,
+      error_text: failureReason(env),
       envelope_status: env.status ?? null,
       routed_to: env.routed_to ?? null,
       matched_rule: env.matched_rule ?? null,
