@@ -78,7 +78,19 @@ def requested_relations(question):
 
 
 def knowledge_graph(question):
-    """개체 식별 → 관계 순회. 빈손이면 인접 사실을 함께 돌려준다."""
+    """개체 식별 → 관계 순회. 빈손이면 인접 사실을 함께 돌려준다.
+
+    실행 실패는 **도구 안에서** 구조화로 바꾼다 (D14, edge-cases.md T6) —
+    `psql()` 이 RuntimeError 를 던지므로 이것으로 충분하다.
+    src/tools/knowledge-graph.ts 의 래퍼와 같은 판정이어야 한다.
+    """
+    try:
+        return _knowledge_graph(question)
+    except RuntimeError as e:
+        return {"status": "error", "reason": str(e)[:120]}            # T6
+
+
+def _knowledge_graph(question):
     matched, unmatched = find_entities(question)
     if unmatched and not matched:
         # `searched` 는 자산 이름이다 (src/tools/types.ts Asset = documents|graph|tables).
@@ -148,7 +160,17 @@ def knowledge_graph(question):
 
 
 def vector_search(question, qvec, threshold):
-    """문서 청크 유사도 검색. 임계 미만이면 T4 — 인접 사실이 있으면 부분 응답."""
+    """문서 청크 유사도 검색. 임계 미만이면 T4 — 인접 사실이 있으면 부분 응답.
+
+    knowledge_graph 와 같은 T6 래퍼를 쓴다 (D14).
+    """
+    try:
+        return _vector_search(question, qvec, threshold)
+    except RuntimeError as e:
+        return {"status": "error", "reason": str(e)[:120]}            # T6
+
+
+def _vector_search(question, qvec, threshold):
     v = "[" + ",".join(f"{x:.6f}" for x in qvec) + "]"
     matched, _ = find_entities(question)
 
