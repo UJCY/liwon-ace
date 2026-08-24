@@ -34,6 +34,10 @@ export interface AgentLogRecord {
   context_chars: number | null;
   truncations: Truncation[];
   answer_first_line: string;
+  /** 절사 **후** 프롬프트에 실제로 들어간 컨텍스트 전문 — 응답 축 라벨 판정의 원천 (#20). */
+  context_json: string | null;
+  /** LLM 출력 전문 (동명이인 부록 줄 이전). 첫 줄만으로는 거절의 근거를 읽을 수 없다. */
+  answer_text: string | null;
 }
 
 export function appendLog(record: AgentLogRecord): void {

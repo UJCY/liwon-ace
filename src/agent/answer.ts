@@ -84,6 +84,8 @@ export async function answerQuestion(
       context_chars: null,
       truncations: [],
       answer_first_line: SYSTEM_ERROR_ANSWER,
+      context_json: null,
+      answer_text: null,
     };
     appendLog(record);
     return { text: SYSTEM_ERROR_ANSWER, log: record };
@@ -110,6 +112,8 @@ export async function answerQuestion(
     context_chars: before,
     truncations,
     answer_first_line: firstLine(out),
+    context_json: json,
+    answer_text: out,
   };
   appendLog(record);
   return { text, log: record };
