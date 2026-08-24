@@ -17,6 +17,31 @@ import { fileURLToPath } from "node:url";
 /** 에이전트가 부르는 도구 이름. **상수 하나** 이고 바깥에서 바꿀 수 없다. */
 const ASK = "ask";
 
+/**
+ * 서버에 넘길 환경변수 — **우리 서버가 읽는 것만** 명시한다.
+ *
+ * SDK 기본 상속은 `HOME·LOGNAME·PATH·SHELL·TERM·USER` 뿐이라
+ * (`stdio.js` 의 `DEFAULT_INHERITED_ENV_VARS`) 이걸 안 넘기면 `PG*`·`OLLAMA_HOST` 가
+ * 전부 버려진다. 그러면 `npm start` 는 환경변수로 설정되는데 **`npm run agent` 만
+ * 기본값에 고정되고**, 에이전트의 답변 생성(in-process)과 서버의 임베딩이 서로 다른
+ * Ollama 로 갈릴 수도 있다.
+ *
+ * `process.env` 를 통째로 넘기지 않는 것은 자식 프로세스로 새는 면적 때문이다
+ * (실측 51개 대 6개). SDK 는 기본값과 **합치므로** `PATH` 는 그대로 산다.
+ *
+ * 목록의 출처는 `src/db.ts` (PG 5종) 와 `src/ollama.ts` (`OLLAMA_HOST`) 다.
+ * 거기에 환경변수를 더하면 여기도 더해야 한다.
+ */
+const PASS_ENV = ["PGHOST", "PGPORT", "PGUSER", "PGPASSWORD", "PGDATABASE", "OLLAMA_HOST"];
+
+const passEnv = (): Record<string, string> =>
+  Object.fromEntries(
+    PASS_ENV.flatMap((k) => {
+      const v = process.env[k];
+      return v === undefined ? [] : [[k, v] as [string, string]];
+    }),
+  );
+
 export interface CallRecord {
   /** 이 연결에서 몇 번째 호출인가. */
   seq: number;
@@ -49,7 +74,11 @@ export async function connectAgent(): Promise<AgentClient> {
   const serverPath = join(dirname(fileURLToPath(import.meta.url)), "..", "server.js");
   const client = new Client({ name: "companyx-agent", version: "0.1.0" });
   await client.connect(
-    new StdioClientTransport({ command: process.execPath, args: [serverPath] }),
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [serverPath],
+      env: passEnv(),
+    }),
   );
 
   const calls: CallRecord[] = [];
