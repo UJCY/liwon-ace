@@ -64,6 +64,12 @@ harness/
 **빈 문자열**이 반환된다. 이는 T1(무효 SQL 생성)으로 오분류된다.
 정확도 이득은 작고(+2/27) 지연은 6.6배다.
 
+**⑥ `seed` 를 박는다.** `temperature: 0` 만으로는 생성이 고정되지 않는다 — 같은 프롬프트
+5회에서 고유 SQL **2/5**, 답변 라벨도 뒤집힌다. `options.seed` 를 주면 둘 다 **1/5** 다.
+개발 48문항 41→42, 답변 규약 8/8 · 7/8 불변. **잡음을 없앨 뿐 정답 쪽으로 붙여 주지 않는다** —
+점수는 범위의 바닥으로 고정되고, 우연한 회복도 함께 사라진다
+([harness-evaluation.md](../docs/harness-evaluation.md) 6절).
+
 ## 자산 재생성
 
 ```bash
@@ -86,6 +92,7 @@ python3 harness/build/run_answer.py     # 형식 축 8/8 · 판정 축 7/8
 python3 harness/build/load_pg.py        # 측정 전 1회 — 청크·그래프 적재
 python3 harness/build/run_e2e.py        # 엣지 라우팅 25/29 · 실행 27/29 · 회귀 24/30
 node scripts/agent-check.mjs            # 에이전트 3축 — 호출 59/59 · 환각 위반 0 · 응답 21/29
+node scripts/xcheck.mjs                 # 하네스↔서버 대조 — 결정적 57/57 · LLM 결합 2
 ```
 
 `--harness bare | blocks | annotated` 로 세 구성을 비교할 수 있다.
