@@ -7,6 +7,7 @@
  * (routing-topology.md 4.4).
  */
 import { compose } from "./composition.js";
+import { curateResults } from "./curation.js";
 
 export async function ask(question: string) {
   const c = await compose(question);
@@ -18,7 +19,8 @@ export async function ask(question: string) {
       two_requests: c.routing.twoRequests,
       ranked: c.routing.ranked,
     },
-    results: c.results,
+    // 선별은 이 경로에만 건다 — 도구 3종 직접 호출은 원본을 그대로 낸다 (D15).
+    results: curateResults(c.results),
   };
 }
 
