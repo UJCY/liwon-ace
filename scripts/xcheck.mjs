@@ -33,22 +33,31 @@ const server = run("node", ["scripts/dump-server.mjs"]);
 const llmCoupled = (d) =>
   d.twoRequests === true && parallelCandidates({ ranked: d.ranked }).includes("nl2sql");
 
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/**
+ * 키 순서에 무관한 구조 비교 — 정렬 직렬화로 정규화한다.
+ * `JSON.stringify` 직접 비교는 두 덤프의 키 순서가 우연히 같아야만 성립하고,
+ * 어느 쪽의 무해한 키 재배열도 가짜 불일치로 읽는다 (재배열 실측으로 확인).
+ */
+const canon = (v) => Array.isArray(v) ? v.map(canon)
+  : v !== null && typeof v === "object"
+    ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])]))
+    : v;
+const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
 
-const det = [];
+const deterministic = [];
 const coupled = [];
 for (const sect of ["edge", "regression"]) {
   for (const [id, h] of Object.entries(harness[sect])) {
     const s = server[sect][id];
-    (llmCoupled(h) || (s && llmCoupled(s)) ? coupled : det).push({ id: `${sect}:${id}`, h, s });
+    (llmCoupled(h) || (s && llmCoupled(s)) ? coupled : deterministic).push({ id: `${sect}:${id}`, h, s });
   }
 }
-const bad = (rows) => rows.filter((r) => !same(r.h, r.s));
-const detBad = bad(det);
-const coupledBad = bad(coupled);
+const mismatches = (rows) => rows.filter((r) => !same(r.h, r.s));
+const detBad = mismatches(deterministic);
+const coupledBad = mismatches(coupled);
 
-console.log(`대조 — 하네스 ↔ 서버  (총 ${det.length + coupled.length}문항)`);
-console.log(`  결정적 축   ${det.length - detBad.length}/${det.length}   ← 이식 버그를 잡는 축. 깨지면 실패다`);
+console.log(`대조 — 하네스 ↔ 서버  (총 ${deterministic.length + coupled.length}문항)`);
+console.log(`  결정적 축   ${deterministic.length - detBad.length}/${deterministic.length}   ← 이식 버그를 잡는 축. 깨지면 실패다`);
 console.log(`  LLM 결합 축 ${coupled.length - coupledBad.length}/${coupled.length}   ← nl2sql 의 ok 여부가 판정을 가른다. 관측치다`);
 console.log(`              ${coupled.map((c) => c.id).join(" · ")}`);
 for (const [label, rows] of [["결정적", detBad], ["LLM 결합", coupledBad]]) {
