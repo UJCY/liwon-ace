@@ -11,8 +11,9 @@
  * 반복된다. `ask` 합계 실측 61초, 종단(답변 포함)은 5~8분이다.
  *
  * **알려진 변동**: `nl2sql` T1(무효 SQL 생성)이 96문항 중 1~3건 확률로 나고, 그 문항은
- * isError 가드에 걸려 고정 문자열이 나간다 — 응답 축이 1~2점 흔들린다.
- * `docs/harness-evaluation.md` 6절이 적은 실행 간 변동과 같은 성질이다.
+ * isError 가드에 걸려 고정 문자열이 나간다 — 응답 축에서 `오류` 로 제외되므로 점수가
+ * 아니라 분모와 제외 줄이 흔들린다. `docs/harness-evaluation.md` 6절의 실행 간 변동과
+ * 같은 성질이다.
  */
 import { readFileSync } from "node:fs";
 import { connectAgent } from "../dist/agent/client.js";
