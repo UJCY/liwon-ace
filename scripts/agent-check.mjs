@@ -38,7 +38,7 @@ const client = await connectAgent();
 const rows = [];
 for (const [i, x] of edge.entries()) {
   const { log } = await answerQuestion(client, x.q);
-  rows.push({ id: x.id, expected: x.expected.response, log, set: "edge" });
+  rows.push({ id: x.id, expected: x.expected, log, set: "edge" });
   process.stderr.write(`\r엣지 ${i + 1}/${edge.length}   `);
 }
 for (const [i, x] of base.entries()) {
@@ -73,22 +73,45 @@ for (const r of bad) {
   console.log(`  ${r.id.padEnd(8)} ${r.log.flat_status.padEnd(16)} ${r.log.question.slice(0, 26)}`);
 }
 
-// ── 응답 축 — 엣지 29문항만, 양방향 ──────────────────────────────────────
+// ── 응답 축 — 엣지 29문항 중 상류가 건전한 문항만, 양방향 ─────────────────
 // 기대 라벨은 `expected.response` 에서 유도한다. **새 라벨을 만들지 않는다** —
 // `questions.json` 30문항에 답변가능 라벨을 붙이는 것은 D7 위반이고 #18 의 범위다.
+//
+// **조건부 채점 (#20)** — 이 축이 재는 것은 "본 것에 옳게 라벨했는가"다. 오류 가드 ·
+// `no_result`(컨텍스트에 아무것도 없음) · 라우팅 불일치(기대와 다른 도구가 답함)는
+// 상류 실패라 기대 라벨 자체가 성립하지 않는다 — 실패 6건 사람 판정이 근거다
+// (`docs/harness-evaluation.md`). 제외는 로그 필드로만 정해진다: 문항 예외를 두는
+// 순간 D7 위반이다. 상류 실패가 status ok 로 위장하면 여기서 못 가른다 (X3-02).
 const label = (resp) => (resp === "single" || resp === "parallel_merge" ? "예" : "아니오");
+const sameSet = (a, b) =>
+  JSON.stringify([...(a ?? [])].sort()) === JSON.stringify([...(b ?? [])].sort());
+const upstreamFail = (r) =>
+  r.log.guard !== null ? "오류"
+  : r.log.flat_status === "no_result" ? "no_result"
+  : !sameSet(r.log.routed_to, r.expected.routing) ? "라우팅"
+  : null;
 const edgeRows = rows.filter((r) => r.set === "edge");
+const excluded = [];
 let respOk = 0;
 const respFail = [];
 for (const r of edgeRows) {
+  const skip = upstreamFail(r);
+  if (skip) {
+    excluded.push([r.id, skip]);
+    continue;
+  }
   const got = verdict(r.log.answer_first_line);
-  const want = label(r.expected);
+  const want = label(r.expected.response);
   if (got === want) respOk++;
   else respFail.push([r.id, want, got ?? "-", (r.log.answer_first_line ?? "").slice(0, 26)]);
 }
-console.log(`응답 축 ${respOk}/${edgeRows.length} (엣지 세트만 · 양방향)`);
+const scored = edgeRows.length - excluded.length;
+console.log(`응답 축 ${respOk}/${scored} (엣지 세트만 · 양방향 · 상류 실패 ${excluded.length}건 제외)`);
 for (const f of respFail) {
   console.log(`  ${f[0].padEnd(8)} 기대 ${f[1].padEnd(4)} 실제 ${f[2].padEnd(4)} | ${f[3]}`);
+}
+if (excluded.length) {
+  console.log(`  제외: ${excluded.map(([id, why]) => `${id}(${why})`).join(" ")}`);
 }
 
 // 호출 축은 설계 불변식이므로 깨지면 실패다. 나머지 둘은 측정치다 (문서에 적는 수치).
