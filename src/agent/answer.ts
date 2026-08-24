@@ -63,11 +63,24 @@ export async function answerQuestion(
   const env = await client.askOnly(question);
   const calls = client.calls().slice(seen);
 
-  const base = {
+  // 기본값 레코드 — 봉투 메타와 null 기본값을 한 곳에 담고 분기는 아는 것만 덮어쓴다.
+  // 필드가 늘 때 두 리터럴을 평행 수정하던 실물이 #20 의 `context_json` 이다 (#29).
+  const base: AgentLogRecord = {
     ts: new Date().toISOString(),
     question,
     calls,
     is_error: env.isError,
+    guard: null,
+    error_text: null,
+    envelope_status: env.status ?? null,
+    routed_to: env.routed_to ?? null,
+    matched_rule: env.matched_rule ?? null,
+    flat_status: null,
+    context_chars: null,
+    truncations: [],
+    answer_first_line: "",
+    context_json: null,
+    answer_text: null,
   };
 
   // 가드 — 실행 실패(isError)와 봉투 부재(structuredContent 없음)를 하나로 덮는다.
@@ -77,12 +90,6 @@ export async function answerQuestion(
       ...base,
       guard: "is_error",
       error_text: failureReason(env),
-      envelope_status: env.status ?? null,
-      routed_to: env.routed_to ?? null,
-      matched_rule: env.matched_rule ?? null,
-      flat_status: null,
-      context_chars: null,
-      truncations: [],
       answer_first_line: SYSTEM_ERROR_ANSWER,
     };
     appendLog(record);
@@ -101,15 +108,12 @@ export async function answerQuestion(
 
   const record: AgentLogRecord = {
     ...base,
-    guard: null,
-    error_text: null,
-    envelope_status: env.status ?? null,
-    routed_to: env.routed_to ?? null,
-    matched_rule: env.matched_rule ?? null,
     flat_status: status,
     context_chars: before,
     truncations,
     answer_first_line: firstLine(out),
+    context_json: json,
+    answer_text: out,
   };
   appendLog(record);
   return { text, log: record };
