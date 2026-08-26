@@ -179,5 +179,178 @@
    "confirmed": "16건"
   },
   "required_regex": "16"
+ },
+ {
+  "id": "H-09",
+  "q": "2023년에 체결된 계약 목록 보여줘",
+  "tool": "nl2sql",
+  "tool_result": {
+   "status": "no_result",
+   "asset": "tables"
+  },
+  "expected": {
+   "answerable": "아니오",
+   "confirmed": "없음"
+  },
+  "forbidden_regex": "(\\d+\\s*건입니다|목록은 다음과 같)"
+ },
+ {
+  "id": "H-10",
+  "q": "제품 반품 절차 문서 있어?",
+  "tool": "vector_search",
+  "tool_result": {
+   "status": "no_result",
+   "asset": "documents"
+  },
+  "expected": {
+   "answerable": "아니오",
+   "confirmed": "없음"
+  },
+  "forbidden_regex": "(반품 절차는|절차는 다음과 같)"
+ },
+ {
+  "id": "H-11",
+  "q": "박성민 님이 담당하는 고객사는 어디야?",
+  "tool": "knowledge_graph",
+  "tool_result": {
+   "status": "ambiguous_entity",
+   "name": "박성민",
+   "candidates": [
+    {
+     "type": "employee",
+     "hint": "보안솔루션팀 외"
+    },
+    {
+     "type": "employee",
+     "hint": "데이터플랫폼팀 외"
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "아니오",
+   "confirmed": "없음"
+  },
+  "forbidden_regex": "(고객사는 Client-|담당 고객사는)"
+ },
+ {
+  "id": "H-12",
+  "q": "Product-D1의 API 인증 방식은?",
+  "tool": "vector_search",
+  "tool_result": {
+   "status": "ok",
+   "data": [
+    {
+     "doc": "DOC-015",
+     "content": "# Product-D1 API 레퍼런스\n\n## API 엔드포인트\n\n### 인증\nBearer 토큰 방식을 사용합니다. /auth/token 엔드포인트에서 발급받습니다.\n\n### 주요 API\n- GET /api/v1/status: 서비스 상태 조회\n- POST /api/v1/data/query: 데이터 질의\n- GET /api/v1/reports/{id}: 리포트 조회\n- POST /api/v1/alerts: 알림 설정\n\n### 에러 코드\n- 400: 잘못된 요청 파라미터\n- 401: 인증 실패\n- 403: 권한 없음\n- 429: 요청 한도 초과 (분당 239회)\n- 500: 서버 내부 오류\n\n### Rate Limit\n기본 분당 263회, 프리미엄 분당 2130회",
+     "sim": 0.6814061076193962
+    },
+    {
+     "doc": "DOC-005",
+     "content": "# 장애 보고서\n\n## 기본 정보\n- **고객사**: Client-E\n- **제품**: Product-D1\n- **발생일시**: 2024-11-15 16:07\n- **심각도**: High\n- **영향 범위**: 일부 기능 장애\n\n## 장애 내용\nClient-E에서 운영 중인 Product-D1 서비스에서 SSL 인증서 만료로 인한 HTTPS 통신 실패 현상이 발생하였습니다.\n\n## 원인 분석\n외부 의존 서비스의 API 응답 지연이 연쇄적으로 전파되어 서비스 전체에 영향을 미쳤습니다. 서킷브레이커 패턴 적용이 필요합니다.\n\n## 조치 사항\n1. 긴급 스케일아웃 수행\n2. 모니터링 알림 임계값 재설정\n3. 재발 방지를 위한 자동화 스크립트 작성\n\n## 복구 시간\n- 장애 감지: 25분\n- 초기 대응: 27분\n- 완전 복구: 8시간\n\n## 담당자\n- 대응: 권승호 (기술지원팀)\n- 검토: 강현우 (클라우드사업부)",
+     "sim": 0.6157199053263539
+    },
+    {
+     "doc": "DOC-035",
+     "content": "# Client-J 대상 Product-D1 도입 제안서\n\n## 1. 고객 현황 분석\nClient-J은 공공기관 분야의 스타트업으로, 경기에 위치하고 있습니다.\n\n현재 IT 인프라의 주요 과제:\n- 레거시 시스템의 클라우드 전환 필요\n- 멀티클라우드 환경에서의 통합 관리\n\n## 2. 솔루션 제안\nProduct-D1을 통해 다음을 달성할 수 있습니다:\n- 실시간 데이터 파이프라인 및 분석 플랫폼.\n- 도입 후 예상 효과: 운영 비용 33% 절감, 장애 대응 시간 32% 단축\n\n## 3. 구축 계획\n- **1단계** (3주): 현황 분석 및 설계\n- **2단계** (5주): 구축 및 마이그레이션\n- **3단계** (2주): 테스트 및 안정화\n- **4단계** (상시): 운영 지원 및 최적화\n\n## 4. 투자 비용\n- 초기 구축비: 3449만원\n- 월 운영비: 400만원\n- 연간 총 비용: 12477만원\n\n## 5. 기대 효과\n- ROI: 21개월 내 투자 회수 예상\n- TCO: 기존 대비 24% 절감\n- 생산성: 엔지니어 작업 시간 43% 단축",
+     "sim": 0.5421242451930872
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "예",
+   "confirmed": "Bearer 토큰"
+  },
+  "required_regex": "Bearer"
+ },
+ {
+  "id": "H-13",
+  "q": "Product-C1 설치에 필요한 최소 RAM은?",
+  "tool": "vector_search",
+  "tool_result": {
+   "status": "ok",
+   "data": [
+    {
+     "doc": "DOC-011",
+     "content": "# Product-C1 설치 가이드\n\n## 시스템 요구사항\n- OS: Ubuntu 22.04+ / RHEL 8+\n- RAM: 최소 5GB\n- CPU: 2코어 이상\n- 디스크: 146GB SSD\n\n## 설치 절차\n\n### 1단계: 의존성 설치\nDocker와 Docker Compose가 필요합니다. Kubernetes 환경에서는 Helm 차트를 통해 배포할 수 있습니다.\n\n### 2단계: 설정 파일 준비\n환경 변수 파일(.env)에 데이터베이스 접속 정보, API 키, 로깅 레벨 등을 설정합니다.\n\n### 3단계: 서비스 시작\ndocker-compose up -d 명령으로 전체 서비스를 시작합니다. 초기 구동에 약 38초가 소요됩니다.\n\n### 4단계: 헬스체크\n/health 엔드포인트로 서비스 상태를 확인합니다.",
+     "sim": 0.6470745118295802
+    },
+    {
+     "doc": "DOC-031",
+     "content": "# Client-F 대상 Product-C1 도입 제안서\n\n## 1. 고객 현황 분석\nClient-F은 교육 분야의 대기업으로, 인천에 위치하고 있습니다.\n\n현재 IT 인프라의 주요 과제:\n- 레거시 시스템의 클라우드 전환 필요\n- AI/ML 도입을 위한 데이터 인프라 구축\n\n## 2. 솔루션 제안\nProduct-C1을 통해 다음을 달성할 수 있습니다:\n- 대규모 클라우드 마이그레이션 플랫폼. 멀티클라우드 지원.\n- 도입 후 예상 효과: 운영 비용 31% 절감, 장애 대응 시간 37% 단축\n\n## 3. 구축 계획\n- **1단계** (3주): 현황 분석 및 설계\n- **2단계** (7주): 구축 및 마이그레이션\n- **3단계** (2주): 테스트 및 안정화\n- **4단계** (상시): 운영 지원 및 최적화\n\n## 4. 투자 비용\n- 초기 구축비: 7917만원\n- 월 운영비: 350만원\n- 연간 총 비용: 8563만원\n\n## 5. 기대 효과\n- ROI: 22개월 내 투자 회수 예상\n- TCO: 기존 대비 26% 절감\n- 생산성: 엔지니어 작업 시간 32% 단축",
+     "sim": 0.6008872814696061
+    },
+    {
+     "doc": "DOC-001",
+     "content": "# 장애 보고서\n\n## 기본 정보\n- **고객사**: Client-A\n- **제품**: Product-C1\n- **발생일시**: 2025-12-27 16:43\n- **심각도**: High\n- **영향 범위**: 일부 기능 장애\n\n## 장애 내용\nClient-A에서 운영 중인 Product-C1 서비스에서 디스크 IOPS 한계 초과로 인한 DB 쿼리 타임아웃 현상이 발생하였습니다.\n\n## 원인 분석\n보안 패치 적용 후 호환성 이슈가 발생하였습니다. 스테이징 환경에서의 충분한 테스트 없이 프로덕션에 적용된 것이 원인입니다.\n\n## 조치 사항\n1. 디스크 확장 및 쿼리 최적화\n2. 모니터링 알림 임계값 재설정\n3. 재발 방지를 위한 자동화 스크립트 작성\n\n## 복구 시간\n- 장애 감지: 24분\n- 초기 대응: 12분\n- 완전 복구: 1시간\n\n## 담당자\n- 대응: 조예진 (기술지원팀)\n- 검토: 서재원 (클라우드사업부)",
+     "sim": 0.5003498047903008
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "예",
+   "confirmed": "5GB"
+  },
+  "required_regex": "5\\s*GB"
+ },
+ {
+  "id": "H-14",
+  "q": "안진우 님이 이끄는 프로젝트는?",
+  "tool": "knowledge_graph",
+  "tool_result": {
+   "status": "ok",
+   "data": [
+    {
+     "relation": "LEADS",
+     "name": "Client-B CI/CD 파이프라인 구축"
+    },
+    {
+     "relation": "LEADS",
+     "name": "Client-C DB 마이그레이션"
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "예",
+   "confirmed": "Client-B CI/CD 파이프라인 구축 · Client-C DB 마이그레이션"
+  },
+  "required_regex": "(CI/CD|DB 마이그레이션)"
+ },
+ {
+  "id": "H-15",
+  "q": "직원이 팀에 소속된 관계는 총 몇 건이야?",
+  "tool": "knowledge_graph",
+  "tool_result": {
+   "status": "ok",
+   "data": [
+    {
+     "relation": "BELONGS_TO",
+     "count": "45"
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "예",
+   "confirmed": "45건"
+  },
+  "required_regex": "45"
+ },
+ {
+  "id": "H-16",
+  "q": "고객사가 이슈를 보고한 관계는 모두 몇 건이야?",
+  "tool": "knowledge_graph",
+  "tool_result": {
+   "status": "ok",
+   "data": [
+    {
+     "relation": "REPORTED_ISSUE",
+     "count": "99"
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "예",
+   "confirmed": "99건"
+  },
+  "required_regex": "99"
  }
 ]
