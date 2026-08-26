@@ -361,7 +361,7 @@ DB 연결 실패 같은 인프라 오류(T6)를 **도구 3종 전부**가 `{stat
 
 **③ 봉투를 도구 결과 모양으로 편다.** `ask` 봉투를 통째로 프롬프트에 넣으면 모델이 `routed_to`·
 `why` 같은 라우팅 메타데이터까지 답의 재료로 읽는다. `results[routed_to[0]]` 항목 하나로 펴면
-`harness/tests/answer-protocol.json` 이 채점하는 모양과 같아진다. **실측 20/28 대 19/28,
+`harness/tests/answer-protocol-dev.json` 이 채점하는 모양과 같아진다. **실측 20/28 대 19/28,
 토큰 −116.** 가르는 기준은 개수가 아니라 봉투 `status` 다 — 병렬 되돌리기 경로(`composition.ts`)가
 `results` 2개인 채로 `single` 류를 낼 수 있어 개수로 가르면 오판한다.
 
