@@ -10,10 +10,16 @@ import { findEntities } from "./entities.js";
 import type { ToolResult } from "./types.js";
 
 // 저작 — graph/schema.md 의 관계 7종에 한국어 표층형을 붙인 것이다.
+// 동사 어간은 **불변 접두사**까지만 줄인다 (맡고·맡은 → 맡). ㄹ 말음 어간은 한글
+// 맞춤법 제18항의 ㄹ 탈락으로 표층 접두사가 갈리므로 짝으로 둔다 (이끌·이끄·이끕) —
+// 짝 추가는 휴리스틱이 아니라 닫힌 규칙의 전개다. 접두사를 더 줄이면 오발하는
+// 어간(쓰 — "글쓰기"류)은 활용형 열거를 유지하고, 부분문자열이 원리상 못 잡는
+// 잔여 부류(ㅡ 탈락 "써", 하다 활용 "속해" 등)는 알려진 한계로 둔다 — 근거와
+// 한계 목록은 docs/references/korean-inflection-matching.md (#32).
 const RELATION_WORDS: Record<string, string[]> = {
-  LEADS: ["이끄", "리드", "맡고", "맡은", "총괄"],
+  LEADS: ["이끌", "이끄", "이끕", "리드", "맡", "총괄"],
   BELONGS_TO: ["소속", "속한", "어느 팀", "어느 부서"],
-  MANAGES_ACCOUNT: ["담당", "관리하"],
+  MANAGES_ACCOUNT: ["담당", "관리"],
   USES: ["사용", "쓰는", "쓰고", "도입"],
   HAS_PROJECT: ["프로젝트"],
   REPORTED_ISSUE: ["이슈", "장애", "문제"],

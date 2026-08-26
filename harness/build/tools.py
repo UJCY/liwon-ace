@@ -14,10 +14,13 @@ import csv, io, json, os, subprocess
 CONTAINER = os.environ.get("CX_PG", "cx-pg")
 
 # 저작 — 사람이 썼다. graph/schema.md 의 관계 7종에 한국어 표층형을 붙인 것이다.
+# 어간은 불변 접두사까지만 줄이고(맡), ㄹ 말음 어간은 맞춤법 18항 ㄹ 탈락 짝으로
+# 둔다(이끌·이끄·이끕). 잔여 한계와 근거는 src/tools/knowledge-graph.ts 와
+# docs/references/korean-inflection-matching.md (#32). **서버와 같은 목록이어야 한다.**
 RELATION_WORDS = {
-    "LEADS":            ["이끄", "리드", "맡고", "맡은", "총괄"],
+    "LEADS":            ["이끌", "이끄", "이끕", "리드", "맡", "총괄"],
     "BELONGS_TO":       ["소속", "속한", "어느 팀", "어느 부서"],
-    "MANAGES_ACCOUNT":  ["담당", "관리하"],
+    "MANAGES_ACCOUNT":  ["담당", "관리"],
     "USES":             ["사용", "쓰는", "쓰고", "도입"],
     "HAS_PROJECT":      ["프로젝트"],
     "REPORTED_ISSUE":   ["이슈", "장애", "문제"],
