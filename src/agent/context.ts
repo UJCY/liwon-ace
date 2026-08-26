@@ -3,7 +3,7 @@
  *
  * **평탄화가 정확도를 바꾼다.** `ask` 봉투를 통째로 넣으면 모델이 `routed_to`·`why`
  * 같은 라우팅 메타데이터까지 답의 재료로 읽는다. 도구 결과 항목 하나로 펴서 주면
- * `harness/tests/answer-protocol.json` 이 채점하는 모양과 같아진다 (D15).
+ * `harness/tests/answer-protocol-dev.json` 이 채점하는 모양과 같아진다 (D15).
  *
  * **절사는 안전장치다 — 그리고 예산은 토큰 상한 아래여야 한다.** `num_ctx` 에서
  * `num_predict` 를 뺀 것이 프롬프트 예산이고, 실측하면 그것이 이 예산보다 **적은**

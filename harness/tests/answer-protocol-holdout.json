@@ -1,0 +1,179 @@
+[
+ {
+  "id": "HH-01",
+  "q": "Product-S1 모니터링은 어떤 대시보드로 봐?",
+  "tool": "vector_search",
+  "tool_result": {
+   "status": "ok",
+   "data": [
+    {
+     "doc": "DOC-013",
+     "content": "# Product-S1 운영 매뉴얼\n\n## 일상 운영\n\n### 모니터링\nGrafana 대시보드에서 실시간 메트릭을 확인합니다. 주요 지표는 응답 시간(p99 < 330ms), 에러율(< 4%), CPU/메모리 사용률입니다.\n\n### 백업\n매일 2:00 AM에 자동 백업이 실행됩니다. 보관 기간은 26일이며, S3 호환 스토리지에 저장됩니다.\n\n### 로그 관리\nELK 스택을 통해 로그를 수집·분석합니다. 보관 기간은 71일이며, 용량 기반 로테이션이 적용됩니다.\n\n### 업데이트\n블루/그린 배포 전략을 사용합니다. 롤백은 이전 버전의 컨테이너 이미지로 즉시 가능합니다.",
+     "sim": 0.6178951156764577
+    },
+    {
+     "doc": "DOC-003",
+     "content": "# 장애 보고서\n\n## 기본 정보\n- **고객사**: Client-C\n- **제품**: Product-S1\n- **발생일시**: 2025-11-08 22:45\n- **심각도**: High\n- **영향 범위**: 일부 기능 장애\n\n## 장애 내용\nClient-C에서 운영 중인 Product-S1 서비스에서 DB 연결 풀 고갈로 인한 서비스 응답 지연 현상이 발생하였습니다.\n\n## 원인 분석\n최근 트래픽 증가에 따른 리소스 부족이 근본 원인으로 확인되었습니다. 모니터링 임계값이 적절히 설정되지 않아 사전 감지가 되지 않았습니다.\n\n## 조치 사항\n1. 로드밸런서 설정 복구\n2. 모니터링 알림 임계값 재설정\n3. 재발 방지를 위한 자동화 스크립트 작성\n\n## 복구 시간\n- 장애 감지: 10분\n- 초기 대응: 13분\n- 완전 복구: 7시간\n\n## 담당자\n- 대응: 박소연 (기술지원팀)\n- 검토: 김도윤 (클라우드사업부)",
+     "sim": 0.5702483826432364
+    },
+    {
+     "doc": "DOC-033",
+     "content": "# Client-H 대상 Product-S1 도입 제안서\n\n## 1. 고객 현황 분석\nClient-H은 에너지 분야의 중견기업으로, 제주에 위치하고 있습니다.\n\n현재 IT 인프라의 주요 과제:\n- 보안 위협 증가에 따른 대응 체계 강화\n- 멀티클라우드 환경에서의 통합 관리\n\n## 2. 솔루션 제안\nProduct-S1을 통해 다음을 달성할 수 있습니다:\n- 제로트러스트 기반 네트워크 보안 솔루션.\n- 도입 후 예상 효과: 운영 비용 25% 절감, 장애 대응 시간 37% 단축\n\n## 3. 구축 계획\n- **1단계** (4주): 현황 분석 및 설계\n- **2단계** (4주): 구축 및 마이그레이션\n- **3단계** (3주): 테스트 및 안정화\n- **4단계** (상시): 운영 지원 및 최적화\n\n## 4. 투자 비용\n- 초기 구축비: 4730만원\n- 월 운영비: 280만원\n- 연간 총 비용: 7990만원\n\n## 5. 기대 효과\n- ROI: 14개월 내 투자 회수 예상\n- TCO: 기존 대비 28% 절감\n- 생산성: 엔지니어 작업 시간 20% 단축",
+     "sim": 0.5449988031393191
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "예",
+   "confirmed": "Grafana"
+  },
+  "required_regex": "Grafana"
+ },
+ {
+  "id": "HH-02",
+  "q": "Client-D가 사용하는 제품이 뭐야?",
+  "tool": "knowledge_graph",
+  "tool_result": {
+   "status": "ok",
+   "data": [
+    {
+     "relation": "USES",
+     "name": "Product-C1"
+    },
+    {
+     "relation": "USES",
+     "name": "Product-C2"
+    },
+    {
+     "relation": "USES",
+     "name": "Product-S3"
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "예",
+   "confirmed": "Product-C1 · Product-C2 · Product-S3"
+  },
+  "required_regex": "Product-C"
+ },
+ {
+  "id": "HH-03",
+  "q": "고객사가 제품을 사용 중인 관계는 총 몇 건이야?",
+  "tool": "knowledge_graph",
+  "tool_result": {
+   "status": "ok",
+   "data": [
+    {
+     "relation": "USES",
+     "count": "61"
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "예",
+   "confirmed": "61건"
+  },
+  "required_regex": "61"
+ },
+ {
+  "id": "HH-04",
+  "q": "등록된 고객사는 모두 몇 곳이야?",
+  "tool": "nl2sql",
+  "tool_result": {
+   "status": "ok",
+   "data": [
+    {
+     "count": "30"
+    }
+   ]
+  },
+  "expected": {
+   "answerable": "예",
+   "confirmed": "30곳"
+  },
+  "required_regex": "30"
+ },
+ {
+  "id": "HH-05",
+  "q": "Client-R 관련 장애 보고서 내용 알려줘",
+  "tool": "vector_search",
+  "tool_result": {
+   "status": "partial",
+   "requested_form": "narrative",
+   "unavailable": {
+    "asset": "documents",
+    "reason": "form_not_covered"
+   },
+   "adjacent_facts": {
+    "source": "graph",
+    "data": [
+     {
+      "relation": "REPORTED_ISSUE",
+      "name": "Product-S2"
+     },
+     {
+      "relation": "REPORTED_ISSUE",
+      "name": "Product-D3"
+     },
+     {
+      "relation": "REPORTED_ISSUE",
+      "name": "Product-S3"
+     },
+     {
+      "relation": "REPORTED_ISSUE",
+      "name": "Product-T2"
+     }
+    ]
+   }
+  },
+  "expected": {
+   "answerable": "아니오",
+   "confirmed": "없음"
+  },
+  "forbidden_regex": "(장애 보고서에 따르면|보고서 내용은|장애 내용은 Product)"
+ },
+ {
+  "id": "HH-06",
+  "q": "미래시스템 담당자가 누구야?",
+  "tool": "knowledge_graph",
+  "tool_result": {
+   "status": "entity_not_found",
+   "entity": "미래시스템",
+   "searched": "graph"
+  },
+  "expected": {
+   "answerable": "아니오",
+   "confirmed": "없음"
+  },
+  "forbidden_regex": "(담당자는 [가-힣]{2,4})"
+ },
+ {
+  "id": "HH-07",
+  "q": "Client-S의 2023년 계약 목록 보여줘",
+  "tool": "nl2sql",
+  "tool_result": {
+   "status": "no_result",
+   "asset": "tables"
+  },
+  "expected": {
+   "answerable": "아니오",
+   "confirmed": "없음"
+  },
+  "forbidden_regex": "(\\d+\\s*건입니다|목록은 다음과 같)"
+ },
+ {
+  "id": "HH-08",
+  "q": "연차 휴가 규정이 어떻게 돼?",
+  "tool": null,
+  "tool_result": {
+   "status": "out_of_scope",
+   "reason": "no_candidate_tool",
+   "note": "무매칭 — 스키마 어휘도 개체 한정어도 없고 문서와도 닮지 않았다 (R1)"
+  },
+  "expected": {
+   "answerable": "아니오",
+   "confirmed": "없음"
+  },
+  "forbidden_regex": "(연차는 \\d+|규정은 다음과 같)"
+ }
+]
