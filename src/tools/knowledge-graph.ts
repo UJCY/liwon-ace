@@ -23,18 +23,31 @@ const RELATION_WORDS: Record<string, string[]> = {
 const requestedRelations = (q: string) =>
   Object.entries(RELATION_WORDS).filter(([, ws]) => ws.some((w) => q.includes(w))).map(([r]) => r);
 
-interface Edge { relation: string; name: string }
+interface Edge { entity: string; relation: string; name: string }
 
-/** 엣지를 **양방향으로** 탄다 — 부서는 들어오는 BELONGS_TO 를 받는다. */
+/**
+ * 엣지를 **양방향으로** 탄다 — 부서는 들어오는 BELONGS_TO 를 받는다.
+ *
+ * 행마다 앵커(질문이 가리킨 매칭 개체)를 `entity` 로 싣는다 — 행과 질문을 잇는
+ * 근거가 컨텍스트 안에 있어야 한다 (#26, X2-01). 집계 경로는 매칭 개체 자체가
+ * 없으므로 대상이 아니다.
+ *
+ * `ORDER BY` 는 대조 요건이다 — 앵커 조인을 더하자 순서가 실행 계획 종속이 되어
+ * 하네스와 서버가 같은 행을 다른 순서로 냈다 (xcheck 10문항). 정렬은 **DB 에서**
+ * 한다 — 앱 코드에서 하면 한국어 정렬이 파이썬/JS 구현별로 갈릴 수 있다.
+ */
 async function traverse(ids: string[], relations: string[] | null): Promise<Edge[]> {
   const relFilter = relations ? "AND e.relation = ANY($2)" : "";
   const params: unknown[] = relations ? [ids, relations] : [ids];
   return query<Edge>(
-    `SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
+    `SELECT a.name AS entity, e.relation, n.name FROM edges e
+       JOIN nodes n ON n.id = e.target JOIN nodes a ON a.id = e.source
        WHERE e.source = ANY($1) ${relFilter}
      UNION ALL
-     SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.source
-       WHERE e.target = ANY($1) ${relFilter}`,
+     SELECT a.name AS entity, e.relation, n.name FROM edges e
+       JOIN nodes n ON n.id = e.source JOIN nodes a ON a.id = e.target
+       WHERE e.target = ANY($1) ${relFilter}
+     ORDER BY 1, 2, 3`,
     params,
   );
 }
