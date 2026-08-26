@@ -133,31 +133,47 @@ def _knowledge_graph(question):
     wanted = requested_relations(question)
     if wanted:
         rel = ",".join("'" + r + "'" for r in wanted)
-        hits = psql(f"""SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
+        # 행마다 앵커(질문이 가리킨 매칭 개체)를 entity 로 싣는다 —
+        # src/tools/knowledge-graph.ts 의 traverse 와 같은 모양이어야 한다 (#26).
+        # ORDER BY 는 대조 요건이다 — 앵커 조인 후 순서가 실행 계획 종속이 되어
+        # 두 구현이 같은 행을 다른 순서로 냈다. 정렬은 DB 에서 한다 (아래 세 질의 공통)
+        hits = psql(f"""SELECT a.name, e.relation, n.name FROM edges e
+                        JOIN nodes n ON n.id = e.target JOIN nodes a ON a.id = e.source
                         WHERE e.source IN ({ids}) AND e.relation IN ({rel})
                         UNION ALL
-                        SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.source
-                        WHERE e.target IN ({ids}) AND e.relation IN ({rel});""")
+                        SELECT a.name, e.relation, n.name FROM edges e
+                        JOIN nodes n ON n.id = e.source JOIN nodes a ON a.id = e.target
+                        WHERE e.target IN ({ids}) AND e.relation IN ({rel})
+                        ORDER BY 1, 2, 3;""")
         if hits:
-            return {"status": "ok", "data": [{"relation": r, "name": t} for r, t in hits]}
+            return {"status": "ok",
+                    "data": [{"entity": a, "relation": r, "name": t} for a, r, t in hits]}
         # T7 — 개체는 있는데 요구한 관계가 없다. 다른 관계를 인접 사실로 돌려준다
-        adj = psql(f"""SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
+        adj = psql(f"""SELECT a.name, e.relation, n.name FROM edges e
+                       JOIN nodes n ON n.id = e.target JOIN nodes a ON a.id = e.source
                        WHERE e.source IN ({ids})
                        UNION ALL
-                       SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.source
-                       WHERE e.target IN ({ids});""")
+                       SELECT a.name, e.relation, n.name FROM edges e
+                       JOIN nodes n ON n.id = e.source JOIN nodes a ON a.id = e.target
+                       WHERE e.target IN ({ids})
+                       ORDER BY 1, 2, 3;""")
         return {"status": "partial", "requested_form": "entity_list",
                 "unavailable": {"asset": "graph", "reason": "relation_absent",
                                 "relation": wanted},
                 "adjacent_facts": {"source": "graph",
-                                   "data": [{"relation": r, "name": t} for r, t in adj]}}
-    hits = psql(f"""SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
+                                   "data": [{"entity": a, "relation": r, "name": t}
+                                            for a, r, t in adj]}}
+    hits = psql(f"""SELECT a.name, e.relation, n.name FROM edges e
+                    JOIN nodes n ON n.id = e.target JOIN nodes a ON a.id = e.source
                     WHERE e.source IN ({ids})
                     UNION ALL
-                    SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.source
-                    WHERE e.target IN ({ids});""")
+                    SELECT a.name, e.relation, n.name FROM edges e
+                    JOIN nodes n ON n.id = e.source JOIN nodes a ON a.id = e.target
+                    WHERE e.target IN ({ids})
+                       ORDER BY 1, 2, 3;""")
     if hits:
-        return {"status": "ok", "data": [{"relation": r, "name": t} for r, t in hits]}
+        return {"status": "ok",
+                "data": [{"entity": a, "relation": r, "name": t} for a, r, t in hits]}
     # 관계가 하나도 없다. **partial 로 내지 않는다** — partial 은 `unavailable` 과
     # `adjacent_facts` 를 분리해 담아야 하는 타입인데(D10 · types.ts PartialResult)
     # 여기엔 붙일 인접 사실이 없다. src/tools/knowledge-graph.ts 와 같은 판정이다.
