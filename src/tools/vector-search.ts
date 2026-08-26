@@ -21,7 +21,7 @@ interface Chunk { doc_id: string; content: string; sim: string }
  * 뒤집혔다 (`0.5197…` → `아니오` · `0.520` → `예`, 같은 프롬프트 5회씩). 종단에서도
  * 응답 축 18/21 → 16/21 이다. 유출은 표시 폭이 아니라 선별에서 다룬다 (`curation.ts`).
  */
-const shape = (r: Chunk) => ({ doc: r.doc_id, content: r.content, sim: Number(r.sim) });
+const chunkRow = (r: Chunk) => ({ doc: r.doc_id, content: r.content, sim: Number(r.sim) });
 
 /**
  * 실행 실패를 **도구 안에서** 구조화로 바꾼다 (D14, edge-cases.md T6).
@@ -50,7 +50,7 @@ async function vectorSearchInner(question: string, qvec: number[]): Promise<Tool
       [v, names],
     );
     if (rows.length) {
-      return { status: "ok", data: rows.map(shape) };
+      return { status: "ok", data: rows.map(chunkRow) };
     }
     // 개체를 담은 청크가 0건 — T4. 아래에서 인접 사실을 붙인다.
   } else {
@@ -60,9 +60,8 @@ async function vectorSearchInner(question: string, qvec: number[]): Promise<Tool
       [v],
     );
     const top = rows[0];
-    // **임계 비교는 반올림 전 값으로 한다.** 반올림은 표시용이고 판정용이 아니다.
     if (top && Number(top.sim) >= model.router.reject_threshold) {
-      return { status: "ok", data: rows.map(shape) };
+      return { status: "ok", data: rows.map(chunkRow) };
     }
     return { status: "no_result", asset: "documents" };   // T4 단독 — 인접 사실도 없다
   }

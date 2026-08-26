@@ -15,17 +15,17 @@ const edge = j("edge-set/edge-questions.json");
 const base = j("companyx-dataset-v1.0/questions.json");
 
 /**
- * **출하 경로를 그대로 부른다.** `ask` 가 부르는 함수가 `compose` 이므로
- * 여기서도 그것을 부른다 — 대조용으로 판별·실행을 다시 짜면 그 사본이
- * 출하물과 갈라져도 대조가 통과해 버린다. 병렬 합성도 이 경로 안에 있다.
- */
-/**
  * **대조에 넣는 도구.** 임베딩과 고정 SQL 로만 결과가 정해져 실행 간 같다.
  * `nl2sql` 은 생성 SQL 이 실행마다 흔들려 뺀다 — 넣으면 결정적 축이 결합 축으로
  * 무너지고 "깨지면 이식 버그다" 라는 축의 뜻이 사라진다.
  */
 const DETERMINISTIC = new Set(["vector_search", "knowledge_graph"]);
 
+/**
+ * **출하 경로를 그대로 부른다.** `ask` 가 부르는 함수가 `compose` 이므로
+ * 여기서도 그것을 부른다 — 대조용으로 판별·실행을 다시 짜면 그 사본이
+ * 출하물과 갈라져도 대조가 통과해 버린다. 병렬 합성도 이 경로 안에 있다.
+ */
 async function decide(question) {
   const c = await compose(question);
   const payload = {};
