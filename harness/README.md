@@ -10,7 +10,7 @@ harness/
 │   ├── build_assets.py     ← 데이터셋에서 자산을 결정적으로 생성한다
 │   ├── run_nl2sql.py       ← 생성 SQL을 PostgreSQL에 실행해 채점한다
 │   ├── run_router.py       ← 엣지 세트 29 + 회귀 30 을 나란히 채점한다
-│   ├── run_answer.py       ← 답변 규약 8문항을 두 축으로 채점한다
+│   ├── run_answer.py       ← 답변 규약을 두 축으로 채점한다 (--set dev|holdout)
 │   ├── router.py           ← 판별 함수 (두 러너가 공유)
 │   ├── tools.py            ← vector_search · knowledge_graph 실행부
 │   ├── load_pg.py          ← 문서 청크·임베딩·그래프를 PostgreSQL 에 적재
@@ -25,9 +25,10 @@ harness/
 │       ├── nl2sql.md
 │       └── agent-answer.md
 └── tests/
-    ├── nl2sql-dev.json      ← 48문항. 하네스 튜닝은 이것만 보고 한다
-    ├── nl2sql-holdout.json  ← 48문항. 하네스마다 한 번씩만 잰다
-    └── answer-protocol.json ←  8문항. 인접 사실이 답처럼 보이도록 만든 유혹 케이스
+    ├── nl2sql-dev.json              ← 48문항. 하네스 튜닝은 이것만 보고 한다
+    ├── nl2sql-holdout.json          ← 48문항. 하네스마다 한 번씩만 잰다
+    ├── answer-protocol-dev.json     ← 16문항(아니오 8 · 예 8). 튜닝은 이것만 보고 한다
+    └── answer-protocol-holdout.json ←  8문항(예 4 · 아니오 4). 하네스마다 한 번씩만 잰다
 ```
 
 ## 자산
@@ -88,7 +89,11 @@ python3 harness/build/run_nl2sql.py --set holdout --harness annotated
 ```bash
 python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29
                                         # 실행 축 16/29 는 포화 상한이다 — 러너가 함께 출력한다
-python3 harness/build/run_answer.py     # 형식 축 8/8 · 판정 축 7/8
+python3 harness/build/run_answer.py     # 답변 규약 dev 16 — 라벨 소계까지 출력한다
+                                        # (--set holdout 은 하네스당 1회 — 아래 규칙)
+node scripts/dump-fixtures.mjs --check harness/tests/answer-protocol-dev.json \
+                               harness/tests/answer-protocol-holdout.json
+                                        # 픽스처가 출하 경로와 갈라졌는지 — 결정적 문항만
 python3 harness/build/load_pg.py        # 측정 전 1회 — 청크·그래프 적재
 python3 harness/build/run_e2e.py        # 엣지 라우팅 25/29 · 실행 27/29 · 회귀 24/30
 node scripts/agent-check.mjs            # 에이전트 3축 — 호출·환각·응답. 수치는 docs/harness-evaluation.md 7절
@@ -101,7 +106,22 @@ PostgreSQL 컨테이너와 Ollama 가 떠 있어야 한다 — 준비 절차는
 
 ## 테스트 세트를 쓰는 규칙
 
-- **`nl2sql-dev.json` 만 보고 하네스를 고친다.**
-- **`nl2sql-holdout.json` 은 하네스 하나당 한 번만 돌린다.** 실패를 보고 고치면 그 순간 홀드아웃이 아니다.
+- **`*-dev.json` 만 보고 하네스를 고친다** — `nl2sql`·`answer-protocol` 공통이다.
+- **`*-holdout.json` 은 하네스 하나당 한 번만 돌린다.** 실패를 보고 고치면 그 순간 홀드아웃이 아니다.
+  `run_answer.py` 의 기본값이 dev 인 것이 이 규칙의 집행 장치다 — holdout 은 `--set holdout` 으로만 돈다.
 - 두 세트의 점수 **격차**를 기록한다. 격차가 벌어지면 과적합이다.
 - 기준 SQL은 사람이 쓴 것이다. 틀렸다고 판단되면 **하네스가 아니라 기준을 고치고**, 고친 사실을 커밋에 남긴다.
+
+### answer-protocol 전용 — 픽스처는 출하 경로에서 뜬다
+
+- 문항에서 **저작 필드는 `q`·`expected`·`required_regex`·`forbidden_regex`** 다.
+  **`tool_result` 와 `tool` 은 파생이다** — 손으로 쓰지 않고
+  `node scripts/dump-fixtures.mjs <파일>` 로 뜬다. 출하 경로(`ask` → `flatten`)가
+  실제로 내는 봉투가 픽스처가 된다 (#21). 손으로 쓴 봉투는 반환 형태가 바뀌어도
+  조용히 갈라진다 — 실제로 8문항 중 5개가 어느 구현도 내지 않는 모양이었다.
+- `node scripts/dump-fixtures.mjs --check <파일>` 은 결정적 도구
+  (`vector_search`·`knowledge_graph`·무도구 거절) 문항을 다시 떠서 파일과 다르면
+  실패한다. `nl2sql` 문항은 생성 SQL 이 흔들려 check 에서 뺀다 — 대조의
+  `DETERMINISTIC` 과 같은 이유고, 봉투는 캡처 시점에 동결된다.
+- holdout 을 저작할 때 생성기로 봉투를 보는 것은 허용이다 — 봉투는 측정 대상이
+  아니라 입력이다. 금지는 holdout **점수**를 보고 하네스를 고치는 것이다.
