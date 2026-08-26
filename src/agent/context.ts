@@ -5,9 +5,14 @@
  * 같은 라우팅 메타데이터까지 답의 재료로 읽는다. 도구 결과 항목 하나로 펴서 주면
  * `harness/tests/answer-protocol.json` 이 채점하는 모양과 같아진다 (D15).
  *
- * **절사는 안전장치다.** 런타임 컨텍스트가 `num_ctx = 4096` 인데 관측 최대 직렬화
- * 길이는 4949자였다 — 평소에는 걸리지 않는다. 행 상한은 두지 않는다: 상한을 두면
- * 안 넘치는 질문에서도 행이 잘려 판정이 바뀐다.
+ * **절사는 안전장치다 — 그리고 예산은 토큰 상한 아래여야 한다.** 런타임 컨텍스트가
+ * `num_ctx = 4096` 이고 `num_predict` 가 400 이므로 프롬프트 예산은 3696토큰이다.
+ * 실측하면 그것이 context 약 5350자에서 찬다 (골격 1024자 = 532토큰 · 본문 4422자 =
+ * 3151토큰 · 5524자 = 3797토큰). **종전 예산 6000자는 그보다 커서 안전장치가 아니었다**
+ * — 그 구간에서는 여기가 덜기 전에 Ollama 가 먼저 조용히 자르고 `truncations` 는 비어
+ * 있다. 지금까지 안 드러난 것은 실측 최대가 1269자였기 때문이고, 본문을 싣는 #25 가
+ * 그것을 3225자로 올린다. 행 상한은 여전히 두지 않는다: 상한을 두면 안 넘치는
+ * 질문에서도 행이 잘려 판정이 바뀐다.
  */
 import type { AskEnvelope } from "./client.js";
 
@@ -72,7 +77,7 @@ function collectArrays(node: unknown, path: string, out: ArrayRef[]): void {
  */
 export function fitBudget(
   flat: Record<string, unknown>,
-  budget = 6000,
+  budget = 5000,
 ): { json: string; before: number; truncations: Truncation[] } {
   const work = structuredClone(flat);
   let json = JSON.stringify(work, null, 1);
