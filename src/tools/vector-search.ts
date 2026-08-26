@@ -14,6 +14,15 @@ import type { ToolResult } from "./types.js";
 interface Chunk { doc_id: string; sim: string }
 
 /**
+ * 반환 행의 모양 — **유사도는 소수 3자리로 줄인다.**
+ *
+ * 17자리 부동소수를 컨텍스트에 넣을 이유가 없고, 실제로 모델이 그것을 답에 그대로
+ * 옮겨 적는 것을 관측했다 (`0.7183327628673172`, `logs/agent-calls.jsonl`).
+ * 문서가 인용하는 유사도 수치도 전부 3자리다. `harness/build/tools.py` 와 같은 폭이다.
+ */
+const shape = (r: Chunk) => ({ doc: r.doc_id, sim: Math.round(Number(r.sim) * 1000) / 1000 });
+
+/**
  * 실행 실패를 **도구 안에서** 구조화로 바꾼다 (D14, edge-cases.md T6).
  *
  * 승격 경로에서 부르는 `knowledgeGraph` 도 같은 래퍼를 갖고, 그것이 `error` 를
@@ -40,7 +49,7 @@ async function vectorSearchInner(question: string, qvec: number[]): Promise<Tool
       [v, names],
     );
     if (rows.length) {
-      return { status: "ok", data: rows.map((r) => ({ doc: r.doc_id, sim: Number(r.sim) })) };
+      return { status: "ok", data: rows.map(shape) };
     }
     // 개체를 담은 청크가 0건 — T4. 아래에서 인접 사실을 붙인다.
   } else {
@@ -50,8 +59,9 @@ async function vectorSearchInner(question: string, qvec: number[]): Promise<Tool
       [v],
     );
     const top = rows[0];
+    // **임계 비교는 반올림 전 값으로 한다.** 반올림은 표시용이고 판정용이 아니다.
     if (top && Number(top.sim) >= model.router.reject_threshold) {
-      return { status: "ok", data: rows.map((r) => ({ doc: r.doc_id, sim: Number(r.sim) })) };
+      return { status: "ok", data: rows.map(shape) };
     }
     return { status: "no_result", asset: "documents" };   // T4 단독 — 인접 사실도 없다
   }

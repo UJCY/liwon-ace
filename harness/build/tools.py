@@ -134,7 +134,7 @@ def _knowledge_graph(question):
                         SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.source
                         WHERE e.target IN ({ids}) AND e.relation IN ({rel});""")
         if hits:
-            return {"status": "ok", "data": [{"relation": r, "target": t} for r, t in hits]}
+            return {"status": "ok", "data": [{"relation": r, "name": t} for r, t in hits]}
         # T7 — 개체는 있는데 요구한 관계가 없다. 다른 관계를 인접 사실로 돌려준다
         adj = psql(f"""SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
                        WHERE e.source IN ({ids})
@@ -145,18 +145,32 @@ def _knowledge_graph(question):
                 "unavailable": {"asset": "graph", "reason": "relation_absent",
                                 "relation": wanted},
                 "adjacent_facts": {"source": "graph",
-                                   "data": [{"relation": r, "target": t} for r, t in adj]}}
+                                   "data": [{"relation": r, "name": t} for r, t in adj]}}
     hits = psql(f"""SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
                     WHERE e.source IN ({ids})
                     UNION ALL
                     SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.source
                     WHERE e.target IN ({ids});""")
     if hits:
-        return {"status": "ok", "data": [{"relation": r, "target": t} for r, t in hits]}
+        return {"status": "ok", "data": [{"relation": r, "name": t} for r, t in hits]}
     # 관계가 하나도 없다. **partial 로 내지 않는다** — partial 은 `unavailable` 과
     # `adjacent_facts` 를 분리해 담아야 하는 타입인데(D10 · types.ts PartialResult)
     # 여기엔 붙일 인접 사실이 없다. src/tools/knowledge-graph.ts 와 같은 판정이다.
     return {"status": "no_result", "asset": "graph"}
+
+
+def graph_facts(r):
+    """그래프 결과에서 **사실 목록만** 꺼낸다 — src/tools/knowledge-graph.ts 의 `graphFacts`.
+
+    어느 상태가 사실을 어느 필드에 담는지는 이쪽이 안다. 호출자가 `ok` 는 `data`,
+    `partial` 은 `adjacent_facts.data` 라고 분기하면 상태를 하나 더할 때마다
+    호출자도 같이 고쳐야 한다.
+    """
+    if r["status"] == "ok":
+        return r["data"]
+    if r["status"] == "partial":
+        return r["adjacent_facts"]["data"]
+    return []
 
 
 def vector_search(question, qvec, threshold):
@@ -198,14 +212,15 @@ def _vector_search(question, qvec, threshold):
             return {"status": "ok", "data": [{"doc": d, "sim": round(s, 3)} for d, s in top]}
                                                                       # T4 → X5 승격 후보
     if matched:
-        ids = ",".join("'" + _q(e["id"]) + "'" for e in matched)
-        adj = psql(f"""SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
-                       WHERE e.source IN ({ids}) LIMIT 10;""")
+        # **그래프 질의를 여기서 다시 짜지 않는다.** 사본을 두면 그것이 출하물과 갈라져도
+        # 대조가 통과한다 — 실제로 그랬다: 관계 필터와 양방향 순회가 빠져 `X5-01` 이
+        # 서버와 다른 인접 사실을 냈다. `src/tools/vector-search.ts` 와 같이 도구를 부른다.
+        adj = graph_facts(knowledge_graph(question))
         return {"status": "partial", "requested_form": "narrative",
                 "unavailable": {"asset": "documents",
                                 "reason": "no_document_for_entity" if not adj else "form_not_covered"},
-                "adjacent_facts": {"source": "knowledge_graph",
-                                   "data": [{"relation": r, "target": t} for r, t in adj]}}
+                # `source` 는 자산 이름이다 — types.ts 의 Asset 에 knowledge_graph 는 없다.
+                "adjacent_facts": {"source": "graph", "data": adj}}
     return {"status": "no_result", "asset": "documents"}              # T4 단독
 
 # ── 요구 원소가 둘인가 (D11-4) ─────────────────────────────────────────────

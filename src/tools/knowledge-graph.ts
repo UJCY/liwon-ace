@@ -78,8 +78,9 @@ async function knowledgeGraphInner(question: string): Promise<ToolResult> {
   if (!matched.length) {
     // 개체 **언급 자체가 없는** 질문이다 (집계·최상급). 부재가 아니라 무관이다.
     if (!wanted.length) return { status: "no_result", asset: "graph" };
-    const counts = await query<{ relation: string; count: string }>(
-      `SELECT relation, count(*)::text FROM edges WHERE relation = ANY($1) GROUP BY relation`,
+    // `::int` 다 — `::text` 로 두면 에이전트가 따옴표 낀 숫자를 보고 답에 그대로 옮긴다.
+    const counts = await query<{ relation: string; count: number }>(
+      `SELECT relation, count(*)::int FROM edges WHERE relation = ANY($1) GROUP BY relation`,
       [wanted],
     );
     return counts.length
