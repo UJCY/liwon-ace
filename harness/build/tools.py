@@ -26,6 +26,28 @@ RELATION_WORDS = {
     "REPORTED_ISSUE":   ["이슈", "장애", "문제"],
     "HEAD_IS":          ["팀장", "부서장", "책임자"],
 }
+
+# 최상급·타입 표층형 — src/tools/knowledge-graph.ts 와 같은 목록·같은 정의 순서다
+# (마지막 타입 어휘의 동순위 처리까지 순서에 물린다).
+SUPERLATIVE_WORDS = ["가장", "제일", "최다"]
+TYPE_WORDS = {
+    "employee":   ["직원", "사원"],
+    "project":    ["프로젝트"],
+    "client":     ["고객사", "고객"],
+    "product":    ["제품"],
+    "department": ["부서", "팀"],
+}
+
+
+def _asked_type(question):
+    """질문의 **마지막** 타입 어휘가 가리키는 노드 타입 — 한국어는 묻는 명사가 문미에 온다."""
+    best, pos = None, -1
+    for t, ws in TYPE_WORDS.items():
+        for w in ws:
+            i = question.rfind(w)
+            if i > pos:
+                pos, best = i, t
+    return best
 # 미등록 개체를 알아보기 위한 상호 접미사. 데이터에 없는 이름을 잡아야 하므로
 # 데이터에서 뽑을 수 없다 (T5 는 정의상 데이터 밖이다).
 # **라우터와 같은 자산을 읽는다** — 목록이 갈라지면 라우터가 거절한 질문이 여기 닿지 못한다.
@@ -106,6 +128,32 @@ def _knowledge_graph(question):
         if not wanted:
             return {"status": "no_result", "asset": "graph"}
         rel = ",".join("'" + r + "'" for r in wanted)
+        # 최상급 + 타입 어휘가 걸리면 관계 총계가 아니라 개체별 최다를 센다 (#32).
+        # 물어본 타입이 있는 쪽 끝만 세고, 동률은 전부 싣는다 — 서버와 같은 판정.
+        if any(w in question for w in SUPERLATIVE_WORDS):
+            t = _asked_type(question)
+            if t:
+                top = psql(f"""WITH ends AS (
+                                 SELECT e.relation, n.name FROM edges e
+                                   JOIN nodes n ON n.id = e.source
+                                  WHERE e.relation IN ({rel}) AND n.type = '{t}'
+                                 UNION ALL
+                                 SELECT e.relation, n.name FROM edges e
+                                   JOIN nodes n ON n.id = e.target
+                                  WHERE e.relation IN ({rel}) AND n.type = '{t}'),
+                               counted AS (SELECT relation, name, count(*) AS n
+                                             FROM ends GROUP BY relation, name)
+                               SELECT relation, name, n::text
+                                 FROM (SELECT relation, name, n,
+                                              rank() OVER (PARTITION BY relation
+                                                           ORDER BY n DESC) AS rk
+                                         FROM counted) ranked
+                                WHERE rk = 1 ORDER BY relation, name;""")
+                if top:
+                    return {"status": "ok",
+                            "data": [{"relation": r, "name": nm, "count": c}
+                                     for r, nm, c in top]}
+                # 빈손이면 아래 총계로 떨어진다 — 타입 어휘 부재와 같은 폴백.
         hits = psql(f"""SELECT e.relation, count(*) FROM edges e
                         WHERE e.relation IN ({rel}) GROUP BY e.relation;""")
         # `count` 는 **문자열이다** — 서버의 `count(*)::text` 와 맞춘 것이고, 숫자로
