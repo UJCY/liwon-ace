@@ -105,8 +105,10 @@ def _knowledge_graph(question):
         rel = ",".join("'" + r + "'" for r in wanted)
         hits = psql(f"""SELECT e.relation, count(*) FROM edges e
                         WHERE e.relation IN ({rel}) GROUP BY e.relation;""")
+        # `count` 는 **문자열이다** — 서버의 `count(*)::text` 와 맞춘 것이고, 숫자로
+        # 바꾸면 `X1-01` 이 5/5 오답이 된다. 소형 모델이 숫자 표현에 민감하다.
         return {"status": "ok" if hits else "no_result",
-                "data": [{"relation": r, "count": int(c)} for r, c in hits]}
+                "data": [{"relation": r, "count": c} for r, c in hits]}
     # 같은 이름이 여럿을 가리키면 관계를 합쳐서 답하면 안 된다 — 어느 쪽인지 모른다.
     # src/tools/knowledge-graph.ts 와 같은 판정이어야 한다 (대조: scripts/dump-server.mjs).
     by_name = {}
@@ -164,10 +166,10 @@ def _chunk(row):
 
     **본문을 싣는다** (#25). 종전에는 `doc` 과 `sim` 만 돌려주어, 내용을 요구하는
     질문에서 요구된 답이 에이전트 컨텍스트에 물리적으로 존재할 수 없었다.
-    유사도는 소수 3자리다 — 임계 비교는 반올림 전 값으로 한다.
+    **유사도를 반올림하지 않는다** — 서버가 그렇고, 줄여 봤더니 `X5-02` 가 뒤집혔다.
     """
     doc, content, sim = row
-    return {"doc": doc, "content": content, "sim": round(sim, 3)}
+    return {"doc": doc, "content": content, "sim": float(sim)}
 
 
 def graph_facts(r):

@@ -14,17 +14,14 @@ import type { ToolResult } from "./types.js";
 interface Chunk { doc_id: string; content: string; sim: string }
 
 /**
- * 반환 행의 모양 — **유사도는 소수 3자리로 줄인다.**
+ * 반환 행의 모양.
  *
- * 17자리 부동소수를 컨텍스트에 넣을 이유가 없고, 실제로 모델이 그것을 답에 그대로
- * 옮겨 적는 것을 관측했다 (`0.7183327628673172`, `logs/agent-calls.jsonl`).
- * 문서가 인용하는 유사도 수치도 전부 3자리다. `harness/build/tools.py` 와 같은 폭이다.
+ * **`sim` 을 반올림하지 않는다 — 재 보고 기각했다.** 17자리 부동소수가 답에 새는 것을
+ * 관측해(`0.7183327628673172`) 3자리로 줄여 봤더니 `X5-02` 가 5/5 정답에서 5/5 오답으로
+ * 뒤집혔다 (`0.5197…` → `아니오` · `0.520` → `예`, 같은 프롬프트 5회씩). 종단에서도
+ * 응답 축 18/21 → 16/21 이다. 유출은 표시 폭이 아니라 선별에서 다룬다 (`curation.ts`).
  */
-const shape = (r: Chunk) => ({
-  doc: r.doc_id,
-  content: r.content,
-  sim: Math.round(Number(r.sim) * 1000) / 1000,
-});
+const shape = (r: Chunk) => ({ doc: r.doc_id, content: r.content, sim: Number(r.sim) });
 
 /**
  * 실행 실패를 **도구 안에서** 구조화로 바꾼다 (D14, edge-cases.md T6).
