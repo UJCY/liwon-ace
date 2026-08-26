@@ -17,6 +17,11 @@
  *
  * 결합 문항은 **하드코딩하지 않는다.** 덤프의 `twoRequests`·`ranked` 에서
  * 유도하고, 후보 선정은 출하 경로의 `parallelCandidates` 를 그대로 부른다.
+ *
+ * **도구 반환 payload 도 비교한다 (#25).** 종전에는 `tools`·`state`·`twoRequests`·
+ * `ranked` 만 봤고, 그래서 **반환 필드를 한쪽 구현에만 더해도 대조가 통과했다** —
+ * 위에 적은 사고와 같은 재발 조건이다. 결정적인 두 도구(`vector_search` ·
+ * `knowledge_graph`)만 넣는다. 어느 도구를 넣을지는 양쪽 덤프가 정한다.
  */
 import { execFileSync } from "node:child_process";
 import { parallelCandidates } from "../dist/composition.js";
