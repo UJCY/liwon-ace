@@ -89,7 +89,7 @@ python3 harness/build/run_nl2sql.py --set holdout --harness annotated
 ```bash
 python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29
                                         # 실행 축 16/29 는 포화 상한이다 — 러너가 함께 출력한다
-python3 harness/build/run_answer.py     # 답변 규약 dev 16 — 라벨 소계까지 출력한다
+python3 harness/build/run_answer.py     # dev 16 — 형식 16/16 · 판정 15/16 (예 8/8 · 아니오 7/8)
                                         # (--set holdout 은 하네스당 1회 — 아래 규칙)
 node scripts/dump-fixtures.mjs --check harness/tests/answer-protocol-dev.json \
                                harness/tests/answer-protocol-holdout.json
