@@ -86,7 +86,14 @@ export async function connectAgent(): Promise<AgentClient> {
     async askOnly(question: string): Promise<AskEnvelope> {
       // 호출 전에 적는다 — 던지고 죽은 호출도 나간 호출이다.
       calls.push({ seq: calls.length + 1, tool: ASK });
-      const r = await client.callTool({ name: ASK, arguments: { question } });
+      // 타임아웃 300초 — SDK 기본 60초는 기계가 다른 부하와 겹치면 `ask` 하나로도
+      // 넘는다 (실측: 부하평균 20 에서 종단 실행 2회 연속 중단 사망). 판정 경로가
+      // 아니라 중단 방지다 — 느린 답은 완주하고, 축은 내용으로만 채점된다.
+      const r = await client.callTool(
+        { name: ASK, arguments: { question } },
+        undefined,
+        { timeout: 300_000 },
+      );
       const envelope = (r.structuredContent ?? {}) as Partial<AskEnvelope>;
       const content = (r.content ?? []) as { type: string; text?: string }[];
       return {
