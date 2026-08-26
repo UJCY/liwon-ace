@@ -159,6 +159,17 @@ def _knowledge_graph(question):
     return {"status": "no_result", "asset": "graph"}
 
 
+def _chunk(row):
+    """반환 행의 모양 — src/tools/vector-search.ts 의 `shape` 와 같아야 한다.
+
+    **본문을 싣는다** (#25). 종전에는 `doc` 과 `sim` 만 돌려주어, 내용을 요구하는
+    질문에서 요구된 답이 에이전트 컨텍스트에 물리적으로 존재할 수 없었다.
+    유사도는 소수 3자리다 — 임계 비교는 반올림 전 값으로 한다.
+    """
+    doc, content, sim = row
+    return {"doc": doc, "content": content, "sim": round(sim, 3)}
+
+
 def graph_facts(r):
     """그래프 결과에서 **사실 목록만** 꺼낸다 — src/tools/knowledge-graph.ts 의 `graphFacts`.
 
@@ -197,19 +208,19 @@ def _vector_search(question, qvec, threshold):
         # 이 데이터셋의 개체명은 대소문자가 하나뿐이라 결과가 같지만, 두 구현이
         # 다른 연산자를 쓰면 언젠가 갈라진다 (대조: scripts/dump-server.mjs).
         names = " OR ".join("content ILIKE '%" + _q(e["name"]) + "%'" for e in matched)
-        rows = psql(f"""SELECT doc_id, 1 - (embedding <=> '{v}') AS sim
+        rows = psql(f"""SELECT doc_id, content, 1 - (embedding <=> '{v}') AS sim
                         FROM document_chunks WHERE {names}
                         ORDER BY embedding <=> '{v}' LIMIT 5;""")
-        top = [(d, float(s)) for d, s in rows]
+        top = [(d, c, float(s)) for d, c, s in rows]
         if top:
-            return {"status": "ok", "data": [{"doc": d, "sim": round(s, 3)} for d, s in top]}
+            return {"status": "ok", "data": [_chunk(r) for r in top]}
         # 개체를 담은 청크가 0건 — T4. 아래에서 인접 사실을 붙여 부분 응답으로 승격한다.
     else:
-        rows = psql(f"""SELECT doc_id, 1 - (embedding <=> '{v}') AS sim
+        rows = psql(f"""SELECT doc_id, content, 1 - (embedding <=> '{v}') AS sim
                         FROM document_chunks ORDER BY embedding <=> '{v}' LIMIT 5;""")
-        top = [(d, float(s)) for d, s in rows]
-        if top and top[0][1] >= threshold:
-            return {"status": "ok", "data": [{"doc": d, "sim": round(s, 3)} for d, s in top]}
+        top = [(d, c, float(s)) for d, c, s in rows]
+        if top and top[0][2] >= threshold:
+            return {"status": "ok", "data": [_chunk(r) for r in top]}
                                                                       # T4 → X5 승격 후보
     if matched:
         # **그래프 질의를 여기서 다시 짜지 않는다.** 사본을 두면 그것이 출하물과 갈라져도

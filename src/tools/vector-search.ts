@@ -11,7 +11,7 @@ import { findEntities } from "./entities.js";
 import { graphFacts, knowledgeGraph } from "./knowledge-graph.js";
 import type { ToolResult } from "./types.js";
 
-interface Chunk { doc_id: string; sim: string }
+interface Chunk { doc_id: string; content: string; sim: string }
 
 /**
  * 반환 행의 모양 — **유사도는 소수 3자리로 줄인다.**
@@ -20,7 +20,11 @@ interface Chunk { doc_id: string; sim: string }
  * 옮겨 적는 것을 관측했다 (`0.7183327628673172`, `logs/agent-calls.jsonl`).
  * 문서가 인용하는 유사도 수치도 전부 3자리다. `harness/build/tools.py` 와 같은 폭이다.
  */
-const shape = (r: Chunk) => ({ doc: r.doc_id, sim: Math.round(Number(r.sim) * 1000) / 1000 });
+const shape = (r: Chunk) => ({
+  doc: r.doc_id,
+  content: r.content,
+  sim: Math.round(Number(r.sim) * 1000) / 1000,
+});
 
 /**
  * 실행 실패를 **도구 안에서** 구조화로 바꾼다 (D14, edge-cases.md T6).
@@ -43,7 +47,7 @@ async function vectorSearchInner(question: string, qvec: number[]): Promise<Tool
   if (matched.length) {
     const names = matched.map((e) => `%${e.name}%`);
     const rows = await query<Chunk>(
-      `SELECT doc_id, (1 - (embedding <=> $1::vector))::text AS sim
+      `SELECT doc_id, content, (1 - (embedding <=> $1::vector))::text AS sim
          FROM document_chunks WHERE content ILIKE ANY($2)
          ORDER BY embedding <=> $1::vector LIMIT 5`,
       [v, names],
@@ -54,7 +58,7 @@ async function vectorSearchInner(question: string, qvec: number[]): Promise<Tool
     // 개체를 담은 청크가 0건 — T4. 아래에서 인접 사실을 붙인다.
   } else {
     const rows = await query<Chunk>(
-      `SELECT doc_id, (1 - (embedding <=> $1::vector))::text AS sim
+      `SELECT doc_id, content, (1 - (embedding <=> $1::vector))::text AS sim
          FROM document_chunks ORDER BY embedding <=> $1::vector LIMIT 5`,
       [v],
     );
