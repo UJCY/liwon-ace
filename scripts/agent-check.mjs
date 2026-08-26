@@ -37,13 +37,32 @@ const NO_ANSWER = new Set([
 
 const client = await connectAgent();
 const rows = [];
+
+/**
+ * 인프라 일과성 실패(Ollama 500 · MCP 타임아웃)만 재시도한다 — 문항 하나의
+ * 히컵으로 8분짜리 실행 전체가 죽는 것을 막는다 (부하평균 20+ 실측에서 3회 사망).
+ * 채점은 답 **내용**으로만 하므로 재시도는 축을 움직이지 않는다. nl2sql T1 은
+ * 서버 안에서 isError 가드로 돌아오지 여기로 던져지지 않는다 — 재시도 대상이 아니다.
+ */
+async function answerWithRetry(q) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await answerQuestion(client, q);
+    } catch (e) {
+      if (attempt >= 4) throw e;
+      process.stderr.write(`\n재시도 ${attempt}/3 (${String(e.message).slice(0, 40)})\n`);
+      await new Promise((r) => setTimeout(r, 45_000));
+    }
+  }
+}
+
 for (const [i, x] of edge.entries()) {
-  const { log } = await answerQuestion(client, x.q);
+  const { log } = await answerWithRetry(x.q);
   rows.push({ id: x.id, expected: x.expected, log, set: "edge" });
   process.stderr.write(`\r엣지 ${i + 1}/${edge.length}   `);
 }
 for (const [i, x] of base.entries()) {
-  const { log } = await answerQuestion(client, x.q);
+  const { log } = await answerWithRetry(x.q);
   rows.push({ id: `#${i}`, expected: null, log, set: "regression" });
   process.stderr.write(`\r회귀 ${i + 1}/${base.length}   `);
 }
