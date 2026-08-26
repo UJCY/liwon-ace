@@ -105,8 +105,13 @@ def _knowledge_graph(question):
         rel = ",".join("'" + r + "'" for r in wanted)
         hits = psql(f"""SELECT e.relation, count(*) FROM edges e
                         WHERE e.relation IN ({rel}) GROUP BY e.relation;""")
-        return {"status": "ok" if hits else "no_result",
-                "data": [{"relation": r, "count": int(c)} for r, c in hits]}
+        # `count` 는 **문자열이다** — 서버의 `count(*)::text` 와 맞춘 것이고, 숫자로
+        # 바꾸면 `X1-01` 이 5/5 오답이 된다. 소형 모델이 숫자 표현에 민감하다.
+        # 빈손이면 `data` 가 아니라 `asset` 을 실은 NoResult 다 (types.ts) — 서버와 같다.
+        # 지금 이 분기에 닿는 문항이 없어 **넓힌 대조도 이것을 못 잡는다** (4.6 이 적은 종류).
+        if not hits:
+            return {"status": "no_result", "asset": "graph"}
+        return {"status": "ok", "data": [{"relation": r, "count": c} for r, c in hits]}
     # 같은 이름이 여럿을 가리키면 관계를 합쳐서 답하면 안 된다 — 어느 쪽인지 모른다.
     # src/tools/knowledge-graph.ts 와 같은 판정이어야 한다 (대조: scripts/dump-server.mjs).
     by_name = {}
@@ -134,7 +139,7 @@ def _knowledge_graph(question):
                         SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.source
                         WHERE e.target IN ({ids}) AND e.relation IN ({rel});""")
         if hits:
-            return {"status": "ok", "data": [{"relation": r, "target": t} for r, t in hits]}
+            return {"status": "ok", "data": [{"relation": r, "name": t} for r, t in hits]}
         # T7 — 개체는 있는데 요구한 관계가 없다. 다른 관계를 인접 사실로 돌려준다
         adj = psql(f"""SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
                        WHERE e.source IN ({ids})
@@ -145,18 +150,43 @@ def _knowledge_graph(question):
                 "unavailable": {"asset": "graph", "reason": "relation_absent",
                                 "relation": wanted},
                 "adjacent_facts": {"source": "graph",
-                                   "data": [{"relation": r, "target": t} for r, t in adj]}}
+                                   "data": [{"relation": r, "name": t} for r, t in adj]}}
     hits = psql(f"""SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
                     WHERE e.source IN ({ids})
                     UNION ALL
                     SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.source
                     WHERE e.target IN ({ids});""")
     if hits:
-        return {"status": "ok", "data": [{"relation": r, "target": t} for r, t in hits]}
+        return {"status": "ok", "data": [{"relation": r, "name": t} for r, t in hits]}
     # 관계가 하나도 없다. **partial 로 내지 않는다** — partial 은 `unavailable` 과
     # `adjacent_facts` 를 분리해 담아야 하는 타입인데(D10 · types.ts PartialResult)
     # 여기엔 붙일 인접 사실이 없다. src/tools/knowledge-graph.ts 와 같은 판정이다.
     return {"status": "no_result", "asset": "graph"}
+
+
+def _chunk_row(row):
+    """반환 행의 모양 — src/tools/vector-search.ts 의 `shape` 와 같아야 한다.
+
+    **본문을 싣는다** (#25). 종전에는 `doc` 과 `sim` 만 돌려주어, 내용을 요구하는
+    질문에서 요구된 답이 에이전트 컨텍스트에 물리적으로 존재할 수 없었다.
+    **유사도를 반올림하지 않는다** — 서버가 그렇고, 줄여 봤더니 `X5-02` 가 뒤집혔다.
+    """
+    doc, content, sim = row
+    return {"doc": doc, "content": content, "sim": float(sim)}
+
+
+def graph_facts(r):
+    """그래프 결과에서 **사실 목록만** 꺼낸다 — src/tools/knowledge-graph.ts 의 `graphFacts`.
+
+    어느 상태가 사실을 어느 필드에 담는지는 이쪽이 안다. 호출자가 `ok` 는 `data`,
+    `partial` 은 `adjacent_facts.data` 라고 분기하면 상태를 하나 더할 때마다
+    호출자도 같이 고쳐야 한다.
+    """
+    if r["status"] == "ok":
+        return r["data"]
+    if r["status"] == "partial":
+        return r["adjacent_facts"]["data"]
+    return []
 
 
 def vector_search(question, qvec, threshold):
@@ -183,29 +213,30 @@ def _vector_search(question, qvec, threshold):
         # 이 데이터셋의 개체명은 대소문자가 하나뿐이라 결과가 같지만, 두 구현이
         # 다른 연산자를 쓰면 언젠가 갈라진다 (대조: scripts/dump-server.mjs).
         names = " OR ".join("content ILIKE '%" + _q(e["name"]) + "%'" for e in matched)
-        rows = psql(f"""SELECT doc_id, 1 - (embedding <=> '{v}') AS sim
+        rows = psql(f"""SELECT doc_id, content, 1 - (embedding <=> '{v}') AS sim
                         FROM document_chunks WHERE {names}
                         ORDER BY embedding <=> '{v}' LIMIT 5;""")
-        top = [(d, float(s)) for d, s in rows]
+        top = [(d, c, float(s)) for d, c, s in rows]
         if top:
-            return {"status": "ok", "data": [{"doc": d, "sim": round(s, 3)} for d, s in top]}
+            return {"status": "ok", "data": [_chunk_row(r) for r in top]}
         # 개체를 담은 청크가 0건 — T4. 아래에서 인접 사실을 붙여 부분 응답으로 승격한다.
     else:
-        rows = psql(f"""SELECT doc_id, 1 - (embedding <=> '{v}') AS sim
+        rows = psql(f"""SELECT doc_id, content, 1 - (embedding <=> '{v}') AS sim
                         FROM document_chunks ORDER BY embedding <=> '{v}' LIMIT 5;""")
-        top = [(d, float(s)) for d, s in rows]
-        if top and top[0][1] >= threshold:
-            return {"status": "ok", "data": [{"doc": d, "sim": round(s, 3)} for d, s in top]}
+        top = [(d, c, float(s)) for d, c, s in rows]
+        if top and top[0][2] >= threshold:
+            return {"status": "ok", "data": [_chunk_row(r) for r in top]}
                                                                       # T4 → X5 승격 후보
     if matched:
-        ids = ",".join("'" + _q(e["id"]) + "'" for e in matched)
-        adj = psql(f"""SELECT e.relation, n.name FROM edges e JOIN nodes n ON n.id = e.target
-                       WHERE e.source IN ({ids}) LIMIT 10;""")
+        # **그래프 질의를 여기서 다시 짜지 않는다.** 사본을 두면 그것이 출하물과 갈라져도
+        # 대조가 통과한다 — 실제로 그랬다: 관계 필터와 양방향 순회가 빠져 `X5-01` 이
+        # 서버와 다른 인접 사실을 냈다. `src/tools/vector-search.ts` 와 같이 도구를 부른다.
+        adj = graph_facts(knowledge_graph(question))
         return {"status": "partial", "requested_form": "narrative",
                 "unavailable": {"asset": "documents",
                                 "reason": "no_document_for_entity" if not adj else "form_not_covered"},
-                "adjacent_facts": {"source": "knowledge_graph",
-                                   "data": [{"relation": r, "target": t} for r, t in adj]}}
+                # `source` 는 자산 이름이다 — types.ts 의 Asset 에 knowledge_graph 는 없다.
+                "adjacent_facts": {"source": "graph", "data": adj}}
     return {"status": "no_result", "asset": "documents"}              # T4 단독
 
 # ── 요구 원소가 둘인가 (D11-4) ─────────────────────────────────────────────

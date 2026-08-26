@@ -78,6 +78,9 @@ async function knowledgeGraphInner(question: string): Promise<ToolResult> {
   if (!matched.length) {
     // 개체 **언급 자체가 없는** 질문이다 (집계·최상급). 부재가 아니라 무관이다.
     if (!wanted.length) return { status: "no_result", asset: "graph" };
+    // **`::text` 다 — 재 보고 기각했다.** `::int` 로 바꿔 따옴표를 없애 봤더니 `X1-01` 이
+    // 5/5 정답에서 5/5 오답으로 뒤집혔다 (같은 질문·같은 행, `count` 표현만 다르게 5회씩).
+    // 소형 모델은 숫자 표현에 민감하고, 그 민감함이 판정을 바꾼다.
     const counts = await query<{ relation: string; count: string }>(
       `SELECT relation, count(*)::text FROM edges WHERE relation = ANY($1) GROUP BY relation`,
       [wanted],

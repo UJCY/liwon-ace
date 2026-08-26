@@ -11,7 +11,17 @@ import { findEntities } from "./entities.js";
 import { graphFacts, knowledgeGraph } from "./knowledge-graph.js";
 import type { ToolResult } from "./types.js";
 
-interface Chunk { doc_id: string; sim: string }
+interface Chunk { doc_id: string; content: string; sim: string }
+
+/**
+ * 반환 행의 모양.
+ *
+ * **`sim` 을 반올림하지 않는다 — 재 보고 기각했다.** 17자리 부동소수가 답에 새는 것을
+ * 관측해(`0.7183327628673172`) 3자리로 줄여 봤더니 `X5-02` 가 5/5 정답에서 5/5 오답으로
+ * 뒤집혔다 (`0.5197…` → `아니오` · `0.520` → `예`, 같은 프롬프트 5회씩). 종단에서도
+ * 응답 축 18/21 → 16/21 이다. 유출은 표시 폭이 아니라 선별에서 다룬다 (`curation.ts`).
+ */
+const chunkRow = (r: Chunk) => ({ doc: r.doc_id, content: r.content, sim: Number(r.sim) });
 
 /**
  * 실행 실패를 **도구 안에서** 구조화로 바꾼다 (D14, edge-cases.md T6).
@@ -34,24 +44,24 @@ async function vectorSearchInner(question: string, qvec: number[]): Promise<Tool
   if (matched.length) {
     const names = matched.map((e) => `%${e.name}%`);
     const rows = await query<Chunk>(
-      `SELECT doc_id, (1 - (embedding <=> $1::vector))::text AS sim
+      `SELECT doc_id, content, (1 - (embedding <=> $1::vector))::text AS sim
          FROM document_chunks WHERE content ILIKE ANY($2)
          ORDER BY embedding <=> $1::vector LIMIT 5`,
       [v, names],
     );
     if (rows.length) {
-      return { status: "ok", data: rows.map((r) => ({ doc: r.doc_id, sim: Number(r.sim) })) };
+      return { status: "ok", data: rows.map(chunkRow) };
     }
     // 개체를 담은 청크가 0건 — T4. 아래에서 인접 사실을 붙인다.
   } else {
     const rows = await query<Chunk>(
-      `SELECT doc_id, (1 - (embedding <=> $1::vector))::text AS sim
+      `SELECT doc_id, content, (1 - (embedding <=> $1::vector))::text AS sim
          FROM document_chunks ORDER BY embedding <=> $1::vector LIMIT 5`,
       [v],
     );
     const top = rows[0];
     if (top && Number(top.sim) >= model.router.reject_threshold) {
-      return { status: "ok", data: rows.map((r) => ({ doc: r.doc_id, sim: Number(r.sim) })) };
+      return { status: "ok", data: rows.map(chunkRow) };
     }
     return { status: "no_result", asset: "documents" };   // T4 단독 — 인접 사실도 없다
   }

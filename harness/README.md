@@ -91,7 +91,7 @@ python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29
 python3 harness/build/run_answer.py     # 형식 축 8/8 · 판정 축 7/8
 python3 harness/build/load_pg.py        # 측정 전 1회 — 청크·그래프 적재
 python3 harness/build/run_e2e.py        # 엣지 라우팅 25/29 · 실행 27/29 · 회귀 24/30
-node scripts/agent-check.mjs            # 에이전트 3축 — 호출 59/59 · 환각 위반 0 · 응답 19/22 (상류 실패 7 제외)
+node scripts/agent-check.mjs            # 에이전트 3축 — 호출·환각·응답. 수치는 docs/harness-evaluation.md 7절
 node scripts/xcheck.mjs                 # 하네스↔서버 대조 — 결정적 57/57 · LLM 결합 2
 ```
 

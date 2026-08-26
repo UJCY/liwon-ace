@@ -15,12 +15,19 @@ import router, tools, run_e2e
 ROOT = router.ROOT
 
 
+# **대조에 넣는 도구.** 임베딩과 고정 SQL 로만 결과가 정해져 실행 간 같다.
+# `nl2sql` 은 생성 SQL 이 실행마다 흔들려 뺀다 — 넣으면 결정적 축이 결합 축으로
+# 무너지고 "깨지면 이식 버그다" 라는 축의 뜻이 사라진다.
+DETERMINISTIC = ("vector_search", "knowledge_graph")
+
+
 def decide(question):
     qvec = router.embed(question)
-    chosen, state = run_e2e.answer(question, qvec)
+    chosen, state, results = run_e2e.answer(question, qvec)
     return {"tools": chosen, "state": state,
             "twoRequests": tools.has_two_requests(question),
-            "ranked": router.ranked_tools(qvec)}
+            "ranked": router.ranked_tools(qvec),
+            "payload": {t: r for t, r in results.items() if t in DETERMINISTIC}}
 
 
 edge = json.load(open(os.path.join(ROOT, "edge-set", "edge-questions.json"), encoding="utf-8"))

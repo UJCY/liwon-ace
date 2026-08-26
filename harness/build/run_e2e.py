@@ -47,11 +47,17 @@ def run_tool(tool, question, qvec):
 
 def answer(question, qvec=None):
     """판별 → 실행 → (필요하면) 병렬 확정. **덤프도 이 함수를 쓴다** —
-    대조가 러너와 다른 경로를 보면 출하 경로의 이식 버그를 못 잡는다."""
+    대조가 러너와 다른 경로를 보면 출하 경로의 이식 버그를 못 잡는다.
+
+    `(고른 도구, 응답 상태, 도구 결과)` 셋을 돌려준다. **셋째가 있는 것은 대조가
+    반환 형태까지 보게 하기 위해서다** — 종전에는 도구 결과를 버렸고, 그래서 반환
+    필드를 한쪽 구현에만 더해도 대조가 그대로 통과했다 (#25). `src/composition.ts`
+    의 `compose` 가 `results` 를 함께 돌려주는 것과 같은 모양이다.
+    """
     qvec = router.embed(question) if qvec is None else qvec
     chosen, state = router.route(question, qvec, docvecs)
     if not chosen:
-        return chosen, state                              # 거절 — 도구를 안 부른다
+        return chosen, state, {}                          # 거절 — 도구를 안 부른다
 
     if tools.has_two_requests(question):                  # ① 접속 탐지
         # 후보는 **유사도 상위 2개**다. 셋을 다 태워 살아남는 것으로 짝을 정하는 안과
@@ -65,14 +71,14 @@ def answer(question, qvec=None):
         results = {t: run_tool(t, question, qvec) for t in cands}
         alive = [t for t in cands if results[t]["status"] in HAS_CONTENT]
         if len(alive) >= 2:                               # ② 실행 확인
-            return sorted(alive), "parallel_merge"
+            return sorted(alive), "parallel_merge", results
         # 한쪽만 살았다 → 병렬이 아니다. **라우터의 원래 선택으로 되돌아간다** —
         # 병렬 분기는 도구를 더하기만 하고, 라우터의 판정을 덮어쓰지 않는다.
         if chosen[0] in results:
-            return chosen, normalize(results[chosen[0]]["status"])
+            return chosen, normalize(results[chosen[0]]["status"]), results
 
     r = run_tool(chosen[0], question, qvec)
-    return chosen, normalize(r["status"])
+    return chosen, normalize(r["status"]), {chosen[0]: r}
 
 
 def score_edge():
@@ -80,7 +86,7 @@ def score_edge():
     routing = execution = 0
     rows = []
     for x in edge:
-        got, state = answer(x["q"])
+        got, state, _ = answer(x["q"])
         r_ok = set(got) == set(x["expected"]["routing"])
         e_ok = state == x["expected"]["response"]
         routing += r_ok
@@ -100,7 +106,7 @@ def score_regression():
     hit = 0
     rows = []
     for i, x in enumerate(base):
-        got, _ = answer(x["q"])
+        got, _, _ = answer(x["q"])
         if set(got) == {x["tool"]}:
             hit += 1
         else:
