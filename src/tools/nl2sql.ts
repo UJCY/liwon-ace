@@ -12,7 +12,7 @@ import type { GroundingHit, ToolResult } from "./types.js";
 
 const SELECT_ONLY = /^\s*SELECT\b/i;
 
-// ── 접지 검출 (D18) ────────────────────────────────────────────────────────
+// ── 접지 검출 (D19) ────────────────────────────────────────────────────────
 // **원본은 `harness/build/check_grounding.py` 다.** 여기는 그 이식이고, 두 구현은
 // 같은 SQL 에 같은 판정을 내야 한다 (상수·정규식·판정 순서까지 자구 동일). 정의를
 // 늘릴 일이 생기면 py 를 고치고 이쪽을 맞춘다 — 판정이 갈리면 하네스 수치가
@@ -82,7 +82,7 @@ async function textColumns(): Promise<[string, string][]> {
 
 /**
  * 검출기 원본 hit — `string`(어디에도 없음)까지 세 갈래 전부 낸다.
- * **채택 정책 필터는 호출부에 있다** (D18) — 정의는 py 한 곳에 남기고, 소비자가
+ * **채택 정책 필터는 호출부에 있다** (D19) — 정의는 py 한 곳에 남기고, 소비자가
  * `string` 을 뺀다. 하네스 `tools.py` 도 같은 자리에서 같은 필터를 건다.
  */
 export type RawGroundingHit =
@@ -139,7 +139,7 @@ export async function detectGrounding(sql: string): Promise<RawGroundingHit[]> {
 }
 
 /**
- * 접지 검사를 돌릴 **빈손**인가 — 0행, 또는 집계 0/NULL 한 행 (D18).
+ * 접지 검사를 돌릴 **빈손**인가 — 0행, 또는 집계 0/NULL 한 행 (D19).
  *
  * 격자 `zero_result` 정의 그대로다. 적발 22/22 · 오인 0 이 정확히 이 정의 위에서
  * 검증됐으므로 **넓히지 않는다**. pg 는 COUNT 를 문자열 `"0"` 으로 준다 —
@@ -181,7 +181,7 @@ export async function nl2sql(question: string): Promise<ToolResult> {
   } catch (e) {
     return { status: "error", reason: (e as Error).message.slice(0, 120) };  // T1
   }
-  // 빈손이면 리터럴이 데이터에 접지됐는지 본다 — 0행의 이중 의미를 가른다 (D18).
+  // 빈손이면 리터럴이 데이터에 접지됐는지 본다 — 0행의 이중 의미를 가른다 (D19).
   // **채택 정책 필터**: 숫자 ×10 과 문자열 오배치만. `string`(어디에도 없음)은
   // "값이 진짜 없는 정직한 질문"과 못 갈라서 뺀다 — 하네스 `tools.py` 와 같은 자리다.
   if (isEmptyHanded(rows)) {

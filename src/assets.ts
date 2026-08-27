@@ -56,7 +56,7 @@ export const docTopics = readJson<{ topics: string[]; coverage: Record<string, s
 
 /**
  * 금액 컬럼의 실측 범위 (`테이블.컬럼` → `[최소, 최대]`, 만원 단위).
- * `nl2sql` 의 접지 검출이 읽는다 — **하네스 `check_grounding.py` 와 같은 파일이다** (D13·D18).
+ * `nl2sql` 의 접지 검출이 읽는다 — **하네스 `check_grounding.py` 와 같은 파일이다** (D13·D19).
  * 밑줄로 시작하는 키(`_provenance`)는 메타데이터이므로 건너뛴다.
  */
 export const columnRanges: Record<string, [number, number]> = Object.fromEntries(

@@ -9,7 +9,7 @@ export type Asset = "documents" | "graph" | "tables";
 
 export interface OkResult {
   status: "ok";
-  /** nl2sql 만 싣는 부가 필드 — 어떤 SQL 이 그 답을 냈는가 (D18). `error` 엔 안 붙인다. */
+  /** nl2sql 만 싣는 부가 필드 — 어떤 SQL 이 그 답을 냈는가 (D19). `error` 엔 안 붙인다. */
   sql?: string;
   data: unknown[];
 }
@@ -18,7 +18,7 @@ export interface OkResult {
 export interface NoResult {
   status: "no_result";
   asset: Asset;
-  /** nl2sql 만 싣는 부가 필드 — `OkResult.sql` 과 같은 자리 (D18). */
+  /** nl2sql 만 싣는 부가 필드 — `OkResult.sql` 과 같은 자리 (D19). */
   sql?: string;
 }
 
@@ -26,7 +26,7 @@ export interface NoResult {
  * 접지 실패의 판정 근거 — 검출기(`harness/build/check_grounding.py`)의 hit 모양 그대로다.
  * **판정 근거를 담는다** (D16) — 직접 호출 창구(심사·시연)와 사람 판정이 이것을 읽는다.
  *
- * 채택 정책은 이 두 갈래뿐이다 (D18): 숫자 ×10 초과와 문자열 오배치.
+ * 채택 정책은 이 두 갈래뿐이다 (D19): 숫자 ×10 초과와 문자열 오배치.
  * 검출기가 함께 내는 `string`(어디에도 없음)은 호출부 필터에서 빠진다.
  */
 export type GroundingHit =
@@ -34,7 +34,7 @@ export type GroundingHit =
   | { kind: "string_misplaced"; column: string; literal: string; found_in: string[] };
 
 /**
- * T9 — 실행은 됐고 **빈손**인데, 리터럴이 데이터에 접지되지 않았다 (D18).
+ * T9 — 실행은 됐고 **빈손**인데, 리터럴이 데이터에 접지되지 않았다 (D19).
  *
  * 0행이 두 가지를 뜻한다: "정말 없다"(T3)와 "질문의 값 조건이 데이터와 안 맞는다"(T9).
  * 후자를 "0건입니다"로 답하면 자신 있는 오답이 나간다. **`isError` 없는 정상 계층**이고

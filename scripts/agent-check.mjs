@@ -32,8 +32,8 @@ function verdict(firstLine) {
 
 /**
  * 요구된 답이 없는 상태들 — 여기서 `예` 가 나오면 환각이다.
- * `ungrounded` 도 여기다 (D18): 행이 안 온 데다 질문의 값 조건이 데이터와 대조되지
- * 않았으므로, 답이 없는 정도가 `no_result` 보다 강하다. 어휘 출처는 D18 (D17 허용 범위).
+ * `ungrounded` 도 여기다 (D19): 행이 안 온 데다 질문의 값 조건이 데이터와 대조되지
+ * 않았으므로, 답이 없는 정도가 `no_result` 보다 강하다. 어휘 출처는 D19 (D17 허용 범위).
  */
 const NO_ANSWER = new Set([
   "out_of_scope", "entity_not_found", "partial", "no_result", "ambiguous_entity",
@@ -111,7 +111,7 @@ const label = (resp) => (resp === "single" || resp === "parallel_merge" ? "예" 
 const sameSet = (a, b) =>
   JSON.stringify([...(a ?? [])].sort()) === JSON.stringify([...(b ?? [])].sort());
 // `ungrounded` 도 상류 실패다 — 컨텍스트에 답의 재료가 없는 것은 `no_result` 와 같고,
-// 제외 사유로 상태명이 그대로 찍힌다 (D18).
+// 제외 사유로 상태명이 그대로 찍힌다 (D19).
 const upstreamFail = (r) =>
   r.log.guard !== null ? "오류"
   : r.log.flat_status === "no_result" || r.log.flat_status === "ungrounded" ? r.log.flat_status

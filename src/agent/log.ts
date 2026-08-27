@@ -37,7 +37,7 @@ export interface AgentLogRecord {
   /** 절사 **후** 프롬프트에 실제로 들어간 컨텍스트 전문 — 응답 축 라벨 판정의 원천 (#20). */
   context_json: string | null;
   /**
-   * nl2sql 이 만든 SQL — "로그에 생성 SQL" AC 의 원천이다 (D18).
+   * nl2sql 이 만든 SQL — "로그에 생성 SQL" AC 의 원천이다 (D19).
    *
    * `context_json` 과 지위가 다르다: 저쪽은 선별·절사를 **거친** 문자열이고 이것은
    * 그 **앞**의 봉투에서 온 원천이다. 선별이 에이전트 경로에서 `sql` 을 지워도

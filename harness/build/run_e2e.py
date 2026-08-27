@@ -32,7 +32,7 @@ HAS_CONTENT = {"ok"}
 # 정직한 거절/부분 > 중복·토큰 낭비. 어휘는 응답 상태 규약(D6·D10·D14)에서 온다.
 # 이 채점기는 답변 LLM 을 안 태우므로 "오답 도구가 ok" 칸은 속는다/정직을
 # 원리적으로 못 가른다 — 사람 판정으로 넘기고, 판정은 harness-evaluation.md 에 적는다.
-# `ungrounded` 도 정직 쪽이다 — 어휘 출처는 D18 응답 상태 규약이다 (D17 허용 범위).
+# `ungrounded` 도 정직 쪽이다 — 어휘 출처는 D19 응답 상태 규약이다 (D17 허용 범위).
 HONEST = {"no_result", "partial", "entity_not_found", "ambiguous_entity", "out_of_scope",
           "ungrounded"}
 SEVERITY = ["속는다", "오류 표면화", "정직한 거절/부분", "중복·토큰 낭비"]
@@ -73,12 +73,40 @@ def print_outcomes(items):
     print(f"    ── 사람 판정 필요 {len(manual)}{tail}")
 
 
+def print_observation(obs):
+    """회귀 실행 상태 관측선 — 채점 없는 기록 (docs/design.md D18).
+
+    라벨·기대값·점수는 없다. 세 정보만 낸다: **상태 분포** · **비-`single` 문항 ID** ·
+    **raw 가 `normalize` 에 접힌 문항**. 문항 ID 가 있어야 상쇄 변화(한 문항
+    `partial`→`single`, 다른 문항 `single`→`partial`)가 보인다.
+
+    `raw 접힘` 은 0건이어도 항상 찍는다 — `print_outcomes` 와 같은 이유로, 생략하면
+    실행마다 감시 대상이 안 보인다.
+    """
+    by_state = {}
+    for i, state, _, _ in obs:
+        by_state.setdefault(state, []).append(i)
+    # `single` 먼저, 나머지는 첫 등장 문항 번호 순
+    order = [s for s in by_state if s == "single"] + \
+            sorted((s for s in by_state if s != "single"), key=lambda s: by_state[s][0])
+    dist = " · ".join(
+        f"{s} {len(by_state[s])}"
+        + ("" if s == "single" else "(" + " ".join(f"#{i}" for i in by_state[s]) + ")")
+        for s in order)
+    print(f"    실행 상태 관측: {dist}")
+    # 조건은 D18 의 정의 그대로다 — **raw 가 `ok` 가 아닌데 상태가 `single`**.
+    # `normalize` 의 접힘 목록을 여기 복제하면 그쪽이 바뀔 때 관측선이 조용히 어긋난다.
+    folded = [f"#{i}({res[got[0]]['status']}→single)" for i, state, got, res in obs
+              if state == "single" and len(got) == 1 and res[got[0]]["status"] != "ok"]
+    print(f"    raw 접힘: {' '.join(folded) if folded else '없음'}")
+
+
 def normalize(status):
     """도구 응답 상태를 채점 어휘로 옮긴다 — src/composition.ts 의 normalize 와 같다.
 
     `error` 도 `single` 로 접는 것은 채점 축의 규약이다. 실행 실패 자체는
     서버 쪽에서 MCP 응답의 `isError` 로 올라간다 (docs/edge-cases.md 공통 규약).
-    `ungrounded` 도 같이 접는다 — 어휘 출처는 D18 이다 (D17 허용 범위).
+    `ungrounded` 도 같이 접는다 — 어휘 출처는 D19 이다 (D17 허용 범위).
     """
     return "single" if status in ("ok", "no_result", "error", "ungrounded") else status
 
@@ -156,14 +184,18 @@ def score_regression():
     hit = 0
     rows = []
     outcomes = []
+    obs = []                                              # 관측선 입력 — 채점하지 않는다 (D18)
     for i, x in enumerate(base):
         got, state, res = answer(x["q"])
+        obs.append((i, state, got, res))
         if set(got) == {x["tool"]}:
             hit += 1
         else:
             rows.append((f"#{i}", f"기대[{x['tool']}] 실제{sorted(got)}", x["q"][:34]))
             outcomes.append((f"#{i}", *user_outcome([x["tool"]], None, got, res, state)))
-    print(f"\n회귀 {len(base)}문항  ·  라우팅 축 {hit}/{len(base)}")
+    print(f"\n회귀 {len(base)}문항  ·  라우팅 축 {hit}/{len(base)}  ·  "
+          f"실행 상태는 채점하지 않는다 — 기대 라벨 없음 (D18)")
+    print_observation(obs)
     for r in rows:
         print(f"    {r[0]:5} {r[1]:52} {r[2]}")
     print_outcomes(outcomes)

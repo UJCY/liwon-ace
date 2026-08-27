@@ -19,7 +19,7 @@ export async function ask(question: string) {
       two_requests: c.routing.twoRequests,
       ranked: c.routing.ranked,
     },
-    // 생성 SQL — **선별 앞의 `c.results` 에서 뽑는다** (D18). 나중에 유출이 관측돼
+    // 생성 SQL — **선별 앞의 `c.results` 에서 뽑는다** (D19). 나중에 유출이 관측돼
     // curation 이 에이전트 경로에서 `sql` 을 지워도 "로그에 생성 SQL" AC 는 그대로
     // 성립해야 한다. 봉투 최상위 필드는 `flatten`(agent/context.ts)이 안 읽으므로
     // 프롬프트에는 들어가지 않는다 — 로그 전용 원천이다.

@@ -363,7 +363,7 @@ def _sql_prompt(question):
     return tpl.replace("{{SCHEMA}}", _SCHEMA).replace("{{QUESTION}}", question)
 
 
-# 접지 검출 (D18) — **정의는 check_grounding.py 한 곳에 있다.** 여기는 그것을 부르고
+# 접지 검출 (D19) — **정의는 check_grounding.py 한 곳에 있다.** 여기는 그것을 부르고
 # 채택 정책(숫자 ×10 + 문자열 오배치)으로 거를 뿐이다. 서버 `src/tools/nl2sql.ts` 가
 # 같은 판정을 이식해 갖고 있고, 두 구현은 같은 SQL 에 같은 결과를 내야 한다.
 _RANGES = check_grounding.load_ranges()          # json 하나라 모듈 로드 시 읽어도 싸다
@@ -408,7 +408,7 @@ def nl2sql(question):
         rows = psql(sql)
     except RuntimeError as e:
         return {"status": "error", "reason": str(e)}                # T1
-    # 빈손이면 리터럴이 데이터에 접지됐는지 본다 — 0행의 이중 의미를 가른다 (D18).
+    # 빈손이면 리터럴이 데이터에 접지됐는지 본다 — 0행의 이중 의미를 가른다 (D19).
     # **채택 정책 필터**: 숫자 ×10 과 문자열 오배치만. `string`(어디에도 없음)은
     # "값이 진짜 없는 정직한 질문"과 못 갈라서 뺀다 — 서버 nl2sql.ts 와 같은 자리다.
     if _empty_handed(rows):
