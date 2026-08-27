@@ -4,9 +4,10 @@
 자산은 두 종류다. **섞어서 "생성물"이라고 부르면 안 된다.**
 
   파생(derived)  — 데이터셋에서 기계적으로 뽑는다. 사람 손이 닿지 않는다.
-                   schema-annotated.sql · column-values.json · doc-topics.json
+                   schema-annotated.sql · column-values.json · doc-topics.json ·
+                   surface-gate.json
   저작(authored) — 사람이 쓴 것을 이 파일이 그대로 덤프한다.
-                   tool-signatures.json · model.json · surface-gate.json 의 tables
+                   tool-signatures.json · model.json
 
 **저작 자산에는 사람 판단이 들어 있다.** 특히 TOOL_SIGNATURES 는 라우터의
 도구 선택 기제 전부이고, 작성자는 questions.json 30문항을 이미 읽은 사람이다 —
@@ -57,6 +58,34 @@ def read_column_values():
     return {k: sorted(v) for k, v in vals.items() if 1 < len(v) <= MAX_VALUES}
 
 
+def tables_with_inserts():
+    """02-data.sql 에 INSERT 가 있는 테이블 집합.
+
+    column_values_ko 와 **같은 입력 기준**이다 — 참가자가 채우는
+    `document_chunks` 는 INSERT 가 없어 자연히 빠진다.
+    """
+    sql = open(os.path.join(DS, "sql", "02-data.sql"), encoding="utf-8").read()
+    return {t.lower() for t in re.findall(r"INSERT INTO (\w+)", sql, re.I)}
+
+
+def gate_tables():
+    """테이블 표층형 — 01-schema.sql 의 `-- N. 라벨` 주석에서 뽑는다.
+
+    라벨은 스키마 작성자가 테이블마다 붙여 둔 한국어 이름이다. 괄호를 지우고
+    `/` 로 나눈 뒤 조각의 **마지막 어절**(우핵)을 쓴다 — `기술 지원 티켓` 에서
+    질문에 실제로 나오는 낱말은 `티켓` 이다.
+    """
+    sql   = open(os.path.join(DS, "sql", "01-schema.sql"), encoding="utf-8").read()
+    known = tables_with_inserts()
+    out   = {}
+    for label, tbl in re.findall(r"--\s*\d+\.\s*([^\n]+)\nCREATE TABLE (\w+)", sql):
+        if tbl.lower() not in known:
+            continue
+        out[tbl] = [p.strip().split()[-1]
+                    for p in re.sub(r"\([^)]*\)", "", label).split("/") if p.strip()]
+    return out
+
+
 def annotate(ddl, values):
     """DDL 각 컬럼 줄 끝에 값 목록과 단위를 인라인 주석으로 붙인다.
 
@@ -86,19 +115,14 @@ def surface_gate(values):
     """라우터 거절 게이트용 어휘. 테이블 표층형 + 컬럼의 한국어 값.
 
     도구 선택에는 쓰지 않는다 — 게이트는 '걸렸는가'만 본다.
+    두 필드 다 데이터셋에서 파생된다 (이슈 #19).
     """
-    # tables 는 **저작**이다 — 테이블명의 한국어 표층형을 사람이 썼다.
-    # column_values_ko 만 데이터에서 파생된다.
-    tables = {
-        "departments": ["부서", "부서장"], "employees": ["직원", "인력", "팀원", "사원"],
-        "clients": ["고객", "고객사", "거래처"], "products": ["제품", "상품"],
-        "contracts": ["계약", "계약서"], "projects": ["프로젝트", "과제"],
-        "sales": ["매출", "판매", "영업"], "support_tickets": ["티켓", "문의", "지원요청"],
-    }
     korean = sorted({v for vs in values.values() for v in vs if re.search(r"[가-힣]", v)})
-    return {"_provenance": {"tables": "authored — 사람이 쓴 표층형",
-                        "column_values_ko": "derived — 02-data.sql 의 저카디널리티 컬럼 값"},
-            "tables": tables, "column_values_ko": korean}
+    return {"_provenance": {
+                "tables": "derived — 01-schema.sql 의 '-- N. 라벨' 주석에서 우핵 규칙으로 "
+                          "추출 (02-data.sql 에 INSERT 있는 8개)",
+                "column_values_ko": "derived — 02-data.sql 의 저카디널리티 컬럼 값"},
+            "tables": gate_tables(), "column_values_ko": korean}
 
 
 def doc_topics():

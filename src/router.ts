@@ -69,16 +69,15 @@ export async function route(question: string, qvec?: number[]): Promise<Routing>
     .sort((a, b) => b[1] - a[1])
     .map(([t]) => t);
 
-  if (!gateWords.some((w) => question.includes(w))) {
+  // maxDocSimilarity 는 DB 조회다 — 게이트 미히트 ∧ 개체 없음일 때만 돈다.
+  if (!gateWords.some((w) => question.includes(w)) && !entityPattern.test(question)) {
     const sim = await maxDocSimilarity(v);
     if (sim >= model.router.reject_threshold) {
-      // 표층 문자열 충돌(R5) — 스키마 값이 안 걸리고 문서와 충분히 닮았다
+      // 거절 직전 구제(R5) — 스키마 어휘도 개체 한정어도 없지만 문서와 충분히 닮았다
       return { tools: ["vector_search"], state: "single", twoRequests, ranked };
     }
-    if (!entityPattern.test(question)) {
-      // 무매칭(R1) — 도구를 호출하지 않는다 (D6)
-      return { tools: [], state: "out_of_scope", twoRequests, ranked };
-    }
+    // 무매칭(R1) — 도구를 호출하지 않는다 (D6)
+    return { tools: [], state: "out_of_scope", twoRequests, ranked };
   }
   return { tools: [ranked[0]!], state: "single", twoRequests, ranked };
 }
