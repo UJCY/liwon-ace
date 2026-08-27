@@ -31,10 +31,10 @@ const OFF = "\u001b[0m";
 const CJK = /[ᄀ-ᅟ⺀-꓏가-힣豈-﫿︰-﹯＀-｠]/;
 const width = (s) => [...s].reduce((n, ch) => n + (CJK.test(ch) ? 2 : 1), 0);
 
-const RULE = 78;
+const RULE_WIDTH = 78;
 /** 구간 제목 한 줄. 장식은 여기까지다 — 유튜브 압축에서 읽히는 것이 목적이다. */
 function section(title) {
-  const tail = "─".repeat(Math.max(4, RULE - width(title) - 4));
+  const tail = "─".repeat(Math.max(4, RULE_WIDTH - width(title) - 4));
   console.log(`\n${BOLD}── ${title}${OFF} ${DIM}${tail}${OFF}`);
 }
 
