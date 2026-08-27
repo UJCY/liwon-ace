@@ -23,10 +23,13 @@ DETERMINISTIC = ("vector_search", "knowledge_graph")
 
 def decide(question):
     qvec = router.embed(question)
-    chosen, state, results = run_e2e.answer(question, qvec)
+    chosen, state, results, plog = run_e2e.answer(question, qvec)
+    # 짝은 None 도 싣는다 — 분기가 안 탔다는 사실 자체가 대조 대상이다.
     return {"tools": chosen, "state": state,
             "twoRequests": tools.has_two_requests(question),
             "ranked": router.ranked_tools(qvec),
+            "pair": plog["pair"] if plog else None,
+            "pairSource": plog["source"] if plog else None,
             "payload": {t: r for t, r in results.items() if t in DETERMINISTIC}}
 
 
