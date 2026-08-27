@@ -39,8 +39,9 @@ function section(title) {
 }
 
 /**
- * 질문 6개 — 합의 확정. **변경 금지.** 4건이 공식 예시 질문
+ * 질문 6개 — 합의 확정. **변경 금지.** 3건이 공식 예시 질문
  * (`companyx-dataset-v1.0/questions.json`)이라 심사자가 원본과 대조할 수 있다.
+ * 넷째였던 공식 #10 은 이슈 #12 이후 실행마다 갈려 뺐다 — 아래 병렬 구간 주석 참조.
  *
  * `secs` 는 그 구간에 배정한 초다. **누계는 여기 적지 않는다** — 아래에서 유도한다.
  */
@@ -49,7 +50,12 @@ const QUESTIONS = [
     title: "지식 그래프 — 규칙 라우터가 단일 도구를 고른다", secs: 13 },
   { q: "평균 연봉이 가장 높은 부서는 어디야?", official: true,
     title: "NL2SQL — 자연어를 SQL 로", secs: 13 },
-  { q: "최근 서버 장애 사례와 원인을 알려줘", official: true,
+  // 종전에는 공식 #10(*"최근 서버 장애 사례와 원인을 알려줘"*)이 이 자리였다. 이슈 #12 가
+  // 병렬 짝 선택을 유사도에서 축 신호로 바꾸면서 그 문항이 실행마다 갈린다 —
+  // `single [vector_search]` 와 `parallel_merge [nl2sql, vector_search]` 사이를 오간다
+  // (harness-evaluation.md 4.3 이 같은 문항을 회귀 24~25/30 구간의 원인으로 지목한다).
+  // 어느 쪽이 나와도 이 구간 제목과 어긋나므로 3/3 재현되는 X4-01 로 갈았다.
+  { q: "Client-A의 현재 주요 제품 사용 현황과 최근 겪은 주요 이슈는 무엇인가요?", official: false,
     title: "병렬 호출 — 지식 그래프 + 벡터 검색 (parallel_merge)", secs: 16 },
   { q: "서울물산 담당 엔지니어는 누구야?", official: true,
     title: "없는 개체 — entity_not_found. 지어내지 않는다", secs: 12 },
@@ -152,22 +158,29 @@ function interpretation(contextJson) {
  *   `node scripts/agent-check.mjs` · `python3 harness/build/run_router.py` · `node scripts/xcheck.mjs`
  *
  * **`29/30` 은 쓰지 않는다** — `CONTEXT.md` 의 그 값은 기대값 칸이고 실측은 26/30 이다.
- * 가장 센 줄은 `속는다 0` 이라 거기만 굵게 간다 — 실패 8건 중 사용자가 틀린 답을 믿게
- * 된 건이 없다는 뜻이고, 나머지가 방어적 숫자인 것과 달리 이것은 공격적 숫자다.
+ * 가장 센 줄은 `속는다 0 · 사람 판정 필요 0` 이라 거기만 굵게 간다 — 실패 6건 전부가
+ * 사용자를 속이지 않았고, 그 판정이 **사람 없이 자동으로** 갈렸다는 뜻이다. 나머지가
+ * 방어적 숫자인 것과 달리 이것은 공격적 숫자다.
+ *
+ * **2026-08-27 오후 갱신** — `origin/main` 의 `ungrounded`(#6)를 머지한 뒤 다시 쟀다.
+ * 응답 축 21/21(제외 8) → 23/23(제외 6), 사람 판정 필요 2 → 0. 0행이 "자료 없음"인지
+ * "접지 실패"인지를 상태로 가르자 사람이 읽어야 갈리던 실패가 자동 분류로 넘어갔다.
+ * `xcheck` 는 57/57 → 52/52 인데 총점이 준 게 아니라 축 구성이 바뀐 것이다 — 짝 선택이
+ * 축 신호로 바뀌며(#12) LLM 결합 문항이 2 에서 7 로 늘어 결정적 축에서 빠졌다.
  */
 const MEASURED = [
   "node scripts/agent-check.mjs",
   "  호출 축        59/59   (첫 호출 ask · 직접 호출 0건)",
   "  환각 축 위반   0/59    (답 없는 상태에서 '예')",
-  "  응답 축        21/21   (상류 실패 8건 제외)",
-  `  ${BOLD}유저-결과 — 속는다 0 · 오류 표면화 1 · 정직한 거절/부분 4 · 중복 0${OFF}`,
+  "  응답 축        23/23   (상류 실패 6건 제외)",
+  `  ${BOLD}유저-결과 — 속는다 0 · 사람 판정 필요 0${OFF}`,
   "",
   "python3 harness/build/run_router.py",
   "  회귀 30문항 · 라우팅 축   26/30",
   "  엣지 29문항 · 라우팅 축   22/29",
   "",
   "node scripts/xcheck.mjs",
-  "  하네스 ↔ 서버 결정적 축   57/57   (이식 버그 0)",
+  "  하네스 ↔ 서버 결정적 축   52/52   (이식 버그 0)",
 ];
 
 // ── 본편 ──────────────────────────────────────────────────────────────────
@@ -253,7 +266,13 @@ async function runWarm() {
  * ②를 실패로 세지 않는 이유는 합의 결정 3-1 이다 — 시스템 출력이 달라진 것은
  * 재촬영 사유가 아니고, 문구 변주는 영상이 하는 주장을 바꾸지 않는다.
  *
- * MCP 세션 하나를 18회에 재사용한다 (`scripts/agent-check.mjs` 관례).
+ * **회차마다 MCP 세션을 새로 연다.** 종전에는 세션 하나를 18회에 재사용했는데
+ * (`scripts/agent-check.mjs` 관례), 그 구성이 **거짓 통과를 냈다** — 이슈 #12 이후
+ * 공식 `#10` 이 실행마다 `single` 과 `parallel_merge` 를 오가는데 `--verify` 는 3/3
+ * 동일로 통과시켰고, 프로세스를 갈라 돌리자 바로 갈렸다. 세션 안에서만 재면 세션이
+ * 붙들고 있는 상태(모델 적재·KV 캐시)가 변동을 가려 준다. 촬영은 세션을 새로 여는
+ * 일이므로 계기도 그렇게 재야 한다. 같은 형태의 사고가 아침에 한 번 더 있었다 —
+ * `smoke.mjs` 의 `서울 지역 고객사` 가 프로세스를 가로질러 4 와 1 로 갈렸다.
  */
 const ROUNDS = 3;
 
@@ -283,23 +302,26 @@ function firstDiffWindow(a, b) {
 }
 
 async function runVerify() {
-  const client = await connectAgent();
   const rounds = [];
   for (let r = 0; r < ROUNDS; r++) {
+    const client = await connectAgent();   // 회차마다 새 세션 — 위 주석 참조
     const row = [];
-    for (const [i, item] of QUESTIONS.entries()) {
-      const started = Date.now();
-      const { log } = await answerQuestion(client, item.q);
-      row.push({
-        sig: signature(log),
-        answer_text: log.answer_text,
-        ms: Date.now() - started,
-      });
-      process.stderr.write(`\r${r + 1}회차 ${i + 1}/${QUESTIONS.length}   `);
+    try {
+      for (const [i, item] of QUESTIONS.entries()) {
+        const started = Date.now();
+        const { log } = await answerQuestion(client, item.q);
+        row.push({
+          sig: signature(log),
+          answer_text: log.answer_text,
+          ms: Date.now() - started,
+        });
+        process.stderr.write(`\r${r + 1}회차 ${i + 1}/${QUESTIONS.length}   `);
+      }
+    } finally {
+      await client.close();
     }
     rounds.push(row);
   }
-  await client.close();
   process.stderr.write("\r");
 
   // ① 결정적 서명 — 깨지면 실패다
