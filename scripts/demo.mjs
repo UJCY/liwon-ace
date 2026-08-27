@@ -327,8 +327,11 @@ async function runVerify() {
 
   // ① 결정적 서명 — 깨지면 실패다
   let broken = 0;
+  let compared = 0;                    // 대조한 (문항 × 필드) 칸 수 — 통과했을 때의 분모다
+  const sigFields = Object.keys(rounds[0][0].sig);
   for (const [i, item] of QUESTIONS.entries()) {
     for (const f of Object.keys(rounds[0][i].sig)) {
+      compared++;
       const vals = rounds.map((row) => row[i].sig[f]);
       if (vals.every((v) => v === vals[0])) continue;
       broken++;
@@ -344,6 +347,7 @@ async function runVerify() {
   }
 
   // ② 생성 표면 — 관측치다
+  let drift = 0;
   for (const [i, item] of QUESTIONS.entries()) {
     for (let r = 1; r < ROUNDS; r++) {
       const a = String(rounds[0][i].answer_text ?? "");
@@ -358,6 +362,7 @@ async function runVerify() {
       let k = 0;
       while (k < end && la[k] === lb[k]) k++;
       const show = (arr) => (arr[k] === undefined ? "(줄 없음)" : arr[k].slice(0, 70));
+      drift++;
       console.log(`문구 변주 — ${item.q}  ${r + 1}회차 ${k + 1}번째 줄 (관측치)`);
       console.log(`  1회차   | ${show(la)}`);
       console.log(`  ${r + 1}회차   | ${show(lb)}`);
@@ -375,8 +380,20 @@ async function runVerify() {
     );
   }
 
+  // 통과했을 때도 **무엇을 몇 개 쟀는지**를 찍는다. 불일치가 있을 때만 인쇄하면
+  // "다 대조하고 통과했다" 와 "아무것도 안 쟀다" 가 화면에서 구별되지 않는다 —
+  // `agent-check.mjs` 가 59/59 를, `xcheck.mjs` 가 57/57 을 성공해도 찍는 것과 같은 이유다.
+  console.log(`\n대조 — 문항 ${QUESTIONS.length} × ${ROUNDS}회 (회차마다 새 세션)`);
+  console.log(
+    `  결정적 축   ${compared - broken}/${compared}   ` +
+      `← ${sigFields.join(" · ")}`,
+  );
+  console.log(
+    `  생성 표면   변주 ${drift}건   ← 판정을 안 바꾸는 문구 차이. 종료 코드에 안 넣는다`,
+  );
+
   if (broken) {
-    console.log(`\n결정적 서명 불일치 ${broken}건 — 실패`);
+    console.log(`\n${BOLD}결정적 서명 불일치 ${broken}건 — 실패${OFF}`);
     process.exit(1);
   }
   console.log(`\n${BOLD}3회 연속 동일 — 통과 (합의 결정 10)${OFF}`);
