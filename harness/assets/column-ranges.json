@@ -1,0 +1,23 @@
+{
+ "_provenance": "derived — 02-data.sql 의 금액 컬럼 실측 최소·최대 (만원 단위). C2 주석과 check_grounding.py 가 같은 파일을 읽는다 (#39)",
+ "contracts.amount": [
+  480,
+  11000
+ ],
+ "employees.salary": [
+  3736,
+  9520
+ ],
+ "products.price_monthly": [
+  80,
+  500
+ ],
+ "projects.budget": [
+  898,
+  14738
+ ],
+ "sales.amount": [
+  65,
+  2078
+ ]
+}
