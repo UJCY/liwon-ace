@@ -158,10 +158,11 @@ async function runShow() {
 
   // tools/list 는 `ask` 만 부르는 AgentClient 로 못 부른다 (D15) — 여기서만 raw SDK
   // 클라이언트를 따로 띄운다 (`scripts/smoke.mjs` 12–17행과 같은 방식).
-  section("MCP 서버 — tools/list · 도구 4개");
   const raw = new Client({ name: "demo", version: "0.0.1" });
   await raw.connect(new StdioClientTransport({ command: "node", args: ["dist/server.js"] }));
   const { tools } = await raw.listTools();
+  // 제목의 개수도 실측에서 온다 — 하드코딩하면 도구가 늘 때 한 화면 안에서 두 값이 어긋난다.
+  section(`MCP 서버 — tools/list · 도구 ${tools.length}개`);
   console.log(`tools/list — ${tools.length}개 (결정적 순서, ask 가 첫째)`);
   for (const t of tools) {
     console.log(`  ${BOLD}${t.name.padEnd(16)}${OFF}${t.description.slice(0, 46)}…`);
@@ -302,10 +303,16 @@ async function runVerify() {
       if (a === b) continue;
       const la = a.split("\n");
       const lb = b.split("\n");
-      const k = Math.max(0, la.findIndex((l, n) => l !== lb[n]));
+      // 한쪽이 다른 쪽의 접두인 경우까지 센다. `la` 만 훑으면 그 경우 -1 이 나오고,
+      // 그것을 0 으로 접으면 **같은 1번째 줄을 변주로 찍는다** — 촬영 전에 사람이 읽고
+      // 판단하는 화면이라 거짓 보고가 섞이면 안 된다.
+      const end = Math.max(la.length, lb.length);
+      let k = 0;
+      while (k < end && la[k] === lb[k]) k++;
+      const show = (arr) => (arr[k] === undefined ? "(줄 없음)" : arr[k].slice(0, 70));
       console.log(`문구 변주 — ${item.q}  ${r + 1}회차 ${k + 1}번째 줄 (관측치)`);
-      console.log(`  1회차   | ${(la[k] ?? "").slice(0, 70)}`);
-      console.log(`  ${r + 1}회차   | ${(lb[k] ?? "").slice(0, 70)}`);
+      console.log(`  1회차   | ${show(la)}`);
+      console.log(`  ${r + 1}회차   | ${show(lb)}`);
     }
   }
 
