@@ -1,0 +1,288 @@
+<meta charset="utf-8">
+<title>Lantern — 시연영상 도입 슬라이드</title>
+
+<!--
+  파생 설명물입니다. 진실의 원천은 둘입니다.
+
+    docs/agreements/demo-video-scenario.md   담을 것 넷 · 20초 · 화면 문안
+    docs/dataset-analysis.md 3장             자산 × 형태 격자 수치
+
+  참조는 한 방향으로만 겁니다 — 이 페이지에서 기존 문서로만 링크하고,
+  기존 문서에서 이 페이지로 거는 링크는 만들지 않습니다.
+  수치가 바뀌면 위 두 문서가 먼저 바뀌고 이 페이지가 따라옵니다.
+
+  **외부 리소스를 한 건도 요청하지 않습니다.** 웹폰트 @import 도 없습니다 —
+  화면이 "외부 API 0건" 이라고 말하는데 페이지가 네트워크를 타면 그 자리에서
+  자기모순입니다. 폰트는 시스템 폴백 스택만 씁니다(architecture.html 과 같은 스택).
+
+  촬영물이라 두 가지를 고정합니다.
+    · 라이트/다크를 따라가지 않고 어두운 화면 하나로 고정합니다. 찍힌 화면과
+      나중에 열어 본 화면이 같아야 하고, 다음 장면인 터미널과도 이어집니다.
+    · 애니메이션이 없습니다. 20초 동안 정지 화면입니다.
+    · charset 을 명시합니다. 전면이 한글인데 file:// 로 여는 페이지라, 브라우저
+      자동감지에 걸리면 녹화 중에 글자가 깨집니다.
+
+  브라우저 전체화면(F11) · 16:9 · 1080p 기준으로 짰습니다. 활자는 뷰포트에
+  비례하므로 해상도가 달라도 배치가 유지됩니다.
+-->
+
+<style>
+  :root {
+    /* 색은 docs/overview/architecture.html 의 다크 팔레트를 그대로 씁니다. */
+    --ground:      #0E1213;
+    --surface:     #151B1C;
+    --surface-2:   #1C2324;
+    --ink:         #E6EBEB;
+    --ink-2:       #9DAAAB;
+    --ink-3:       #778486;
+    --rule:        #283132;
+    --rule-strong: #3B4648;
+    --accent:      #5BC4C0;
+    --accent-soft: #12302F;
+    --brass:       #CFA85C;
+    --brass-soft:  #292312;
+
+    --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+                 "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", "D2Coding",
+                 Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  /* 16:9 어느 쪽이 먼저 차든 넘치지 않게 vw·vh 중 작은 쪽에 활자를 맞춥니다. */
+  html { font-size: min(1.02vw, 1.81vh); }
+
+  body {
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .slide {
+    height: 100vh;
+    padding: 3.4rem 4.2rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.6rem;
+  }
+
+  /* ---------- 표제 ---------- */
+
+  .masthead { display: flex; align-items: baseline; gap: 1.4rem; }
+  .wordmark { font-size: 3.1rem; font-weight: 700; letter-spacing: -.02em; }
+  .standfirst { font-size: 1.55rem; color: var(--ink-2); }
+
+  /* ---------- 1. 구조도 ---------- */
+
+  .flow {
+    display: flex;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .node {
+    flex: 1 1 0;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1.2rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: .5rem;
+    min-height: 9.4rem;
+  }
+  .node .name { font-size: 1.7rem; font-weight: 700; letter-spacing: -.01em; }
+  .node .sub { font-size: 1.15rem; color: var(--ink-3); }
+  .node.router {
+    flex-grow: 1.25;
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    border-width: 2px;
+  }
+  .node.router .name { color: var(--accent); }
+  .node.router .sub { color: var(--ink-2); font-weight: 700; }
+  .node.tools { flex-grow: 1.35; gap: .38rem; }
+  .node.tools .name { font-size: 1.32rem; }
+  .tool {
+    font-family: var(--font-mono);
+    font-size: 1.24rem;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: .26rem .6rem;
+  }
+  .node.store { background: var(--brass-soft); border-color: var(--brass); }
+  .node.store .name { color: var(--brass); }
+
+  .arrow {
+    align-self: center;
+    font-size: 2.1rem;
+    color: var(--ink-3);
+    flex: 0 0 auto;
+  }
+
+  /* ---------- 2. 자산 × 형태 격자 ---------- */
+
+  .lower { display: flex; gap: 2.6rem; flex: 1 1 auto; min-height: 0; }
+  .panel { display: flex; flex-direction: column; gap: 1rem; }
+  .panel.grid-panel { flex: 1.5 1 0; }
+  .panel.intent-panel { flex: 1 1 0; }
+
+  h2 {
+    margin: 0;
+    font-size: 1.28rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    color: var(--ink-3);
+  }
+
+  .bars { display: flex; flex-direction: column; gap: .82rem; }
+  .bar-row { display: grid; grid-template-columns: 21rem 1fr 7.4rem; align-items: center; gap: 1.1rem; }
+  .bar-label { font-size: 1.42rem; }
+  .bar-label .asset { font-weight: 700; }
+  .bar-label .axis { color: var(--ink-3); font-size: 1.2rem; }
+  /* 빈칸이 보이는 것이 이 그림의 요점입니다 — 채운 칸만 그리면 논거가 사라집니다. */
+  .bar-track {
+    height: 1.55rem;
+    background: repeating-linear-gradient(
+      135deg, var(--surface-2) 0 .42rem, var(--surface) .42rem .84rem);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .bar-fill { height: 100%; background: var(--accent); }
+  .bar-num {
+    font-family: var(--font-mono);
+    font-size: 1.42rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .bar-num .pct { font-weight: 700; }
+  .bar-num .frac { color: var(--ink-3); font-size: 1.16rem; }
+
+  .caption { font-size: 1.28rem; color: var(--ink-2); margin: 0; }
+  .caption strong { color: var(--ink); }
+  .caption code { font-family: var(--font-mono); font-size: .94em; color: var(--accent); }
+
+  /* ---------- 3. 설계 의도 ---------- */
+
+  .intent { display: flex; flex-direction: column; gap: .9rem; margin: 0; padding: 0; list-style: none; }
+  .intent li {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    padding: 1rem 1.2rem;
+    font-size: 1.5rem;
+    line-height: 1.45;
+  }
+  .intent .n { color: var(--accent); font-weight: 700; margin-right: .5rem; }
+
+  /* ---------- 4. 제약 ---------- */
+
+  .constraints {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 2.2rem;
+    font-size: 1.5rem;
+    color: var(--ink-2);
+  }
+  .constraints code { font-family: var(--font-mono); font-size: .94em; color: var(--ink); }
+  .constraints .zero { color: var(--brass); font-weight: 700; }
+  .constraints .sep { color: var(--rule-strong); }
+</style>
+
+<div class="slide">
+
+  <header class="masthead">
+    <div class="wordmark">Lantern</div>
+    <div class="standfirst">사내 문서 · 데이터베이스 · 관계 데이터를 자연어 한 문장으로 묻는 MCP 검색 시스템</div>
+  </header>
+
+  <!-- 1. 구조도 — 라우터 자리를 강조해 "LLM 이 아니라 규칙이 고른다" 를 그림으로 보입니다. -->
+  <section class="flow">
+    <div class="node">
+      <div class="name">질문</div>
+      <div class="sub">자연어 한 문장</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node">
+      <div class="name">에이전트</div>
+      <div class="sub">도구 목록을 받지 않는다</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node router">
+      <div class="name">ask — 규칙 라우터</div>
+      <div class="sub">LLM 이 아니라 규칙이 고른다</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node tools">
+      <div class="name">도구 3종</div>
+      <div class="tool">vector_search</div>
+      <div class="tool">nl2sql</div>
+      <div class="tool">knowledge_graph</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="node store">
+      <div class="name">PostgreSQL</div>
+      <div class="sub">+ pgvector</div>
+    </div>
+  </section>
+
+  <div class="lower">
+
+    <!-- 2. 자산 × 형태 격자 — 수치 출처는 docs/dataset-analysis.md 3장입니다. -->
+    <section class="panel grid-panel">
+      <h2>자산 × 형태 격자 — 채워진 칸</h2>
+      <div class="bars">
+        <div class="bar-row">
+          <div class="bar-label"><span class="asset">문서</span> <span class="axis">제품 × 기술문서 주제</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width: 17%"></div></div>
+          <div class="bar-num"><span class="pct">17%</span><br><span class="frac">10 / 60</span></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="asset">그래프</span> <span class="axis">개체 × 관계</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width: 77%"></div></div>
+          <div class="bar-num"><span class="pct">77%</span><br><span class="frac">322 / 416</span></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span class="asset">테이블</span> <span class="axis">고객사 × 사실 테이블</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width: 88%"></div></div>
+          <div class="bar-num"><span class="pct">88%</span><br><span class="frac">106 / 120</span></div>
+        </div>
+      </div>
+      <p class="caption">
+        <strong>빈칸이 확장성 논거의 그림이다</strong> — 무엇을 채우면 나아지는지가 눈에 들어온다.
+        잠시 뒤 터미널의 <code>unavailable.asset = documents</code> 가 첫 줄의 빈칸을 가리킨다.
+      </p>
+    </section>
+
+    <!-- 3. 설계 의도 두 줄 -->
+    <section class="panel intent-panel">
+      <h2>설계 의도</h2>
+      <ul class="intent">
+        <li><span class="n">①</span>도구 선택은 규칙이 한다</li>
+        <li><span class="n">②</span>못 답하면 무엇이 없어서인지 말한다</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <!-- 4. 제약 -->
+  <footer class="constraints">
+    <span><code>gemma4:e2b-it-qat</code> · <code>bge-m3</code></span>
+    <span class="sep">|</span>
+    <span>Ollama 로컬 실행</span>
+    <span class="sep">|</span>
+    <span class="zero">외부 API 0건</span>
+  </footer>
+
+</div>
