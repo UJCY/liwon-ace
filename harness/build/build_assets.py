@@ -4,7 +4,7 @@
 자산은 두 종류다. **섞어서 "생성물"이라고 부르면 안 된다.**
 
   파생(derived)  — 데이터셋에서 기계적으로 뽑는다. 사람 손이 닿지 않는다.
-                   schema-annotated.sql · column-values.json
+                   schema-annotated.sql · column-values.json · doc-topics.json
   저작(authored) — 사람이 쓴 것을 이 파일이 그대로 덤프한다.
                    tool-signatures.json · model.json · surface-gate.json 의 tables
 
@@ -101,6 +101,25 @@ def surface_gate(values):
             "tables": tables, "column_values_ko": korean}
 
 
+def doc_topics():
+    """제품 × 기술주제 격자 — 기술문서 제목 `[기술문서] {제품} {주제} …` 에서 뽑는다.
+
+    `vector_search` 의 T4-form 판정(#13)이 쓴다: 질문이 주제어를 담는데 매칭된
+    제품이 그 주제를 커버하지 않으면, 개체 청크가 있어도 `ok` 가 아니라 `partial` 이다.
+    docs/dataset-analysis.md 3장의 격자(10/60, 주제 2개 이상 가진 제품 0개)가 근거다.
+    """
+    idx = json.load(open(os.path.join(DS, "documents", "index.json"), encoding="utf-8"))
+    cov = defaultdict(set)
+    for d in idx:
+        if d["type"] == "technical_doc":
+            _, product, topic = d["title"].split()[:3]
+            cov[product].add(topic)
+    return {"_provenance": "derived — documents/index.json 기술문서 제목에서 기계 추출 "
+                           "(dataset-analysis.md 3장 제품 × 기술주제 격자)",
+            "topics": sorted({t for ts in cov.values() for t in ts}),
+            "coverage": {p: sorted(ts) for p, ts in cov.items()}}
+
+
 # 저작 자산 — 사람이 썼다. design.md D11-1 의 (연산 × 피연산자 × 출력 형태)
 # 표를 문장화한 것이고, 데이터셋에서 도출된 것이 아니다.
 # 저작 — 데이터에 **없는** 이름을 알아보기 위한 상호 접미사.
@@ -150,6 +169,7 @@ def main():
     values = read_column_values()
     open(os.path.join(OUT, "schema-annotated.sql"), "w", encoding="utf-8").write(annotate(ddl, values) + "\n")
     for name, obj in (("column-values.json", values),
+                      ("doc-topics.json", doc_topics()),
                       ("surface-gate.json", surface_gate(values)),
                       ("tool-signatures.json", TOOL_SIGNATURES),
                       ("entity-patterns.json", {"_provenance": "authored — 데이터 밖의 이름을 잡는 목록",
