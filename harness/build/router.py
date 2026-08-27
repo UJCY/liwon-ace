@@ -72,11 +72,11 @@ SIGVEC = {t: embed(v) for t, v in SIGNATURES.items() if not t.startswith("_")}
 
 def route(question, qvec, docvecs):
     """D12 판별 함수. 파라미터는 임계 하나뿐이다."""
-    if not any(w in question for w in GATE_WORDS):
+    if (not any(w in question for w in GATE_WORDS)
+            and not ENTITY.search(question)):
         if max(cosine(qvec, d) for d in docvecs) >= THRESHOLD:
-            return ["vector_search"], "single"          # 표층 충돌(R5) 해소
-        if not ENTITY.search(question):
-            return [], "out_of_scope"                   # 거절(R1)
+            return ["vector_search"], "single"          # 거절 직전 구제(R5)
+        return [], "out_of_scope"                       # 거절(R1)
     scores = {t: cosine(qvec, v) for t, v in SIGVEC.items()}
     return [max(scores, key=scores.get)], "single"
 

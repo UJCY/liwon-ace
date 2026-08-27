@@ -1,7 +1,7 @@
 {
  "_provenance": {
   "column_values_ko": "derived — 02-data.sql 의 저카디널리티 컬럼 값",
-  "tables": "authored — 사람이 쓴 표층형"
+  "tables": "derived — 01-schema.sql 의 '-- N. 라벨' 주석에서 우핵 규칙으로 추출 (02-data.sql 에 INSERT 있는 8개)"
  },
  "column_values_ko": [
   "DB 마이그레이션 자동화 도구.",
@@ -39,41 +39,29 @@
  ],
  "tables": {
   "clients": [
-   "고객",
-   "고객사",
-   "거래처"
+   "고객사"
   ],
   "contracts": [
-   "계약",
-   "계약서"
+   "계약"
   ],
   "departments": [
-   "부서",
-   "부서장"
+   "부서"
   ],
   "employees": [
-   "직원",
-   "인력",
-   "팀원",
-   "사원"
+   "직원"
   ],
   "products": [
    "제품",
-   "상품"
+   "솔루션"
   ],
   "projects": [
-   "프로젝트",
-   "과제"
+   "프로젝트"
   ],
   "sales": [
-   "매출",
-   "판매",
-   "영업"
+   "매출"
   ],
   "support_tickets": [
-   "티켓",
-   "문의",
-   "지원요청"
+   "티켓"
   ]
  }
 }
