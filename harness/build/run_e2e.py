@@ -99,6 +99,20 @@ def print_observation(obs):
     print(f"    raw 접힘: {' '.join(folded) if folded else '없음'}")
 
 
+def print_pairs(rows):
+    """병렬 짝 로그 — **신호가 고른 짝**과 **실행 후 확정 상태**를 따로 낸다 (#12 결정 5).
+
+    둘을 한 줄에 섞으면 실패의 출처가 안 보인다. 짝이 틀린 것(신호 오선택 — 결정적이라
+    1건이라도 반증)과 짝은 맞았는데 실행 확인이 죽은 것(SQL 변동 등 실행 노이즈)은
+    다른 사건이고, AC 를 읽는 규율이 그 둘을 가른다. 0건이어도 항상 찍는다.
+    """
+    print(f"  병렬 짝 로그 — 신호가 고른 짝 / 실행 후 확정 (이슈 #12 결정 5) — {len(rows)}건")
+    for qid, plog, state, got in rows:
+        src = "신호" if plog["source"] == "signal" else "폴백"
+        print(f"    {qid:8} {src}  {'+'.join(plog['pair']):32}"
+              f" →  {state} [{', '.join(sorted(got))}]")
+
+
 def normalize(status):
     """도구 응답 상태를 채점 어휘로 옮긴다 — src/composition.ts 의 normalize 와 같다.
 
@@ -120,36 +134,46 @@ def answer(question, qvec=None):
     """판별 → 실행 → (필요하면) 병렬 확정. **덤프도 이 함수를 쓴다** —
     대조가 러너와 다른 경로를 보면 출하 경로의 이식 버그를 못 잡는다.
 
-    `(고른 도구, 응답 상태, 도구 결과)` 셋을 돌려준다. **셋째가 있는 것은 대조가
-    반환 형태까지 보게 하기 위해서다** — 종전에는 도구 결과를 버렸고, 그래서 반환
-    필드를 한쪽 구현에만 더해도 대조가 그대로 통과했다 (#25). `src/composition.ts`
-    의 `compose` 가 `results` 를 함께 돌려주는 것과 같은 모양이다.
+    `(고른 도구, 응답 상태, 도구 결과, 짝 로그)` 넷을 돌려준다. **셋째가 있는 것은
+    대조가 반환 형태까지 보게 하기 위해서다** — 종전에는 도구 결과를 버렸고, 그래서
+    반환 필드를 한쪽 구현에만 더해도 대조가 그대로 통과했다 (#25). `src/composition.ts`
+    의 `compose` 가 `results` 를 함께 돌려주는 것과 같은 모양이다. 넷째는 **신호가 고른
+    짝**이고, 실행 후 확정된 상태와 따로 봐야 하므로 복귀·낙하 경로에서도 유지한다
+    (이슈 #12 결정 5).
     """
     qvec = router.embed(question) if qvec is None else qvec
     chosen, state = router.route(question, qvec, docvecs)
+    pair_log = None
     if not chosen:
-        return chosen, state, {}                          # 거절 — 도구를 안 부른다
+        return chosen, state, {}, pair_log                # 거절 — 도구를 안 부른다
 
     if tools.has_two_requests(question):                  # ① 접속 탐지
-        # 후보는 **유사도 상위 2개**다. 셋을 다 태워 살아남는 것으로 짝을 정하는 안과
-        # 견줘 이쪽을 택했다 — X4 가 {graph, vector} 대신 {graph, nl2sql} 로 갔다.
-        # **이 선택의 근거는 엣지 세트 점수뿐이다** (25 대 23). 위 두 규약과 달리 설계 쪽
-        # 독립 논거가 없어 D7 경계에 있고, 그 노출을 harness-evaluation.md 6절에 적어 두었다.
-        ranked = router.ranked_tools(qvec)
-        cands = ranked[:2]
-        if "vector_search" not in cands:                  # 서술 쪽 후보를 반드시 포함
-            cands = [cands[0], "vector_search"]
+        # 서술 변(`vector_search`)은 **고정 멤버**다 — D3 의 병렬 정의 두 유형(X3·X4)
+        # 모두 한쪽이 서술이라 설계에서 유도된다. 규칙이 정하는 것은 목록 변 한 자리고,
+        # 그것을 **첫 요구 안 축 어휘의 위치**가 정한다 (`tools.list_side_tool`).
+        # 신호가 침묵하면 유사도 폴백이다 — 종전 규칙 그대로이고 동작이 같다.
+        # 근거·대가·노출은 docs/agreements/issue-12-parallel-pair-selection.md 와
+        # docs/design.md D3 · docs/harness-evaluation.md 4.3·6절에 있다.
+        side = tools.list_side_tool(question)
+        if side:
+            cands = sorted(["vector_search", side])
+        else:
+            ranked = router.ranked_tools(qvec)
+            cands = ranked[:2]
+            if "vector_search" not in cands:              # 서술 쪽 후보를 반드시 포함
+                cands = [cands[0], "vector_search"]
+        pair_log = {"pair": sorted(cands), "source": "signal" if side else "fallback"}
         results = {t: run_tool(t, question, qvec) for t in cands}
         alive = [t for t in cands if results[t]["status"] in HAS_CONTENT]
         if len(alive) >= 2:                               # ② 실행 확인
-            return sorted(alive), "parallel_merge", results
+            return sorted(alive), "parallel_merge", results, pair_log
         # 한쪽만 살았다 → 병렬이 아니다. **라우터의 원래 선택으로 되돌아간다** —
-        # 병렬 분기는 도구를 더하기만 하고, 라우터의 판정을 덮어쓰지 않는다.
+        # 병렬 분기가 라우터의 판정을 덮어쓰지 않는다.
         if chosen[0] in results:
-            return chosen, normalize(results[chosen[0]]["status"]), results
+            return chosen, normalize(results[chosen[0]]["status"]), results, pair_log
 
     r = run_tool(chosen[0], question, qvec)
-    return chosen, normalize(r["status"]), {chosen[0]: r}
+    return chosen, normalize(r["status"]), {chosen[0]: r}, pair_log
 
 
 def score_edge():
@@ -157,8 +181,11 @@ def score_edge():
     routing = execution = 0
     rows = []
     outcomes = []
+    pairs = []
     for x in edge:
-        got, state, res = answer(x["q"])
+        got, state, res, plog = answer(x["q"])
+        if plog:
+            pairs.append((x["id"], plog, state, got))
         r_ok = set(got) == set(x["expected"]["routing"])
         e_ok = state == x["expected"]["response"]
         routing += r_ok
@@ -172,6 +199,7 @@ def score_edge():
     print(f"엣지 {n}문항  ·  라우팅 축 {routing}/{n}  ·  실행 축 {execution}/{n}")
     for r in rows:
         print(f"    {r[0]:8} {r[1]:3} {r[2]}{r[3]}  {r[4]:34} {r[5]}")
+    print_pairs(pairs)
     print_outcomes(outcomes)
 
 
@@ -182,9 +210,12 @@ def score_regression():
     rows = []
     outcomes = []
     obs = []                                              # 관측선 입력 — 채점하지 않는다 (D18)
+    pairs = []
     for i, x in enumerate(base):
-        got, state, res = answer(x["q"])
+        got, state, res, plog = answer(x["q"])
         obs.append((i, state, got, res))
+        if plog:
+            pairs.append((f"#{i}", plog, state, got))
         if set(got) == {x["tool"]}:
             hit += 1
         else:
@@ -195,6 +226,7 @@ def score_regression():
     print_observation(obs)
     for r in rows:
         print(f"    {r[0]:5} {r[1]:52} {r[2]}")
+    print_pairs(pairs)
     print_outcomes(outcomes)
 
 
