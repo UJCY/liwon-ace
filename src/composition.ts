@@ -6,7 +6,7 @@
  * 대조 덤프(`scripts/dump-server.mjs`)도 **같은 함수**를 부른다 — 대조용 사본을
  * 따로 두면 그것이 출하 경로와 갈라져도 대조가 통과한다.
  */
-import { route, type Routing, type ToolName } from "./router.js";
+import { listSideTool, route, type Routing, type ToolName } from "./router.js";
 import { embed } from "./ollama.js";
 import { vectorSearch } from "./tools/vector-search.js";
 import { nl2sql } from "./tools/nl2sql.js";
@@ -35,6 +35,10 @@ export interface Composed {
   state: ComposedState;
   results: Partial<Record<ToolName, ToolResult>>;
   routing: Routing;
+  /** 병렬 분기가 **태운** 후보 둘. 분기를 안 탔으면 null (#12 결정 5). */
+  pair: ToolName[] | null;
+  /** 그 짝을 축 신호가 정했는가, 유사도 폴백이 정했는가. */
+  pairSource: "signal" | "fallback" | null;
 }
 
 /**
@@ -47,32 +51,65 @@ export interface Composed {
 export const hasExecutionError = (results: Composed["results"]): boolean =>
   Object.values(results).some((r) => r?.status === "error");
 
-/** 병렬 후보를 고른다 — 유사도 상위 N + 서술 쪽 후보. */
-export function parallelCandidates(r: Routing): ToolName[] {
+export interface PairChoice {
+  pair: ToolName[];
+  source: "signal" | "fallback";
+}
+
+/**
+ * 병렬 후보 둘을 고른다.
+ *
+ * 서술 변(`vector_search`)은 **고정 멤버**다 — D3 의 병렬 정의 두 유형(X3·X4) 모두
+ * 한쪽이 서술이라 설계에서 유도된다. 규칙이 정하는 것은 목록 변 한 자리고, 그것을
+ * **첫 요구 안 축 어휘의 위치**가 정한다 (`listSideTool`). 신호가 침묵하면 유사도
+ * 폴백이다 — 종전 규칙 그대로이고 동작이 같다 (#12 결정 4).
+ * 근거·대가·노출은 docs/agreements/issue-12-parallel-pair-selection.md 와
+ * docs/design.md D3 · docs/harness-evaluation.md 4.3·6절에 있다.
+ */
+export function parallelCandidates(question: string, r: Routing): PairChoice {
+  const side = listSideTool(question);
+  if (side) {
+    const pair: ToolName[] = ["vector_search", side];
+    return { pair: pair.sort(), source: "signal" };
+  }
   const cands = r.ranked.slice(0, MAX_PARALLEL);
-  if (!cands.includes("vector_search")) return [cands[0]!, "vector_search"];
-  return cands;
+  const pair: ToolName[] = cands.includes("vector_search") ? cands : [cands[0]!, "vector_search"];
+  return { pair: [...pair].sort(), source: "fallback" };
 }
 
 export async function compose(question: string): Promise<Composed> {
   const qvec = await embed(question);
   const r = await route(question, qvec);
-  if (!r.tools.length) return { tools: [], state: r.state, results: {}, routing: r };
+  let pair: ToolName[] | null = null;
+  let pairSource: "signal" | "fallback" | null = null;
+  if (!r.tools.length) {
+    return { tools: [], state: r.state, results: {}, routing: r, pair, pairSource };
+  }
 
   if (r.twoRequests) {
-    const cands = parallelCandidates(r);
+    const choice = parallelCandidates(question, r);
+    ({ pair, source: pairSource } = choice);
+    const cands = choice.pair;
     const results: Partial<Record<ToolName, ToolResult>> = {};
     for (const t of cands) results[t] = await runTool(t, question, qvec);
     const alive = cands.filter((t) => HAS_CONTENT.has(results[t]!.status));
-    if (alive.length >= 2) return { tools: alive.sort(), state: "parallel_merge", results, routing: r };
-    // 한쪽만 살면 병렬이 아니다 — 라우터의 원래 선택으로 되돌아간다
+    if (alive.length >= 2) {
+      return { tools: alive.sort(), state: "parallel_merge", results, routing: r, pair, pairSource };
+    }
+    // 한쪽만 살면 병렬이 아니다 — 라우터의 원래 선택으로 되돌아간다.
+    // **신호가 고른 짝은 그대로 싣는다** — 확정 상태와 따로 봐야 실패의 출처가 보인다.
     const chosen = r.tools[0]!;
     const res = results[chosen];
-    if (res) return { tools: r.tools, state: normalize(res.status), results, routing: r };
+    if (res) {
+      return { tools: r.tools, state: normalize(res.status), results, routing: r, pair, pairSource };
+    }
   }
   const chosen = r.tools[0]!;
   const res = await runTool(chosen, question, qvec);
-  return { tools: r.tools, state: normalize(res.status), results: { [chosen]: res }, routing: r };
+  return {
+    tools: r.tools, state: normalize(res.status), results: { [chosen]: res }, routing: r,
+    pair, pairSource,
+  };
 }
 
 /**

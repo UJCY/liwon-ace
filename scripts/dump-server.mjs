@@ -32,9 +32,11 @@ async function decide(question) {
   for (const [t, r] of Object.entries(c.results)) {
     if (DETERMINISTIC.has(t)) payload[t] = r;
   }
+  // 짝은 null 도 싣는다 — 분기가 안 탔다는 사실 자체가 대조 대상이다.
   return {
     tools: c.tools, state: c.state,
-    twoRequests: c.routing.twoRequests, ranked: c.routing.ranked, payload,
+    twoRequests: c.routing.twoRequests, ranked: c.routing.ranked,
+    pair: c.pair, pairSource: c.pairSource, payload,
   };
 }
 

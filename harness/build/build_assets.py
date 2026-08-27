@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """하네스 자산 생성기.
 
-자산은 두 종류다. **섞어서 "생성물"이라고 부르면 안 된다.**
+자산은 출처로 가른다. **섞어서 "생성물"이라고 부르면 안 된다.**
 
   파생(derived)  — 데이터셋에서 기계적으로 뽑는다. 사람 손이 닿지 않는다.
                    schema-annotated.sql · column-values.json · doc-topics.json ·
                    surface-gate.json
   저작(authored) — 사람이 쓴 것을 이 파일이 그대로 덤프한다.
                    tool-signatures.json · model.json
+  혼합(mixed)    — 한 파일 안에서 **필드마다 출처가 다르다.** `_provenance` 를
+                   필드별 객체로 쓴다 (docs/design.md D13).
+                   pair-axes.json
 
 **저작 자산에는 사람 판단이 들어 있다.** 특히 TOOL_SIGNATURES 는 라우터의
 도구 선택 기제 전부이고, 작성자는 questions.json 30문항을 이미 읽은 사람이다 —
@@ -125,6 +128,65 @@ def surface_gate(values):
             "tables": gate_tables(), "column_values_ko": korean}
 
 
+# 저작 — TOOL_SIGNATURES 의 nl2sql 문장에 든 명사 그대로다. 새 낱말이 아니라
+# **기존 저작 자산의 인용**이고, 그래서 그 문장의 저작 오염(작성자가 30문항을 읽은
+# 뒤 썼다)이 짝 선택에도 그대로 이어진다 — harness-evaluation.md 6절.
+#
+# **인용이라는 말은 단언으로 지킨다** (`pair_axes` 의 assert). 손으로 옮겨 적은 목록이라,
+# 시그니처 문장을 고치면서 이쪽을 안 고치면 "기존 자산에서만 왔다"는 근거가 조용히
+# 무너진다 — 축 어휘가 자산에 없는 저작 낱말로 바뀌는데 아무도 못 본다.
+NL2SQL_SIGNATURE_NOUNS = ["금액", "연봉", "예산", "기간", "상태", "건수", "합계", "개수", "평균"]
+
+
+def pair_axes(gate):
+    """병렬 짝의 **목록 변**을 가르는 두 축의 어휘 (이슈 #12 결정 3).
+
+    서술 변(`vector_search`)은 고정 멤버라 규칙이 정하지 않는다. 규칙이 정하는 것은
+    목록 변 한 자리(`nl2sql` vs `knowledge_graph`)뿐이고, 이 파일은 그 판정에 쓸
+    어휘를 **기존 자산 3곳에서만** 모은다 — 이 이슈에서 낱말을 새로 저작하지 않는다.
+
+      테이블 축  surface-gate.json 의 테이블 표층형(파생) + nl2sql 시그니처 명사(저작)
+                 + 사건 어휘 이슈·장애·문제(저작, RELATION_WORDS 에서 이관)
+      그래프 축  RELATION_WORDS 의 나머지 관계 표층형(저작)
+
+    사건 어휘가 테이블 축인 근거는 스키마 구조 대조다 — `REPORTED_ISSUE` 엣지는
+    고객사→제품 연결일 뿐 어떤 사건인지를 담지 않고, 사건 실물은
+    `support_tickets.title` 에만 있다. `RELATION_WORDS` 의 항목 자체는 도구 내부의
+    관계 순회용으로 그대로 남는다 (결정 2).
+
+    양쪽 축에 걸리는 낱말(`프로젝트`)은 정의상 모호하므로 **기계적으로 둘 다에서**
+    뺀다 — 배제 목록을 `_excluded` 에 남긴다.
+
+    **부트스트랩 주의**: `tools` 는 커밋된 자산(entity-patterns.json·model.json·
+    schema-annotated.sql·pair-axes.json)을 import 시점에 읽는다. 그래서 자산을
+    통째로 비운 채로는 재생성할 수 없다.
+    """
+    import tools
+
+    # 시그니처 명사는 **인용**이다 — 원문에서 이탈하면 여기서 멈춘다 (위 주석).
+    missing = [w for w in NL2SQL_SIGNATURE_NOUNS if w not in TOOL_SIGNATURES["nl2sql"]]
+    assert not missing, (
+        f"NL2SQL_SIGNATURE_NOUNS 가 nl2sql 시그니처 문장에서 이탈했다: {missing}. "
+        "짝 축 어휘는 기존 자산의 인용이어야 한다 (이슈 #12 결정 3) — "
+        "낱말을 새로 저작하려면 결정 3 부터 다시 연다.")
+
+    table = [w for ws in gate["tables"].values() for w in ws] \
+            + NL2SQL_SIGNATURE_NOUNS + tools.RELATION_WORDS["REPORTED_ISSUE"]
+    graph = [w for rel, ws in tools.RELATION_WORDS.items() if rel != "REPORTED_ISSUE"
+             for w in ws]
+    both = sorted(set(table) & set(graph))
+    return {"_provenance": {
+                "table": "derived+authored — surface-gate.json 의 테이블 표층형 + "
+                         "tool-signatures.json 의 nl2sql 문장 명사 + "
+                         "RELATION_WORDS 의 REPORTED_ISSUE (이슈 #12 결정 2·3)",
+                "graph": "authored — tools.py RELATION_WORDS 의 REPORTED_ISSUE 제외 "
+                         "나머지 관계 표층형 (서버 knowledge-graph.ts 와 공유)",
+                "_excluded": "양쪽 축에 걸려 정의상 모호한 낱말 — 기계적으로 배제한다"},
+            "table": [w for w in table if w not in both],
+            "graph": [w for w in graph if w not in both],
+            "_excluded": both}
+
+
 def doc_topics():
     """제품 × 기술주제 격자 — 기술문서 제목 `[기술문서] {제품} {주제} …` 에서 뽑는다.
 
@@ -191,10 +253,12 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     ddl    = read_ddl()
     values = read_column_values()
+    gate   = surface_gate(values)          # 게이트 어휘 · 짝 축 어휘의 공통 입력
     open(os.path.join(OUT, "schema-annotated.sql"), "w", encoding="utf-8").write(annotate(ddl, values) + "\n")
     for name, obj in (("column-values.json", values),
                       ("doc-topics.json", doc_topics()),
-                      ("surface-gate.json", surface_gate(values)),
+                      ("surface-gate.json", gate),
+                      ("pair-axes.json", pair_axes(gate)),
                       ("tool-signatures.json", TOOL_SIGNATURES),
                       ("entity-patterns.json", {"_provenance": "authored — 데이터 밖의 이름을 잡는 목록",
                                                 "company_suffix": COMPANY_SUFFIX,

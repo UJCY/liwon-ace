@@ -38,6 +38,12 @@ export const gateWords: string[] = [
   ...gate.column_values_ko,
 ];
 
+/**
+ * 병렬 짝의 **목록 변**을 가르는 두 축의 어휘 (#12). 하네스 `tools.py` 의 `_AXES` 와
+ * **같은 파일**이다 — 코드 상수를 두 벌 두면 갈라져도 대조가 못 잡는다.
+ */
+export const pairAxes = readJson<{ table: string[]; graph: string[] }>("pair-axes.json");
+
 const patterns = readJson<{ company_suffix: string[]; id_prefixes: string[] }>(
   "entity-patterns.json",
 );

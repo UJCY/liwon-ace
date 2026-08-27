@@ -348,6 +348,50 @@ def has_two_requests(question):
     return any(re.search(p, question) for p in CONJUNCTION)
 
 
+# ── 병렬 짝의 목록 변 (이슈 #12) ──────────────────────────────────────────
+# 병렬의 서술 변(`vector_search`)은 D3 의 병렬 정의에서 유도되는 **고정 멤버**다.
+# 규칙이 정할 것은 목록 변(`nl2sql` vs `knowledge_graph`) 한 자리뿐이고,
+# 그것을 축 어휘의 **위치**로 정한다 — 집합으로는 가를 수 없음이 확인됐다
+# (R4-01 과 X4-01·02 는 같은 축 어휘를 담는데 기대 변이 반대다).
+#
+# 축 어휘는 자산에서 읽는다. **서버 `src/assets.ts` 의 `pairAxes` 와 같은 파일이다** —
+# 코드 상수를 두 벌 두면 갈라져도 대조가 못 잡는다.
+_AXES = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                    "assets", "pair-axes.json"), encoding="utf-8"))
+
+
+def first_request(question):
+    """접속 경계 앞의 **첫 요구**. 경계가 없으면 첫 요구도 없다 (빈 문자열).
+
+    경계는 CONJUNCTION 최좌 매치의 시작 위치 `b` 이고, 자르는 곳은 `b+1` 이다 —
+    패턴 선두의 `[가-힣]`·`고` 는 경계 표지가 아니라 첫 요구 **마지막 어절의 끝
+    음절**이기 때문이다 (`장애,` 의 `애`, `현황과` 의 `황`, `있었고,` 의 `고`).
+    `\\?` 패턴에서 +1 은 `?` 한 글자를 포함할 뿐이라 무해하다 (축 어휘에 `?` 가 없다).
+    """
+    import re
+    starts = [m.start() for m in (re.search(p, question) for p in CONJUNCTION) if m]
+    return question[:min(starts) + 1] if starts else ""
+
+
+def list_side_tool(question):
+    """첫 요구가 가리키는 목록 변 도구. 신호가 침묵하면 None (→ 유사도 폴백).
+
+    두 축 어휘의 **마지막 출현 위치**를 견줘 더 뒤에 있는 축이 목록 변이다 —
+    한국어는 수식어가 머리 명사 앞에 오고 묻는 명사가 문미에 온다. `_asked_type`
+    이 이미 같은 문장으로 채택한 원리이고, 위치 비교도 그쪽과 같은 rfind 다.
+    무어휘(둘 다 -1)와 동률(`부서`/`부서장` 류 접두 충돌 포함)은 침묵이다.
+
+    **`harness/build/tools.py` 와 `src/router.ts` 의 `listSideTool` 은 같은 판정이어야
+    한다** — 59문항 pair 전수 대조(scripts/xcheck.mjs)가 그것을 잰다.
+    """
+    head = first_request(question)
+    t = max(head.rfind(w) for w in _AXES["table"])
+    g = max(head.rfind(w) for w in _AXES["graph"])
+    if t == g:
+        return None
+    return "nl2sql" if t > g else "knowledge_graph"
+
+
 # ── nl2sql 실행부 ────────────────────────────────────────────────────────
 _A = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
 _MODEL = json.load(open(os.path.join(_A, "model.json"), encoding="utf-8"))["llm"]
