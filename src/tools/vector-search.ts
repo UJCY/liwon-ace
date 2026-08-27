@@ -6,12 +6,28 @@
  * 청크가 상위에 안 든다 — `Client-A` 를 담은 청크 2개가 상위 5에 못 드는 것을 실측했다.
  */
 import { query, toVector } from "../db.js";
-import { model } from "../assets.js";
-import { findEntities } from "./entities.js";
+import { docTopics, model } from "../assets.js";
+import { findEntities, type NodeRef } from "./entities.js";
 import { graphFacts, knowledgeGraph } from "./knowledge-graph.js";
 import type { ToolResult } from "./types.js";
 
 interface Chunk { doc_id: string; content: string; sim: string }
+
+/**
+ * 제품 × 기술주제 격자 검사 (#13, T4-form) — `harness/build/tools.py` 의 `_form_gap`.
+ *
+ * 질문이 기술주제 어휘를 담고 매칭 개체에 제품이 있는데 어느 제품도 그 주제를
+ * 커버하지 않으면, 개체 청크가 있어도 요구 형태가 없는 것이다 — `ok` 가 아니라
+ * `partial`. 유사도로는 못 가른다 — X5-02(0.520)가 X4-01(0.494)보다 높다 (실측).
+ * 주제어가 여럿이면 하나라도 커버될 때 검사를 통과시킨다 (보수 방향).
+ */
+function formGap(question: string, matched: NodeRef[]): boolean {
+  const requested = docTopics.topics.filter((t) => question.includes(t));
+  const products = matched.filter((e) => e.type === "product");
+  if (!requested.length || !products.length) return false;
+  const covered = new Set(products.flatMap((p) => docTopics.coverage[p.name] ?? []));
+  return !requested.some((t) => covered.has(t));
+}
 
 /**
  * 반환 행의 모양.
@@ -49,10 +65,12 @@ async function vectorSearchInner(question: string, qvec: number[]): Promise<Tool
          ORDER BY embedding <=> $1::vector LIMIT 5`,
       [v, names],
     );
-    if (rows.length) {
+    if (rows.length && !formGap(question, matched)) {
       return { status: "ok", data: rows.map(chunkRow) };
     }
-    // 개체를 담은 청크가 0건 — T4. 아래에서 인접 사실을 붙인다.
+    // 개체 청크 0건(T4) 또는 격자 빈칸(T4-form, #13) — 아래에서 인접 사실을 붙인다.
+    // 격자 빈칸일 때 찾아 둔 청크는 싣지 않는다 — "API 인증" 질문 옆에 "API 키" 든
+    // 설치 본문을 놓으면 Q1 환각의 정확한 지점이다 (D10).
   } else {
     const rows = await query<Chunk>(
       `SELECT doc_id, content, (1 - (embedding <=> $1::vector))::text AS sim
