@@ -43,9 +43,14 @@ export interface Composed {
  * MCP 에러 2계층 판정의 입력이다 — 실행 실패(T1·T6)만 `isError` 이고
  * 데이터 부재(`no_result`·`partial`·`entity_not_found`)는 정상 결과다
  * (docs/edge-cases.md 공통 규약).
+ *
+ * **`status` 만 읽는다.** 그래서 받는 타입도 그만큼이다 — `ask` 는 선별을 거쳐 필드가
+ * 줄어든 결과(`curation.ts` 의 `CuratedResult`)를 넘기는데, 실행 실패 판정에 필요한 것은
+ * 그때도 `status` 뿐이다.
  */
-export const hasExecutionError = (results: Composed["results"]): boolean =>
-  Object.values(results).some((r) => r?.status === "error");
+export const hasExecutionError = (
+  results: Partial<Record<ToolName, { status: string }>>,
+): boolean => Object.values(results).some((r) => r?.status === "error");
 
 /** 병렬 후보를 고른다 — 유사도 상위 N + 서술 쪽 후보. */
 export function parallelCandidates(r: Routing): ToolName[] {
