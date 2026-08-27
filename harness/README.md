@@ -37,13 +37,14 @@ harness/
 |---|---|---|
 | `schema-annotated.sql` | DDL 각 컬럼 줄 끝에 **실제 값 목록과 단위**를 `--` 주석으로 붙인 것 | `nl2sql` 프롬프트 |
 | `column-values.json` | 저카디널리티 컬럼의 실제 값 (19개 컬럼) | 위 생성 입력 · 라우터 게이트 |
-| `surface-gate.json` | 테이블 표층형 8개 + 컬럼의 한국어 값 | 라우터 **거절 게이트** |
+| `surface-gate.json` | 테이블 표층형 9낱말 + 컬럼의 한국어 값. **둘 다 파생이다** — 표층형은 `01-schema.sql` 의 `-- N. 라벨` 주석에서 **우핵 규칙**(라벨 조각의 마지막 어절을 쓴다 — `기술 지원 티켓` → `티켓`)으로 뽑는다 (이슈 #19) | 라우터 **거절 게이트** |
 | `tool-signatures.json` | 도구 3종의 능력 서술 각 1문장. **사람이 썼다** — D11-1 표를 문장화한 것이고 데이터셋에서 도출된 것이 아니다 | 라우터 **도구 선택** (임베딩) |
 | `model.json` | 모델명·호출 옵션·임계값 | 전 호출 지점 |
 
-**`surface-gate.json`은 도구 선택에 쓰지 않는다.** 게이트는 "스키마 어휘가 걸렸는가"만 본다 —
-어느 식별자에 걸렸는지는 보지 않으므로 정밀할 필요가 없다.
-도구 선택은 `tool-signatures.json` 임베딩이 한다 ([design.md](../docs/design.md) D12).
+**`surface-gate.json`은 거절 판단에만 관여한다 — 구조적으로.** 게이트는 "스키마 어휘가 걸렸는가"만
+본다. 게이트 히트가 도구를 직접 반환하는 경로는 없다 — R5 구제가 거절 직전에 있기 때문이다
+(2026-08-27, 이슈 #19). 도구 선택은 `tool-signatures.json` 임베딩이 한다
+([design.md](../docs/design.md) D12).
 
 ## 세 가지 결정적 사실
 
@@ -77,7 +78,7 @@ harness/
 python3 harness/build/build_assets.py
 ```
 
-**파생 자산의** 입력은 `companyx-dataset-v1.0/` 의 스키마와 데이터뿐이다. 저작 자산(`tool-signatures.json` · `model.json` · 게이트의 `tables`)은 사람이 쓴 것을 그대로 덤프하며, 그 오염은 [harness-evaluation.md](../docs/harness-evaluation.md) 6절에 기록돼 있다.
+**파생 자산의** 입력은 `companyx-dataset-v1.0/` 의 스키마와 데이터뿐이다. 저작 자산(`tool-signatures.json` · `model.json`)은 사람이 쓴 것을 그대로 덤프하며, 그 오염은 [harness-evaluation.md](../docs/harness-evaluation.md) 6절에 기록돼 있다.
 `questions.json` 과 `edge-set/` 은 입력에 들어가지 않는다 ([design.md](../docs/design.md) D7).
 
 ## 채점
@@ -87,7 +88,7 @@ python3 harness/build/run_nl2sql.py --set holdout --harness annotated
 ```
 
 ```bash
-python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 21/29
+python3 harness/build/run_router.py     # 회귀 26/30 · 엣지 라우팅 22/29
                                         # 실행 축 16/29 는 포화 상한이다 — 러너가 함께 출력한다
 python3 harness/build/run_answer.py     # dev 16 — 형식 16/16 · 판정 15/16 (예 8/8 · 아니오 7/8)
                                         # (--set holdout 은 하네스당 1회 — 아래 규칙)
