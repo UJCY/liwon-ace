@@ -54,6 +54,8 @@ export interface AskEnvelope {
   routed_to?: string[];
   matched_rule?: string;
   why?: unknown;
+  /** nl2sql 이 만든 SQL — **선별 앞**에서 뽑힌 원천이다 (D19). 없으면 `null`. */
+  sql?: string | null;
   results?: Record<string, unknown>;
   /** MCP 에러 2계층의 위 계층 — 태운 도구가 실행에 실패했는가. */
   isError: boolean;

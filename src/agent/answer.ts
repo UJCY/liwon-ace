@@ -80,6 +80,7 @@ export async function answerQuestion(
     truncations: [],
     answer_first_line: "",
     context_json: null,
+    sql: env.sql ?? null,
     answer_text: null,
   };
 
