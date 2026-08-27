@@ -28,7 +28,7 @@ import type { ToolResult } from "./tools/types.js";
 /**
  * 도구 결과를 MCP 응답으로 감싼다.
  *
- * **데이터 부재는 에러가 아니다.** `no_result`·`entity_not_found`·`partial` 은
+ * **데이터 부재는 에러가 아니다.** `no_result`·`entity_not_found`·`partial`·`ungrounded` 는
  * `isError` 없는 정상 결과이고, 모델이 읽고 "모른다"고 답해야 하므로 데이터다.
  * 실행 실패(`error`)만 `isError: true` 다 (MCP 스펙 에러 2계층 · edge-cases.md).
  */

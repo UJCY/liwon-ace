@@ -11,6 +11,8 @@ D12 는 *도구 선택*에 표층 관계 어휘가 필요 없다고 정했지, �
 """
 import csv, io, json, os, subprocess
 
+import check_grounding
+
 CONTAINER = os.environ.get("CX_PG", "cx-pg")
 
 # 저작 — 사람이 썼다. graph/schema.md 의 관계 7종에 한국어 표층형을 붙인 것이다.
@@ -361,8 +363,32 @@ def _sql_prompt(question):
     return tpl.replace("{{SCHEMA}}", _SCHEMA).replace("{{QUESTION}}", question)
 
 
+# 접지 검출 (D18) — **정의는 check_grounding.py 한 곳에 있다.** 여기는 그것을 부르고
+# 채택 정책(숫자 ×10 + 문자열 오배치)으로 거를 뿐이다. 서버 `src/tools/nl2sql.ts` 가
+# 같은 판정을 이식해 갖고 있고, 두 구현은 같은 SQL 에 같은 결과를 내야 한다.
+_RANGES = check_grounding.load_ranges()          # json 하나라 모듈 로드 시 읽어도 싸다
+_TXT_COLS = None
+
+
+def _txt_cols():
+    """텍스트 컬럼 목록 — 첫 호출에서 한 번만 묻는다 (스키마는 실행 중 안 바뀐다)."""
+    global _TXT_COLS
+    if _TXT_COLS is None:
+        _TXT_COLS = check_grounding.text_columns()
+    return _TXT_COLS
+
+
+def _empty_handed(rows):
+    """빈손인가 — 0행, 또는 집계 0/NULL 한 행. 격자 `zero_result` 정의 그대로다.
+
+    적발 22/22 · 오인 0 이 정확히 이 정의 위에서 검증됐으므로 **넓히지 않는다**.
+    psql --csv 는 NULL 을 `""` 로, COUNT 를 `"0"` 으로 준다 (서버 쪽은 None / "0").
+    """
+    return not rows or (len(rows) == 1 and len(rows[0]) == 1 and rows[0][0] in ("", "0"))
+
+
 def nl2sql(question):
-    """SQL 생성 → 실행. 0행은 실패가 아니라 T3 다 (edge-cases.md T3)."""
+    """SQL 생성 → 실행. 빈손이면 접지를 보고 T3 와 T9 를 가른다 (edge-cases.md T3·T9)."""
     import re, urllib.request
     body = {"model": _MODEL["name"], "prompt": _sql_prompt(question), "stream": False,
             "options": _MODEL["options"]}
@@ -382,8 +408,17 @@ def nl2sql(question):
         rows = psql(sql)
     except RuntimeError as e:
         return {"status": "error", "reason": str(e)}                # T1
+    # 빈손이면 리터럴이 데이터에 접지됐는지 본다 — 0행의 이중 의미를 가른다 (D18).
+    # **채택 정책 필터**: 숫자 ×10 과 문자열 오배치만. `string`(어디에도 없음)은
+    # "값이 진짜 없는 정직한 질문"과 못 갈라서 뺀다 — 서버 nl2sql.ts 와 같은 자리다.
+    if _empty_handed(rows):
+        hits = [h for h in check_grounding.detect(sql, _RANGES, _txt_cols())
+                if h["kind"] != "string"]
+        if hits:
+            return {"status": "ungrounded", "sql": sql, "hits": hits}   # T9
+    # 집계 0 한 행 + 미적발은 여기 안 걸리고 `ok` 로 남는다 — "0건"이 정답인 질문이다.
     if not rows:
         return {"status": "no_result", "asset": "tables", "sql": sql}   # T3
-    # 계약 필드는 `data` 다 (src/tools/types.ts OkResult). `sql` 은 하네스 전용
-    # 부가 필드로 남긴다 — 어떤 SQL 이 그 답을 냈는지 러너 출력에서 봐야 한다.
+    # 계약 필드는 `data` 다 (src/tools/types.ts OkResult). `sql` 은 서버와 같은 자리의
+    # 부가 필드다 — 어떤 SQL 이 그 답을 냈는지 러너 출력·로그에서 봐야 한다.
     return {"status": "ok", "data": rows, "sql": sql}

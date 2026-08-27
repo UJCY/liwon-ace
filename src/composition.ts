@@ -81,6 +81,10 @@ export async function compose(question: string): Promise<Composed> {
  * `error` 도 `single` 로 접는 것은 **채점 축의 규약**이다 — 라우팅이 맞았는지를
  * 실행 실패가 가리면 안 된다. 실행 실패 자체는 `results` 안에 남고 MCP 응답의
  * `isError` 로 올라간다 (hasExecutionError).
+ *
+ * `ungrounded` 도 같이 접는다 — 독립 `ComposedState` 로 두면 기대가 `single` 인
+ * `OP-02`·`R4-02` 가 엣지 실행 축에서 −2 다 (D18). `HAS_CONTENT` 는 `{"ok"}` 그대로다:
+ * `ungrounded` 는 내용 있는 갈래가 아니므로 병렬 생존으로 세지 않는다.
  */
 const normalize = (s: ToolResult["status"]): ComposedState =>
-  s === "ok" || s === "no_result" || s === "error" ? "single" : s;
+  s === "ok" || s === "no_result" || s === "error" || s === "ungrounded" ? "single" : s;

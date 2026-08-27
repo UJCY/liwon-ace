@@ -76,8 +76,9 @@ def normalize(status):
 
     `error` 도 `single` 로 접는 것은 채점 축의 규약이다. 실행 실패 자체는
     서버 쪽에서 MCP 응답의 `isError` 로 올라간다 (docs/edge-cases.md 공통 규약).
+    `ungrounded` 도 같이 접는다 — 어휘 출처는 D18 이다 (D17 허용 범위).
     """
-    return "single" if status in ("ok", "no_result", "error") else status
+    return "single" if status in ("ok", "no_result", "error", "ungrounded") else status
 
 
 def run_tool(tool, question, qvec):

@@ -54,6 +54,16 @@ export const docTopics = readJson<{ topics: string[]; coverage: Record<string, s
   "doc-topics.json",
 );
 
+/**
+ * 금액 컬럼의 실측 범위 (`테이블.컬럼` → `[최소, 최대]`, 만원 단위).
+ * `nl2sql` 의 접지 검출이 읽는다 — **하네스 `check_grounding.py` 와 같은 파일이다** (D13·D18).
+ * 밑줄로 시작하는 키(`_provenance`)는 메타데이터이므로 건너뛴다.
+ */
+export const columnRanges: Record<string, [number, number]> = Object.fromEntries(
+  Object.entries(readJson<Record<string, [number, number]>>("column-ranges.json"))
+    .filter(([k]) => !k.startsWith("_")),
+);
+
 export const annotatedSchema = read("schema-annotated.sql");
 
 /** 프롬프트 실물은 마크다운의 첫 코드블록이다. 코드에 두 번째 사본을 두지 않는다. */
