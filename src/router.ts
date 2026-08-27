@@ -10,7 +10,7 @@
 import { cosine } from "./similarity.js";
 import { embed } from "./ollama.js";
 import { query, toVector } from "./db.js";
-import { entityPattern, gateWords, model, toolSignatures } from "./assets.js";
+import { entityPattern, gateWords, model, pairAxes, toolSignatures } from "./assets.js";
 
 export type ToolName = "vector_search" | "nl2sql" | "knowledge_graph";
 
@@ -59,6 +59,39 @@ const CONJUNCTION = [
 ];
 
 export const hasTwoRequests = (q: string) => CONJUNCTION.some((re) => re.test(q));
+
+/**
+ * 접속 경계 앞의 **첫 요구**. 경계가 없으면 첫 요구도 없다 (빈 문자열).
+ *
+ * 경계는 CONJUNCTION 최좌 매치의 시작 위치 `b` 이고, 자르는 곳은 `b+1` 이다 —
+ * 패턴 선두의 `[가-힣]`·`고` 는 경계 표지가 아니라 첫 요구 **마지막 어절의 끝
+ * 음절**이기 때문이다 (`장애,` 의 `애`, `현황과` 의 `황`, `있었고,` 의 `고`).
+ * `\?` 패턴에서 +1 은 `?` 한 글자를 포함할 뿐이라 무해하다 (축 어휘에 `?` 가 없다).
+ */
+export function firstRequest(question: string): string {
+  const starts = CONJUNCTION.map((re) => question.search(re)).filter((i) => i >= 0);
+  return starts.length ? question.slice(0, Math.min(...starts) + 1) : "";
+}
+
+/**
+ * 첫 요구가 가리키는 병렬 짝의 **목록 변**. 신호가 침묵하면 `null` (→ 유사도 폴백).
+ *
+ * 서술 변(`vector_search`)은 D3 의 병렬 정의에서 유도되는 고정 멤버라 규칙이 정하지
+ * 않는다. 두 축 어휘의 **마지막 출현 위치**를 견줘 더 뒤에 있는 축이 목록 변이다 —
+ * 한국어는 수식어가 머리 명사 앞에 오고 묻는 명사가 문미에 온다. 무어휘(둘 다 -1)와
+ * 동률(`부서`/`부서장` 류 접두 충돌 포함)은 침묵이다.
+ *
+ * **`harness/build/tools.py` 의 `list_side_tool` 과 같은 판정이어야 한다** —
+ * 59문항 pair 전수 대조(`scripts/xcheck.mjs`)가 그것을 잰다.
+ * 근거는 docs/agreements/issue-12-parallel-pair-selection.md · design.md D3.
+ */
+export function listSideTool(question: string): "nl2sql" | "knowledge_graph" | null {
+  const head = firstRequest(question);
+  const last = (ws: string[]) => Math.max(...ws.map((w) => head.lastIndexOf(w)));
+  const t = last(pairAxes.table), g = last(pairAxes.graph);
+  if (t === g) return null;
+  return t > g ? "nl2sql" : "knowledge_graph";
+}
 
 export async function route(question: string, qvec?: number[]): Promise<Routing> {
   const v = qvec ?? (await embed(question));
