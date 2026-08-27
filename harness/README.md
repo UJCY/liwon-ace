@@ -17,12 +17,14 @@ harness/
 │   ├── run_e2e.py          ← 도구까지 태워 실행 축을 잰다
 │   ├── build_unit_grid.py  ← 단위 어형 격자 76문항 생성 + 기준 단언 (#39)
 │   ├── check_grounding.py  ← 0행 접지 검출기 — 기록된 SQL 위 오프라인 평가
+│   ├── check_pair_signal.py ← 병렬 짝 신호 동결 검사 — 합의문 책상 검증 표 6행 (#12)
 │   └── retry_unit.py       ← 접지 재시도 시뮬레이션 (dev 기각 — 위장 2)
 ├── assets/                 ← 파생 자산은 손으로 고치지 않는다. 저작 자산은 _provenance 로 표시
 │   ├── schema-annotated.sql
 │   ├── column-values.json
 │   ├── column-ranges.json
 │   ├── surface-gate.json
+│   ├── pair-axes.json
 │   ├── tool-signatures.json
 │   ├── model.json
 │   └── prompts/
@@ -42,6 +44,7 @@ harness/
 | `schema-annotated.sql` | DDL 각 컬럼 줄 끝에 **실제 값 목록과 단위**를 `--` 주석으로 붙인 것 | `nl2sql` 프롬프트 |
 | `column-values.json` | 저카디널리티 컬럼의 실제 값 (19개 컬럼) | 위 생성 입력 · 라우터 게이트 |
 | `surface-gate.json` | 테이블 표층형 9낱말 + 컬럼의 한국어 값. **둘 다 파생이다** — 표층형은 `01-schema.sql` 의 `-- N. 라벨` 주석에서 **우핵 규칙**(라벨 조각의 마지막 어절을 쓴다 — `기술 지원 티켓` → `티켓`)으로 뽑는다 (이슈 #19) | 라우터 **거절 게이트** |
+| `pair-axes.json` | 병렬 짝의 **목록 변**(`nl2sql` vs `knowledge_graph`)을 가르는 두 축의 어휘 (테이블 20 · 그래프 19). **새 낱말이 없다** — 게이트 표층형(파생) + `nl2sql` 시그니처 명사(저작) + `RELATION_WORDS`(저작)를 모은 것이고, 양쪽 축에 걸리는 `프로젝트` 는 기계적으로 배제한다 (이슈 #12) | 병렬 **짝 선택** (`run_e2e.py` · `src/composition.ts`) |
 | `tool-signatures.json` | 도구 3종의 능력 서술 각 1문장. **사람이 썼다** — D11-1 표를 문장화한 것이고 데이터셋에서 도출된 것이 아니다 | 라우터 **도구 선택** (임베딩) |
 | `model.json` | 모델명·호출 옵션·임계값 | 전 호출 지점 |
 
@@ -99,10 +102,13 @@ python3 harness/build/run_answer.py     # dev 16 — 형식 16/16 · 판정 15/1
 node scripts/dump-fixtures.mjs --check harness/tests/answer-protocol-dev.json \
                                harness/tests/answer-protocol-holdout.json
                                         # 픽스처가 출하 경로와 갈라졌는지 — 결정적 문항만
+python3 harness/build/check_pair_signal.py  # 병렬 짝 신호 6/6 — 합의문 책상 검증 표. 인프라 불필요
 python3 harness/build/load_pg.py        # 측정 전 1회 — 청크·그래프 적재
-python3 harness/build/run_e2e.py        # 엣지 라우팅 25/29 · 실행 27/29 · 회귀 24/30
+python3 harness/build/run_e2e.py        # 엣지 라우팅 27/29 · 실행 27/29 · 회귀 24~25/30
+                                        # 회귀가 구간인 것은 #10 의 nl2sql 이 실행마다 갈려서다 (6절 · 4.3)
+                                        # 병렬 짝 로그도 함께 낸다 — 신호가 고른 짝 / 실행 후 확정 (#12)
 node scripts/agent-check.mjs            # 에이전트 3축 — 호출·환각·응답. 수치는 docs/harness-evaluation.md 7절
-node scripts/xcheck.mjs                 # 하네스↔서버 대조 — 결정적 57/57 · LLM 결합 2
+node scripts/xcheck.mjs                 # 하네스↔서버 대조 — 결정적 52/52 · LLM 결합 7 (결정적 부분필드 7/7)
 ```
 
 `--harness bare | blocks | annotated` 로 세 구성을 비교할 수 있다.
