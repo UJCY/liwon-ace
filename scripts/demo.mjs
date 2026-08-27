@@ -1,13 +1,13 @@
 /**
  * 시연영상 구동기 — 원테이크를 스크립트가 통제한다.
  *
- *   node scripts/demo.mjs            # 본편 (터미널 구간 144초 고정)
+ *   node scripts/demo.mjs            # 본편 (터미널 구간 120초 고정)
  *   node scripts/demo.mjs --warm     # 촬영 전 워밍업 (모델 적재를 촬영 밖에서 끝낸다)
  *   node scripts/demo.mjs --verify   # 6문항 3회 재현 검사 (합의 결정 10)
  *
  * **이 파일이 있는 이유.** 편집 0 · 원테이크로 찍기로 했으므로(합의 결정 3) 사람이
  * 중간에 손댈 자리가 남으면 그 자리가 곧 실패 지점이다. 사람 개입 지점을 0 으로 만들고,
- * 구간마다 t0 기준 **절대 시각**까지 멈춰 터미널 구간의 총 길이를 144초로 고정한다.
+ * 구간마다 t0 기준 **절대 시각**까지 멈춰 터미널 구간의 총 길이를 120초로 고정한다.
  * 실행이 길어진 구간은 멈춤 0 으로 지나가므로 초과분이 뒤로 전파되지 않는다.
  *
  * **출하 경로만 부른다** (D7 · D13). `dist/agent/` 의 `connectAgent`·`answerQuestion` 을
@@ -47,34 +47,35 @@ function section(title) {
  */
 const QUESTIONS = [
   { q: "Client-A가 사용 중인 제품 목록은?", official: true,
-    title: "지식 그래프 — 규칙 라우터가 단일 도구를 고른다", secs: 13 },
+    title: "지식 그래프 — 규칙 라우터가 단일 도구를 고른다", secs: 11 },
   { q: "평균 연봉이 가장 높은 부서는 어디야?", official: true,
-    title: "NL2SQL — 자연어를 SQL 로", secs: 13 },
+    title: "NL2SQL — 자연어를 SQL 로", secs: 11 },
   // 종전에는 공식 #10(*"최근 서버 장애 사례와 원인을 알려줘"*)이 이 자리였다. 이슈 #12 가
   // 병렬 짝 선택을 유사도에서 축 신호로 바꾸면서 그 문항이 실행마다 갈린다 —
   // `single [vector_search]` 와 `parallel_merge [nl2sql, vector_search]` 사이를 오간다
   // (harness-evaluation.md 4.3 이 같은 문항을 회귀 24~25/30 구간의 원인으로 지목한다).
   // 어느 쪽이 나와도 이 구간 제목과 어긋나므로 3/3 재현되는 X4-01 로 갈았다.
   { q: "Client-A의 현재 주요 제품 사용 현황과 최근 겪은 주요 이슈는 무엇인가요?", official: false,
-    title: "병렬 호출 — 지식 그래프 + 벡터 검색 (parallel_merge)", secs: 16 },
+    title: "병렬 호출 — 지식 그래프 + 벡터 검색 (parallel_merge)", secs: 14 },
   { q: "서울물산 담당 엔지니어는 누구야?", official: true,
-    title: "없는 개체 — entity_not_found. 지어내지 않는다", secs: 12 },
+    title: "없는 개체 — entity_not_found. 지어내지 않는다", secs: 10 },
   { q: "박성민 님이 이끄는 프로젝트는?", official: false,
-    title: "동명이인 — ambiguous_entity. 되묻는다", secs: 16 },
+    title: "동명이인 — ambiguous_entity. 되묻는다", secs: 13 },
   { q: "Client-P에서 발생한 장애의 원인이 뭐야?", official: false,
-    title: "부분 응답 — partial + 구조화 JSON", secs: 36 },
+    title: "부분 응답 — partial + 구조화 JSON", secs: 28 },
 ];
 
-const SEC_TOOLS = 15;   // tools/list
+const SEC_TOOLS = 12;   // tools/list
 const SEC_INTERP = 10;  // 해석
-const SEC_OUTRO = 13;   // 마무리
+const SEC_OUTRO = 11;   // 마무리
 
 /**
  * t0 기준 절대 오프셋 — 구간 초를 누적해 **유도한다.**
  *
  * 누계를 손으로 병행해 적으면 구간 초 하나를 고칠 때 고칠 자리가 여덟 곳으로 늘고,
  * 그중 하나를 빠뜨리면 화면은 멀쩡히 돌아가면서 총 길이만 어긋난다.
- * 합의가 고정한 것은 `AT_END === 144` (터미널 144초 + 슬라이드 20초 = 2:44)다.
+ * 합의가 고정한 것은 `AT_END === 120` 이다 — 슬라이드 4장 약 48초를 더해 2:48 이고,
+ * 요구 상한 3:00 안에 12초 여유가 남는다.
  */
 const AT_TOOLS = SEC_TOOLS;
 const AT_Q = [];
@@ -85,8 +86,8 @@ const AT_END = (acc += SEC_OUTRO);
 
 // 누계를 유도로 바꾸면서 생긴 유일한 무증상 실패 경로를 여기서 막는다 — `secs` 오타는
 // 화면에 아무 표시를 안 남기고 총 길이만 어긋내므로, 촬영 전에 죽는 편이 낫다.
-if (AT_END !== 144) {
-  throw new Error(`터미널 구간 합계 ${AT_END}초 — 합의는 144초다 (secs 를 확인하라)`);
+if (AT_END !== 120) {
+  throw new Error(`터미널 구간 합계 ${AT_END}초 — 합의는 120초다 (secs 를 확인하라)`);
 }
 
 /** t0 기준 절대 시각까지만 잔다. 이미 지났으면 멈춤 0 — 초과분이 뒤로 안 번진다. */
@@ -386,7 +387,7 @@ const mode = process.argv[2] ?? "";
 if (mode === "--warm") await runWarm();
 else if (mode === "--verify") await runVerify();
 else if (mode) {
-  // 오타 난 플래그로 144초짜리 본편이 시작되는 것을 막는다.
+  // 오타 난 플래그로 120초짜리 본편이 시작되는 것을 막는다.
   console.error("사용법: node scripts/demo.mjs [--warm|--verify]");
   process.exit(1);
 } else await runShow();
