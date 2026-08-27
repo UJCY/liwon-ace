@@ -27,6 +27,49 @@ docvecs = router.doc_vectors()
 # partial 을 세면 개체 이름만 걸려도 vector_search 가 항상 살아나 병렬이 남발된다.
 HAS_CONTENT = {"ok"}
 
+# ── 유저-결과 내역 — 자동층 (docs/design.md D17) ─────────────────────────────
+# 실패 문항을 유저가 받은 결과로 가른다. 서열: 속는다 > 오류 표면화 >
+# 정직한 거절/부분 > 중복·토큰 낭비. 어휘는 응답 상태 규약(D6·D10·D14)에서 온다.
+# 이 채점기는 답변 LLM 을 안 태우므로 "오답 도구가 ok" 칸은 속는다/정직을
+# 원리적으로 못 가른다 — 사람 판정으로 넘기고, 판정은 harness-evaluation.md 에 적는다.
+HONEST = {"no_result", "partial", "entity_not_found", "ambiguous_entity", "out_of_scope"}
+SEVERITY = ["속는다", "오류 표면화", "정직한 거절/부분", "중복·토큰 낭비"]
+
+
+def user_outcome(exp_tools, exp_resp, got, results, state):
+    """`(범주, 로그 서명)` 을 돌려준다. exp_resp 는 회귀 세트에서 None 이다."""
+    raws = [results[t]["status"] for t in got if t in results] or [state]
+    if "error" in raws:
+        return "오류 표면화", "error"
+    if all(r in HONEST for r in raws):
+        return "정직한 거절/부분", raws[0]
+    # 내용 있는 응답(ok)이 유저에게 나갔다. 기대 도구가 전부 포함돼 있으면
+    # 맞는 답 + 잉여 도구다 — 로그만으로 중복이 확정된다 (#4 #10 의 무늬).
+    if exp_resp in (None, "single", "parallel_merge") and set(exp_tools) <= set(got):
+        return "중복·토큰 낭비", "초집합 병렬"
+    # 부분 겹침 — 기대 도구 중 일부가 살아 있으면 맞는 내용이 나갔을 수 있다 (#5 무늬).
+    if set(exp_tools) == set(got):
+        sig = "위장 ok"
+    elif set(exp_tools) & set(got):
+        sig = "부분 겹침"
+    else:
+        sig = "오답 도구 ok"
+    return "사람 판정 필요", sig
+
+
+def print_outcomes(items):
+    """0건 범주도 항상 찍는다 — D17 강제 한 줄("속는다를 늘리는 변경은 기각")의
+    관측 대상이 속는다 줄이라, 생략하면 실행마다 감시 대상이 안 보인다."""
+    manual = [x for x in items if x[1] == "사람 판정 필요"]
+    auto = [x for x in items if x[1] != "사람 판정 필요"]
+    print(f"  유저-결과 내역 — 실패 {len(items)}건 (자동 {len(auto)} · 사람 판정 {len(manual)})")
+    for cat in SEVERITY:
+        rows = [x for x in auto if x[1] == cat]
+        tail = ("   " + " ".join(f"{i}({sig})" for i, _, sig in rows)) if rows else ""
+        print(f"    {cat} {len(rows)}{tail}")
+    tail = ("   " + " ".join(f"{i}({sig})" for i, _, sig in manual)) if manual else ""
+    print(f"    ── 사람 판정 필요 {len(manual)}{tail}")
+
 
 def normalize(status):
     """도구 응답 상태를 채점 어휘로 옮긴다 — src/composition.ts 의 normalize 와 같다.
@@ -85,8 +128,9 @@ def score_edge():
     edge = json.load(open(os.path.join(ROOT, "edge-set", "edge-questions.json"), encoding="utf-8"))
     routing = execution = 0
     rows = []
+    outcomes = []
     for x in edge:
-        got, state, _ = answer(x["q"])
+        got, state, res = answer(x["q"])
         r_ok = set(got) == set(x["expected"]["routing"])
         e_ok = state == x["expected"]["response"]
         routing += r_ok
@@ -94,10 +138,13 @@ def score_edge():
         if not (r_ok and e_ok):
             rows.append((x["id"], x["case"], "R" if not r_ok else " ", "E" if not e_ok else " ",
                          f"{x['expected']['response']} → {state}", x["q"][:26]))
+            outcomes.append((x["id"], *user_outcome(x["expected"]["routing"],
+                                                    x["expected"]["response"], got, res, state)))
     n = len(edge)
     print(f"엣지 {n}문항  ·  라우팅 축 {routing}/{n}  ·  실행 축 {execution}/{n}")
     for r in rows:
         print(f"    {r[0]:8} {r[1]:3} {r[2]}{r[3]}  {r[4]:34} {r[5]}")
+    print_outcomes(outcomes)
 
 
 def score_regression():
@@ -105,15 +152,18 @@ def score_regression():
                           encoding="utf-8"))
     hit = 0
     rows = []
+    outcomes = []
     for i, x in enumerate(base):
-        got, _, _ = answer(x["q"])
+        got, state, res = answer(x["q"])
         if set(got) == {x["tool"]}:
             hit += 1
         else:
             rows.append((f"#{i}", f"기대[{x['tool']}] 실제{sorted(got)}", x["q"][:34]))
+            outcomes.append((f"#{i}", *user_outcome([x["tool"]], None, got, res, state)))
     print(f"\n회귀 {len(base)}문항  ·  라우팅 축 {hit}/{len(base)}")
     for r in rows:
         print(f"    {r[0]:5} {r[1]:52} {r[2]}")
+    print_outcomes(outcomes)
 
 
 if __name__ == "__main__":

@@ -134,5 +134,62 @@ if (excluded.length) {
   console.log(`  제외: ${excluded.map(([id, why]) => `${id}(${why})`).join(" ")}`);
 }
 
+// ── 유저-결과 내역 — 자동층 (docs/design.md D17) — 문항당 한 범주 ─────────
+// 서열: 속는다 > 오류 표면화 > 정직한 거절/부분 > 중복·토큰 낭비. 어휘는 응답
+// 상태 규약(D6·D10·D14). 분류 대상은 환각 위반 ∪ 응답 축 실패 ∪ 제외 행이고,
+// 축 점수는 위에서 그대로 센다 — 여기는 같은 실패를 유저-결과로 다시 갠 것이다.
+// "상태 ok + 답변 아니오" 칸은 로그 서명이 같아(X5-02 옳은 거절 vs X3-02 라벨
+// 불성립) 사람 판정으로 넘긴다. 판정 결과는 harness-evaluation.md 에 적는다.
+function outcome(r) {
+  const s = r.log.flat_status ?? "";
+  const v = verdict(r.log.answer_first_line);
+  if (r.set === "regression")
+    return NO_ANSWER.has(s) && v === "예" ? ["속는다", `${s}+예`] : null;
+  const fail = upstreamFail(r);
+  if (fail === "오류") return ["오류 표면화", "isError 가드"];
+  if (fail === "라우팅" && !NO_ANSWER.has(s)) {
+    const routed = r.log.routed_to ?? [];
+    const sup = r.expected.routing.every((t) => routed.includes(t));
+    if (sup)
+      return v === "예" ? ["중복·토큰 낭비", "초집합 병렬+예"]
+        : v === "아니오" ? ["정직한 거절/부분", "초집합 병렬+아니오"]
+        : ["사람 판정 필요", "초집합 병렬+판정 불가"];
+    // 부분 겹침 — 기대 도구 중 일부가 병합에 살아 있으면 맞는 내용이 나갔을 수
+    // 있다 (#5 와 같은 무늬). 속는다는 겹침 0 + `예` 에서만 자동 확정한다.
+    const inter = r.expected.routing.some((t) => routed.includes(t));
+    if (v === "예")
+      return inter ? ["사람 판정 필요", "부분 겹침 병렬+예"] : ["속는다", "오답 도구 ok+예"];
+    return ["사람 판정 필요", `${inter ? "부분 겹침 병렬" : "오답 도구 ok"}+${v ?? "판정 불가"}`];
+  }
+  if (fail)  // no_result, 혹은 라우팅 불일치가 답 없는 상태로 귀결된 행
+    return v === "예" ? ["속는다", `${s}+예`]
+      : v === "아니오" ? ["정직한 거절/부분", s]
+      : ["사람 판정 필요", `${s}+판정 불가`];
+  const want = label(r.expected.response);
+  if (v === want) return null;                       // 상류 건전 + 라벨 일치 — 실패가 아니다
+  if (v === "예") return ["속는다", `${s}+예(기대 아니오)`];
+  if (v === "아니오") return ["정직한 거절/부분", `${s}+아니오(기대 예)`];
+  return ["사람 판정 필요", "첫 줄 형식 불일치"];
+}
+
+const inv = [];
+for (const r of rows) {
+  const o = outcome(r);
+  if (o) inv.push([r.id, ...o]);
+}
+// 0건 범주도 항상 찍는다 — D17 강제 한 줄("속는다를 늘리는 변경은 기각")의
+// 관측 대상이 속는다 줄이라, 생략하면 실행마다 감시 대상이 안 보인다.
+const SEVERITY = ["속는다", "오류 표면화", "정직한 거절/부분", "중복·토큰 낭비"];
+const manual = inv.filter((x) => x[1] === "사람 판정 필요");
+const autoCls = inv.filter((x) => x[1] !== "사람 판정 필요");
+const detail = (rs) => (rs.length ? "   " + rs.map(([id, , sig]) => `${id}(${sig})`).join(" ") : "");
+console.log(`유저-결과 내역 — 실패 ${inv.length}건 (자동 ${autoCls.length} · 사람 판정 ${manual.length})`);
+for (const cat of SEVERITY) {
+  const rs = autoCls.filter((x) => x[1] === cat);
+  console.log(`  ${cat} ${rs.length}${detail(rs)}`);
+}
+console.log(`  ── 사람 판정 필요 ${manual.length}${detail(manual)}`);
+console.log(`  회귀 30문항은 기대 라벨이 없어 환각 위반만 잡힌다 (D7 · #18 범위)`);
+
 // 호출 축은 설계 불변식이므로 깨지면 실패다. 나머지 둘은 측정치다 (문서에 적는 수치).
 process.exit(callOk === rows.length ? 0 : 1);
