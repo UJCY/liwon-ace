@@ -256,9 +256,22 @@ async function runWarm() {
  * MCP 세션 하나를 18회에 재사용한다 (`scripts/agent-check.mjs` 관례).
  */
 const ROUNDS = 3;
-const SIG_FIELDS = [
-  "envelope_status", "routed_to", "matched_rule", "flat_status", "verdict", "context_json",
-];
+
+/**
+ * 결정적 서명 — 실행을 가로질러 같아야 하는 필드들. **이름을 한 자리에서만 적는다.**
+ *
+ * 목록과 추출을 따로 두면 필드를 더할 때 두 리터럴을 평행 수정하게 되는데, 그것이
+ * `src/agent/answer.ts` 가 #29 에서 이름 붙인 사고 무늬다. 비교 쪽은 이 객체의 키를
+ * 읽으므로 여기에 한 줄을 더하면 비교도 따라온다.
+ */
+const signature = (log) => ({
+  envelope_status: log.envelope_status,
+  routed_to: (log.routed_to ?? []).join(","),
+  matched_rule: log.matched_rule,
+  flat_status: log.flat_status,
+  verdict: verdict(log.answer_first_line),
+  context_json: log.context_json,
+});
 
 /** 두 문자열이 처음 갈리는 자리와 그 뒤 80자 — 긴 JSON 을 통째로 찍지 않는다. */
 function firstDiffWindow(a, b) {
@@ -278,14 +291,7 @@ async function runVerify() {
       const started = Date.now();
       const { log } = await answerQuestion(client, item.q);
       row.push({
-        sig: {
-          envelope_status: log.envelope_status,
-          routed_to: (log.routed_to ?? []).join(","),
-          matched_rule: log.matched_rule,
-          flat_status: log.flat_status,
-          verdict: verdict(log.answer_first_line),
-          context_json: log.context_json,
-        },
+        sig: signature(log),
         answer_text: log.answer_text,
         ms: Date.now() - started,
       });
@@ -299,7 +305,7 @@ async function runVerify() {
   // ① 결정적 서명 — 깨지면 실패다
   let broken = 0;
   for (const [i, item] of QUESTIONS.entries()) {
-    for (const f of SIG_FIELDS) {
+    for (const f of Object.keys(rounds[0][i].sig)) {
       const vals = rounds.map((row) => row[i].sig[f]);
       if (vals.every((v) => v === vals[0])) continue;
       broken++;
