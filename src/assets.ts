@@ -49,6 +49,11 @@ export const entityPattern = new RegExp(
 export const companySuffix = patterns.company_suffix;
 export const idPrefixes = patterns.id_prefixes;
 
+/** 제품 × 기술주제 격자 (#13). `vector_search` 의 T4-form 판정과 하네스가 **같은 파일**을 읽는다. */
+export const docTopics = readJson<{ topics: string[]; coverage: Record<string, string[]> }>(
+  "doc-topics.json",
+);
+
 export const annotatedSchema = read("schema-annotated.sql");
 
 /** 프롬프트 실물은 마크다운의 첫 코드블록이다. 코드에 두 번째 사본을 두지 않는다. */

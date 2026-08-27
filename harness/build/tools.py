@@ -256,6 +256,28 @@ def graph_facts(r):
     return []
 
 
+# 파생 — build_assets.py 가 index.json 기술문서 제목에서 뽑은 제품 × 기술주제 격자 (#13).
+# **서버와 같은 자산을 읽는다** — src/assets.ts 의 docTopics.
+_DT = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                  "assets", "doc-topics.json"), encoding="utf-8"))
+
+
+def _form_gap(question, matched):
+    """제품 × 기술주제 격자 검사 (#13, T4-form) — src/tools/vector-search.ts 의 `formGap`.
+
+    질문이 기술주제 어휘를 담고 매칭 개체에 제품이 있는데 어느 제품도 그 주제를
+    커버하지 않으면, 개체 청크가 있어도 요구 형태가 없는 것이다 — `ok` 가 아니라
+    `partial`. 유사도로는 못 가른다 — X5-02(0.520)가 X4-01(0.494)보다 높다 (실측).
+    주제어가 여럿이면 하나라도 커버될 때 검사를 통과시킨다 (보수 방향).
+    """
+    requested = [t for t in _DT["topics"] if t in question]
+    products = [e for e in matched if e["type"] == "product"]
+    if not requested or not products:
+        return False
+    covered = {t for p in products for t in _DT["coverage"].get(p["name"], [])}
+    return not any(t in covered for t in requested)
+
+
 def vector_search(question, qvec, threshold):
     """문서 청크 유사도 검색. 임계 미만이면 T4 — 인접 사실이 있으면 부분 응답.
 
@@ -284,9 +306,11 @@ def _vector_search(question, qvec, threshold):
                         FROM document_chunks WHERE {names}
                         ORDER BY embedding <=> '{v}' LIMIT 5;""")
         top = [(d, c, float(s)) for d, c, s in rows]
-        if top:
+        if top and not _form_gap(question, matched):
             return {"status": "ok", "data": [_chunk_row(r) for r in top]}
-        # 개체를 담은 청크가 0건 — T4. 아래에서 인접 사실을 붙여 부분 응답으로 승격한다.
+        # 개체 청크 0건(T4) 또는 격자 빈칸(T4-form, #13) — 아래에서 인접 사실을 붙여
+        # 부분 응답으로 승격한다. 격자 빈칸일 때 찾아 둔 청크는 싣지 않는다 —
+        # "API 인증" 질문 옆에 "API 키" 든 설치 본문을 놓으면 Q1 환각의 정확한 지점이다 (D10).
     else:
         rows = psql(f"""SELECT doc_id, content, 1 - (embedding <=> '{v}') AS sim
                         FROM document_chunks ORDER BY embedding <=> '{v}' LIMIT 5;""")

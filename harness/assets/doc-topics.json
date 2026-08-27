@@ -1,0 +1,42 @@
+{
+ "_provenance": "derived — documents/index.json 기술문서 제목에서 기계 추출 (dataset-analysis.md 3장 제품 × 기술주제 격자)",
+ "coverage": {
+  "Product-C1": [
+   "설치"
+  ],
+  "Product-C2": [
+   "아키텍처"
+  ],
+  "Product-C3": [
+   "아키텍처"
+  ],
+  "Product-C4": [
+   "운영"
+  ],
+  "Product-D1": [
+   "API"
+  ],
+  "Product-D2": [
+   "설치"
+  ],
+  "Product-D3": [
+   "성능"
+  ],
+  "Product-S1": [
+   "운영"
+  ],
+  "Product-S2": [
+   "성능"
+  ],
+  "Product-S3": [
+   "API"
+  ]
+ },
+ "topics": [
+  "API",
+  "설치",
+  "성능",
+  "아키텍처",
+  "운영"
+ ]
+}
