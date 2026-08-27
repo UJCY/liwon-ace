@@ -85,12 +85,32 @@ const observed = (log) =>
   `[ask] status=${log.envelope_status} routed_to=${(log.routed_to ?? []).join(",")} ` +
   `matched_rule=${log.matched_rule}`;
 
+/** 파싱 실패 시 떨어질 자리 — 합의문 "Q6 직후 해석 화면" 의 리터럴이다. */
+const FALLBACK_CTX = {
+  unavailable: { asset: "documents", reason: "form_not_covered" },
+  adjacent_facts: { source: "graph" },
+};
+
 /**
  * 해석 화면 — 합의문 "Q6 직후 해석 화면" 의 고정 사본이다.
  * 세 값만 Q6 의 `context_json` 실물에서 꺼내 채운다 — 화면이 실측과 어긋날 자리를 없앤다.
+ *
+ * **파싱이 실패해도 화면은 완주한다.** 여기서 던지면 t≈121초에 죽어 해석 화면과 실측
+ * 카드 23초를 통째로 잃는데, 그 23초가 이 영상의 착지점이다.
  */
 function interpretation(contextJson) {
-  const ctx = contextJson ? JSON.parse(contextJson) : {};
+  let ctx = {};
+  if (contextJson) {
+    try {
+      ctx = JSON.parse(contextJson);
+    } catch {
+      // 컨텍스트는 왔는데 읽히지 않는 경우 — 부분 응답 자체는 성립했으므로 합의문
+      // 리터럴로 떨어뜨린다. 봉투가 아예 없어 `context_json` 이 null 인 경우는 **잰 적이
+      // 없는 값**이라 여기로 오지 않고 아래에서 `(없음)` 으로 남는다 — 안 잰 값을 잰 것처럼
+      // 찍는 것이 이 영상이 반대하는 바로 그 일이다.
+      ctx = FALLBACK_CTX;
+    }
+  }
   const rows = [
     ["unavailable.asset", ctx.unavailable?.asset, "← Client-P 문서가 없다"],
     ["unavailable.reason", ctx.unavailable?.reason, "← 개체는 있다. '서술' 형태만 없다"],
