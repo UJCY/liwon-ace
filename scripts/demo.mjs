@@ -42,27 +42,46 @@ function section(title) {
  * 질문 6개 — 합의 확정. **변경 금지.** 4건이 공식 예시 질문
  * (`companyx-dataset-v1.0/questions.json`)이라 심사자가 원본과 대조할 수 있다.
  *
- * `secs` 는 그 구간에 배정한 초, `at` 은 t0 기준 절대 오프셋 초다.
- * 15(tools/list) + 13 + 13 + 16 + 12 + 16 + 36 + 10(해석) + 13(마무리) = 144.
+ * `secs` 는 그 구간에 배정한 초다. **누계는 여기 적지 않는다** — 아래에서 유도한다.
  */
 const QUESTIONS = [
   { q: "Client-A가 사용 중인 제품 목록은?", official: true,
-    title: "지식 그래프 — 규칙 라우터가 단일 도구를 고른다", secs: 13, at: 28 },
+    title: "지식 그래프 — 규칙 라우터가 단일 도구를 고른다", secs: 13 },
   { q: "평균 연봉이 가장 높은 부서는 어디야?", official: true,
-    title: "NL2SQL — 자연어를 SQL 로", secs: 13, at: 41 },
+    title: "NL2SQL — 자연어를 SQL 로", secs: 13 },
   { q: "최근 서버 장애 사례와 원인을 알려줘", official: true,
-    title: "병렬 호출 — 지식 그래프 + 벡터 검색 (parallel_merge)", secs: 16, at: 57 },
+    title: "병렬 호출 — 지식 그래프 + 벡터 검색 (parallel_merge)", secs: 16 },
   { q: "서울물산 담당 엔지니어는 누구야?", official: true,
-    title: "없는 개체 — entity_not_found. 지어내지 않는다", secs: 12, at: 69 },
+    title: "없는 개체 — entity_not_found. 지어내지 않는다", secs: 12 },
   { q: "박성민 님이 이끄는 프로젝트는?", official: false,
-    title: "동명이인 — ambiguous_entity. 되묻는다", secs: 16, at: 85 },
+    title: "동명이인 — ambiguous_entity. 되묻는다", secs: 16 },
   { q: "Client-P에서 발생한 장애의 원인이 뭐야?", official: false,
-    title: "부분 응답 — partial + 구조화 JSON", secs: 36, at: 121 },
+    title: "부분 응답 — partial + 구조화 JSON", secs: 36 },
 ];
 
-const AT_TOOLS = 15;    // tools/list
-const AT_INTERP = 131;  // 해석 10초
-const AT_END = 144;     // 마무리 13초 — 터미널 구간 총 길이 (슬라이드 20초를 더해 2:44)
+const SEC_TOOLS = 15;   // tools/list
+const SEC_INTERP = 10;  // 해석
+const SEC_OUTRO = 13;   // 마무리
+
+/**
+ * t0 기준 절대 오프셋 — 구간 초를 누적해 **유도한다.**
+ *
+ * 누계를 손으로 병행해 적으면 구간 초 하나를 고칠 때 고칠 자리가 여덟 곳으로 늘고,
+ * 그중 하나를 빠뜨리면 화면은 멀쩡히 돌아가면서 총 길이만 어긋난다.
+ * 합의가 고정한 것은 `AT_END === 144` (터미널 144초 + 슬라이드 20초 = 2:44)다.
+ */
+const AT_TOOLS = SEC_TOOLS;
+const AT_Q = [];
+let acc = AT_TOOLS;
+for (const item of QUESTIONS) AT_Q.push((acc += item.secs));
+const AT_INTERP = (acc += SEC_INTERP);
+const AT_END = (acc += SEC_OUTRO);
+
+// 누계를 유도로 바꾸면서 생긴 유일한 무증상 실패 경로를 여기서 막는다 — `secs` 오타는
+// 화면에 아무 표시를 안 남기고 총 길이만 어긋내므로, 촬영 전에 죽는 편이 낫다.
+if (AT_END !== 144) {
+  throw new Error(`터미널 구간 합계 ${AT_END}초 — 합의는 144초다 (secs 를 확인하라)`);
+}
 
 /** t0 기준 절대 시각까지만 잔다. 이미 지났으면 멈춤 0 — 초과분이 뒤로 안 번진다. */
 let t0 = 0;
@@ -175,7 +194,7 @@ async function runShow() {
   const last = QUESTIONS[QUESTIONS.length - 1];
   let lastContext = null;
   try {
-    for (const item of QUESTIONS) {
+    for (const [i, item] of QUESTIONS.entries()) {
       section(item.title);
       console.log(`질문. ${item.q}${item.official ? `   ${DIM}(공식 예시 질문)${OFF}` : ""}`);
       const { text, log } = await answerQuestion(client, item.q);
@@ -188,7 +207,7 @@ async function runShow() {
         console.log(`\n${DIM}프롬프트에 실제 들어간 컨텍스트 (log.context_json)${OFF}`);
         console.log(log.context_json);
       }
-      await sleepUntil(item.at);
+      await sleepUntil(AT_Q[i]);
     }
 
     section("이 응답이 왜 이렇게 생겼나");
