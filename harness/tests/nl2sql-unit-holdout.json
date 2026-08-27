@@ -1,0 +1,534 @@
+[
+ {
+  "id": "UG-sal-h-gt-l",
+  "cat": "UG",
+  "q": "연봉이 5천만원 넘는 직원 명단 알려줘.",
+  "ref": "SELECT name FROM employees WHERE salary > 5000",
+  "rows": 32,
+  "axes": {
+   "col": "sal",
+   "notation": "h",
+   "pred": "gt",
+   "form": "l"
+  },
+  "value": 5000
+ },
+ {
+  "id": "UG-sal-h-ge-c",
+  "cat": "UG",
+  "q": "연봉이 8천만원 이상인 직원은 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees WHERE salary >= 8000",
+  "rows": 1,
+  "axes": {
+   "col": "sal",
+   "notation": "h",
+   "pred": "ge",
+   "form": "c"
+  },
+  "value": 8000
+ },
+ {
+  "id": "UG-sal-h-lt-l",
+  "cat": "UG",
+  "q": "연봉이 4천만원 미만인 직원 명단 알려줘.",
+  "ref": "SELECT name FROM employees WHERE salary < 4000",
+  "rows": 1,
+  "axes": {
+   "col": "sal",
+   "notation": "h",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 4000
+ },
+ {
+  "id": "UG-sal-a-gt-c",
+  "cat": "UG",
+  "q": "연봉이 5000만원 넘는 직원은 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees WHERE salary > 5000",
+  "rows": 1,
+  "axes": {
+   "col": "sal",
+   "notation": "a",
+   "pred": "gt",
+   "form": "c"
+  },
+  "value": 5000
+ },
+ {
+  "id": "UG-sal-a-ge-l",
+  "cat": "UG",
+  "q": "연봉이 8000만원 이상인 직원 명단 알려줘.",
+  "ref": "SELECT name FROM employees WHERE salary >= 8000",
+  "rows": 4,
+  "axes": {
+   "col": "sal",
+   "notation": "a",
+   "pred": "ge",
+   "form": "l"
+  },
+  "value": 8000
+ },
+ {
+  "id": "UG-sal-a-lt-c",
+  "cat": "UG",
+  "q": "연봉이 4000만원 미만인 직원은 몇 명이야?",
+  "ref": "SELECT COUNT(*) FROM employees WHERE salary < 4000",
+  "rows": 1,
+  "axes": {
+   "col": "sal",
+   "notation": "a",
+   "pred": "lt",
+   "form": "c"
+  },
+  "value": 4000
+ },
+ {
+  "id": "UG-sal-e-lt-l",
+  "cat": "UG",
+  "q": "연봉이 1억원 미만인 직원 명단 알려줘.",
+  "ref": "SELECT name FROM employees WHERE salary < 10000",
+  "rows": 45,
+  "axes": {
+   "col": "sal",
+   "notation": "e",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 10000
+ },
+ {
+  "id": "UGC-sal-a",
+  "cat": "UGC",
+  "q": "연봉이 3000만원 미만인 직원 명단 알려줘.",
+  "ref": "SELECT name FROM employees WHERE salary < 3000",
+  "rows": 0,
+  "axes": {
+   "col": "sal",
+   "notation": "a",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 3000
+ },
+ {
+  "id": "UG-prc-h-gt-l",
+  "cat": "UG",
+  "q": "월 구독료가 3백만원 넘는 제품 목록 알려줘.",
+  "ref": "SELECT name FROM products WHERE price_monthly > 300",
+  "rows": 3,
+  "axes": {
+   "col": "prc",
+   "notation": "h",
+   "pred": "gt",
+   "form": "l"
+  },
+  "value": 300
+ },
+ {
+  "id": "UG-prc-h-ge-c",
+  "cat": "UG",
+  "q": "월 구독료가 2백만원 이상인 제품은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE price_monthly >= 200",
+  "rows": 1,
+  "axes": {
+   "col": "prc",
+   "notation": "h",
+   "pred": "ge",
+   "form": "c"
+  },
+  "value": 200
+ },
+ {
+  "id": "UG-prc-h-lt-l",
+  "cat": "UG",
+  "q": "월 구독료가 1백만원 미만인 제품 목록 알려줘.",
+  "ref": "SELECT name FROM products WHERE price_monthly < 100",
+  "rows": 1,
+  "axes": {
+   "col": "prc",
+   "notation": "h",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 100
+ },
+ {
+  "id": "UG-prc-a-gt-c",
+  "cat": "UG",
+  "q": "월 구독료가 300만원 넘는 제품은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE price_monthly > 300",
+  "rows": 1,
+  "axes": {
+   "col": "prc",
+   "notation": "a",
+   "pred": "gt",
+   "form": "c"
+  },
+  "value": 300
+ },
+ {
+  "id": "UG-prc-a-ge-l",
+  "cat": "UG",
+  "q": "월 구독료가 200만원 이상인 제품 목록 알려줘.",
+  "ref": "SELECT name FROM products WHERE price_monthly >= 200",
+  "rows": 6,
+  "axes": {
+   "col": "prc",
+   "notation": "a",
+   "pred": "ge",
+   "form": "l"
+  },
+  "value": 200
+ },
+ {
+  "id": "UG-prc-a-lt-c",
+  "cat": "UG",
+  "q": "월 구독료가 100만원 미만인 제품은 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM products WHERE price_monthly < 100",
+  "rows": 1,
+  "axes": {
+   "col": "prc",
+   "notation": "a",
+   "pred": "lt",
+   "form": "c"
+  },
+  "value": 100
+ },
+ {
+  "id": "UG-prc-e-lt-l",
+  "cat": "UG",
+  "q": "월 구독료가 1억원 미만인 제품 목록 알려줘.",
+  "ref": "SELECT name FROM products WHERE price_monthly < 10000",
+  "rows": 12,
+  "axes": {
+   "col": "prc",
+   "notation": "e",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 10000
+ },
+ {
+  "id": "UGC-prc-h",
+  "cat": "UGC",
+  "q": "월 구독료가 6백만원 넘는 제품 목록 알려줘.",
+  "ref": "SELECT name FROM products WHERE price_monthly > 600",
+  "rows": 0,
+  "axes": {
+   "col": "prc",
+   "notation": "h",
+   "pred": "gt",
+   "form": "l"
+  },
+  "value": 600
+ },
+ {
+  "id": "UGC-prc-e",
+  "cat": "UGC",
+  "q": "월 구독료가 1억원 넘는 제품 목록 알려줘.",
+  "ref": "SELECT name FROM products WHERE price_monthly > 10000",
+  "rows": 0,
+  "axes": {
+   "col": "prc",
+   "notation": "e",
+   "pred": "gt",
+   "form": "l"
+  },
+  "value": 10000
+ },
+ {
+  "id": "UG-amt-h-gt-l",
+  "cat": "UG",
+  "q": "계약 금액이 5천만원 넘는 계약 목록 알려줘.",
+  "ref": "SELECT id FROM contracts WHERE amount > 5000",
+  "rows": 14,
+  "axes": {
+   "col": "amt",
+   "notation": "h",
+   "pred": "gt",
+   "form": "l"
+  },
+  "value": 5000
+ },
+ {
+  "id": "UG-amt-h-ge-c",
+  "cat": "UG",
+  "q": "계약 금액이 3천만원 이상인 계약은 몇 건이야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE amount >= 3000",
+  "rows": 1,
+  "axes": {
+   "col": "amt",
+   "notation": "h",
+   "pred": "ge",
+   "form": "c"
+  },
+  "value": 3000
+ },
+ {
+  "id": "UG-amt-h-lt-l",
+  "cat": "UG",
+  "q": "계약 금액이 1천만원 미만인 계약 목록 알려줘.",
+  "ref": "SELECT id FROM contracts WHERE amount < 1000",
+  "rows": 9,
+  "axes": {
+   "col": "amt",
+   "notation": "h",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 1000
+ },
+ {
+  "id": "UG-amt-a-gt-c",
+  "cat": "UG",
+  "q": "계약 금액이 5000만원 넘는 계약은 몇 건이야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE amount > 5000",
+  "rows": 1,
+  "axes": {
+   "col": "amt",
+   "notation": "a",
+   "pred": "gt",
+   "form": "c"
+  },
+  "value": 5000
+ },
+ {
+  "id": "UG-amt-a-ge-l",
+  "cat": "UG",
+  "q": "계약 금액이 3000만원 이상인 계약 목록 알려줘.",
+  "ref": "SELECT id FROM contracts WHERE amount >= 3000",
+  "rows": 34,
+  "axes": {
+   "col": "amt",
+   "notation": "a",
+   "pred": "ge",
+   "form": "l"
+  },
+  "value": 3000
+ },
+ {
+  "id": "UG-amt-a-lt-c",
+  "cat": "UG",
+  "q": "계약 금액이 1000만원 미만인 계약은 몇 건이야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE amount < 1000",
+  "rows": 1,
+  "axes": {
+   "col": "amt",
+   "notation": "a",
+   "pred": "lt",
+   "form": "c"
+  },
+  "value": 1000
+ },
+ {
+  "id": "UG-amt-e-gt-l",
+  "cat": "UG",
+  "q": "계약 금액이 1억원 넘는 계약 목록 알려줘.",
+  "ref": "SELECT id FROM contracts WHERE amount > 10000",
+  "rows": 1,
+  "axes": {
+   "col": "amt",
+   "notation": "e",
+   "pred": "gt",
+   "form": "l"
+  },
+  "value": 10000
+ },
+ {
+  "id": "UG-amt-e-ge-c",
+  "cat": "UG",
+  "q": "계약 금액이 1억원 이상인 계약은 몇 건이야?",
+  "ref": "SELECT COUNT(*) FROM contracts WHERE amount >= 10000",
+  "rows": 1,
+  "axes": {
+   "col": "amt",
+   "notation": "e",
+   "pred": "ge",
+   "form": "c"
+  },
+  "value": 10000
+ },
+ {
+  "id": "UG-amt-e-lt-l",
+  "cat": "UG",
+  "q": "계약 금액이 1억원 미만인 계약 목록 알려줘.",
+  "ref": "SELECT id FROM contracts WHERE amount < 10000",
+  "rows": 64,
+  "axes": {
+   "col": "amt",
+   "notation": "e",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 10000
+ },
+ {
+  "id": "UGC-amt-a",
+  "cat": "UGC",
+  "q": "계약 금액이 400만원 미만인 계약 목록 알려줘.",
+  "ref": "SELECT id FROM contracts WHERE amount < 400",
+  "rows": 0,
+  "axes": {
+   "col": "amt",
+   "notation": "a",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 400
+ },
+ {
+  "id": "UG-bdg-h-gt-l",
+  "cat": "UG",
+  "q": "예산이 8천만원 넘는 프로젝트 목록 알려줘.",
+  "ref": "SELECT name FROM projects WHERE budget > 8000",
+  "rows": 17,
+  "axes": {
+   "col": "bdg",
+   "notation": "h",
+   "pred": "gt",
+   "form": "l"
+  },
+  "value": 8000
+ },
+ {
+  "id": "UG-bdg-h-ge-c",
+  "cat": "UG",
+  "q": "예산이 5천만원 이상인 프로젝트는 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE budget >= 5000",
+  "rows": 1,
+  "axes": {
+   "col": "bdg",
+   "notation": "h",
+   "pred": "ge",
+   "form": "c"
+  },
+  "value": 5000
+ },
+ {
+  "id": "UG-bdg-h-lt-l",
+  "cat": "UG",
+  "q": "예산이 3천만원 미만인 프로젝트 목록 알려줘.",
+  "ref": "SELECT name FROM projects WHERE budget < 3000",
+  "rows": 6,
+  "axes": {
+   "col": "bdg",
+   "notation": "h",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 3000
+ },
+ {
+  "id": "UG-bdg-a-gt-c",
+  "cat": "UG",
+  "q": "예산이 8000만원 넘는 프로젝트는 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE budget > 8000",
+  "rows": 1,
+  "axes": {
+   "col": "bdg",
+   "notation": "a",
+   "pred": "gt",
+   "form": "c"
+  },
+  "value": 8000
+ },
+ {
+  "id": "UG-bdg-a-ge-l",
+  "cat": "UG",
+  "q": "예산이 5000만원 이상인 프로젝트 목록 알려줘.",
+  "ref": "SELECT name FROM projects WHERE budget >= 5000",
+  "rows": 27,
+  "axes": {
+   "col": "bdg",
+   "notation": "a",
+   "pred": "ge",
+   "form": "l"
+  },
+  "value": 5000
+ },
+ {
+  "id": "UG-bdg-a-lt-c",
+  "cat": "UG",
+  "q": "예산이 3000만원 미만인 프로젝트는 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE budget < 3000",
+  "rows": 1,
+  "axes": {
+   "col": "bdg",
+   "notation": "a",
+   "pred": "lt",
+   "form": "c"
+  },
+  "value": 3000
+ },
+ {
+  "id": "UG-bdg-e-gt-l",
+  "cat": "UG",
+  "q": "예산이 1억원 넘는 프로젝트 목록 알려줘.",
+  "ref": "SELECT name FROM projects WHERE budget > 10000",
+  "rows": 8,
+  "axes": {
+   "col": "bdg",
+   "notation": "e",
+   "pred": "gt",
+   "form": "l"
+  },
+  "value": 10000
+ },
+ {
+  "id": "UG-bdg-e-ge-c",
+  "cat": "UG",
+  "q": "예산이 1억 2천만원 이상인 프로젝트는 몇 개야?",
+  "ref": "SELECT COUNT(*) FROM projects WHERE budget >= 12000",
+  "rows": 1,
+  "axes": {
+   "col": "bdg",
+   "notation": "e",
+   "pred": "ge",
+   "form": "c"
+  },
+  "value": 12000
+ },
+ {
+  "id": "UG-bdg-e-lt-l",
+  "cat": "UG",
+  "q": "예산이 1억원 미만인 프로젝트 목록 알려줘.",
+  "ref": "SELECT name FROM projects WHERE budget < 10000",
+  "rows": 32,
+  "axes": {
+   "col": "bdg",
+   "notation": "e",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 10000
+ },
+ {
+  "id": "UGC-bdg-h",
+  "cat": "UGC",
+  "q": "예산이 8백만원 미만인 프로젝트 목록 알려줘.",
+  "ref": "SELECT name FROM projects WHERE budget < 800",
+  "rows": 0,
+  "axes": {
+   "col": "bdg",
+   "notation": "h",
+   "pred": "lt",
+   "form": "l"
+  },
+  "value": 800
+ },
+ {
+  "id": "UGC-bdg-e",
+  "cat": "UGC",
+  "q": "예산이 2억원 넘는 프로젝트 목록 알려줘.",
+  "ref": "SELECT name FROM projects WHERE budget > 20000",
+  "rows": 0,
+  "axes": {
+   "col": "bdg",
+   "notation": "e",
+   "pred": "gt",
+   "form": "l"
+  },
+  "value": 20000
+ }
+]

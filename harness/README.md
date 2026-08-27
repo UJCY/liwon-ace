@@ -14,10 +14,14 @@ harness/
 │   ├── router.py           ← 판별 함수 (두 러너가 공유)
 │   ├── tools.py            ← vector_search · knowledge_graph 실행부
 │   ├── load_pg.py          ← 문서 청크·임베딩·그래프를 PostgreSQL 에 적재
-│   └── run_e2e.py          ← 도구까지 태워 실행 축을 잰다
+│   ├── run_e2e.py          ← 도구까지 태워 실행 축을 잰다
+│   ├── build_unit_grid.py  ← 단위 어형 격자 76문항 생성 + 기준 단언 (#39)
+│   ├── check_grounding.py  ← 0행 접지 검출기 — 기록된 SQL 위 오프라인 평가
+│   └── retry_unit.py       ← 접지 재시도 시뮬레이션 (dev 기각 — 위장 2)
 ├── assets/                 ← 파생 자산은 손으로 고치지 않는다. 저작 자산은 _provenance 로 표시
 │   ├── schema-annotated.sql
 │   ├── column-values.json
+│   ├── column-ranges.json
 │   ├── surface-gate.json
 │   ├── tool-signatures.json
 │   ├── model.json
