@@ -16,7 +16,8 @@ harness/
 │   ├── load_pg.py          ← 문서 청크·임베딩·그래프를 PostgreSQL 에 적재
 │   ├── run_e2e.py          ← 도구까지 태워 실행 축을 잰다
 │   ├── build_unit_grid.py  ← 단위 어형 격자 76문항 생성 + 기준 단언 (#39)
-│   ├── check_grounding.py  ← 0행 접지 검출기 — 기록된 SQL 위 오프라인 평가
+│   ├── check_grounding.py  ← 0행 접지 **판정 정의의 원본** — tools.py 와 서버 nl2sql 이
+│   │                          같은 판정을 쓴다 (#6). 기록된 SQL 위 오프라인 평가도 겸한다
 │   ├── check_pair_signal.py ← 병렬 짝 신호 동결 검사 — 합의문 책상 검증 표 6행 (#12)
 │   └── retry_unit.py       ← 접지 재시도 시뮬레이션 (dev 기각 — 위장 2)
 ├── assets/                 ← 파생 자산은 손으로 고치지 않는다. 저작 자산은 _provenance 로 표시
@@ -47,6 +48,7 @@ harness/
 | `pair-axes.json` | 병렬 짝의 **목록 변**(`nl2sql` vs `knowledge_graph`)을 가르는 두 축의 어휘 (테이블 20 · 그래프 19). **새 낱말이 없다** — 게이트 표층형(파생) + `nl2sql` 시그니처 명사(저작) + `RELATION_WORDS`(저작)를 모은 것이고, 양쪽 축에 걸리는 `프로젝트` 는 기계적으로 배제한다 (이슈 #12) | 병렬 **짝 선택** (`run_e2e.py` · `src/composition.ts`) |
 | `tool-signatures.json` | 도구 3종의 능력 서술 각 1문장. **사람이 썼다** — D11-1 표를 문장화한 것이고 데이터셋에서 도출된 것이 아니다 | 라우터 **도구 선택** (임베딩) |
 | `model.json` | 모델명·호출 옵션·임계값 | 전 호출 지점 |
+| `column-ranges.json` | 금액 4컬럼의 실측 최소·최대 (만원). **파생** — `build_unit_grid.py` 가 생성한다 | 접지 검출 — 서버 `nl2sql` 과 하네스가 **같은 파일**을 읽는다 (#6) |
 
 **`surface-gate.json`은 거절 판단에만 관여한다 — 구조적으로.** 게이트는 "스키마 어휘가 걸렸는가"만
 본다. 게이트 히트가 도구를 직접 반환하는 경로는 없다 — R5 구제가 거절 직전에 있기 때문이다

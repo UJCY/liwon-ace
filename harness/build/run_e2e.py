@@ -32,7 +32,9 @@ HAS_CONTENT = {"ok"}
 # 정직한 거절/부분 > 중복·토큰 낭비. 어휘는 응답 상태 규약(D6·D10·D14)에서 온다.
 # 이 채점기는 답변 LLM 을 안 태우므로 "오답 도구가 ok" 칸은 속는다/정직을
 # 원리적으로 못 가른다 — 사람 판정으로 넘기고, 판정은 harness-evaluation.md 에 적는다.
-HONEST = {"no_result", "partial", "entity_not_found", "ambiguous_entity", "out_of_scope"}
+# `ungrounded` 도 정직 쪽이다 — 어휘 출처는 D19 응답 상태 규약이다 (D17 허용 범위).
+HONEST = {"no_result", "partial", "entity_not_found", "ambiguous_entity", "out_of_scope",
+          "ungrounded"}
 SEVERITY = ["속는다", "오류 표면화", "정직한 거절/부분", "중복·토큰 낭비"]
 
 
@@ -118,8 +120,9 @@ def normalize(status):
 
     `error` 도 `single` 로 접는 것은 채점 축의 규약이다. 실행 실패 자체는
     서버 쪽에서 MCP 응답의 `isError` 로 올라간다 (docs/edge-cases.md 공통 규약).
+    `ungrounded` 도 같이 접는다 — 어휘 출처는 D19 이다 (D17 허용 범위).
     """
-    return "single" if status in ("ok", "no_result", "error") else status
+    return "single" if status in ("ok", "no_result", "error", "ungrounded") else status
 
 
 def run_tool(tool, question, qvec):

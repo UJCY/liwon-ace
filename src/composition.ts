@@ -47,9 +47,14 @@ export interface Composed {
  * MCP 에러 2계층 판정의 입력이다 — 실행 실패(T1·T6)만 `isError` 이고
  * 데이터 부재(`no_result`·`partial`·`entity_not_found`)는 정상 결과다
  * (docs/edge-cases.md 공통 규약).
+ *
+ * **`status` 만 읽는다.** 그래서 받는 타입도 그만큼이다 — `ask` 는 선별을 거쳐 필드가
+ * 줄어든 결과(`curation.ts` 의 `CuratedResult`)를 넘기는데, 실행 실패 판정에 필요한 것은
+ * 그때도 `status` 뿐이다.
  */
-export const hasExecutionError = (results: Composed["results"]): boolean =>
-  Object.values(results).some((r) => r?.status === "error");
+export const hasExecutionError = (
+  results: Partial<Record<ToolName, { status: string }>>,
+): boolean => Object.values(results).some((r) => r?.status === "error");
 
 export interface PairChoice {
   pair: ToolName[];
@@ -118,6 +123,10 @@ export async function compose(question: string): Promise<Composed> {
  * `error` 도 `single` 로 접는 것은 **채점 축의 규약**이다 — 라우팅이 맞았는지를
  * 실행 실패가 가리면 안 된다. 실행 실패 자체는 `results` 안에 남고 MCP 응답의
  * `isError` 로 올라간다 (hasExecutionError).
+ *
+ * `ungrounded` 도 같이 접는다 — 독립 `ComposedState` 로 두면 기대가 `single` 인
+ * `OP-02`·`R4-02` 가 엣지 실행 축에서 −2 다 (D19). `HAS_CONTENT` 는 `{"ok"}` 그대로다:
+ * `ungrounded` 는 내용 있는 갈래가 아니므로 병렬 생존으로 세지 않는다.
  */
 const normalize = (s: ToolResult["status"]): ComposedState =>
-  s === "ok" || s === "no_result" || s === "error" ? "single" : s;
+  s === "ok" || s === "no_result" || s === "error" || s === "ungrounded" ? "single" : s;
